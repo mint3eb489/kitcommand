@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Küchen-Kommissionen</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        trueBlack: '#000000',
+                        darkCard: '#121212',
+                        darkBorder: '#262626',
+                        gold: { DEFAULT: '#fbbf24' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { transition: background-color 0.2s; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        .input-field { border: 1.5px solid #e2e8f0; border-radius: 0.75rem; padding: 0.8rem; width: 100%; outline: none; font-weight: 600; font-size: 16px; transition: all 0.2s; background: transparent; }
+        .dark .input-field { border-color: #333; color: white; background-color: #1a1a1a; }
+        .input-field:focus { border-color: #3b82f6; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15); }
+        .dark .input-field:focus { border-color: #3b82f6; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.35); }
+        .card { background: white; border-radius: 1.25rem; border: 1px solid #e2e8f0; transition: border-color 0.2s, box-shadow 0.2s; }
+        .dark .card { background: #121212; border-color: #262626; }
+        .pro-badge { display: inline-flex; align-items: center; border: 1.2px solid #fbbf24; color: #fbbf24; border-radius: 5px; padding: 2px 6px; font-size: 0.45em; font-weight: 900; margin-left: 10px; vertical-align: middle; transform: translateY(-2px); }
+        
+        .modal-fade { animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        /* Custom Checkbox passend zum LithoScale-Look */
+        .custom-checkbox { width: 1.25rem; height: 1.25rem; cursor: pointer; accent-color: #3b82f6; }
+        
+        /* Verhindert Layout-Sprünge bei Zahlen */
+        .font-mono-tabular { font-variant-numeric: tabular-nums; }
+    </style>
+</head>
+<body class="p-3 md:p-8 bg-slate-50 dark:bg-trueBlack text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Cloud Sync Status Bar -->
+    <div id="cloud-status" class="fixed top-4 right-4 text-[9px] font-bold uppercase tracking-widest z-50 flex flex-col items-end gap-1 pointer-events-none">
+        <div class="flex items-center gap-2 bg-white/90 dark:bg-black/80 p-2 px-3 rounded-full shadow-lg border dark:border-darkBorder backdrop-blur-md">
+            <span id="status-text" class="text-slate-400">Verbinde...</span>
+            <div id="status-icon" class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+        </div>
+        <div id="error-display" class="hidden text-[8px] text-red-500 bg-red-500/10 p-2 px-3 rounded-lg border border-red-500/20 max-w-[250px] text-right pointer-events-auto"></div>
+    </div>
+
+    <div class="max-w-6xl mx-auto w-full flex-1 pt-8 lg:pt-0">
+        <!-- Header im LithoScale Style -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-10 gap-4 mt-4 lg:mt-0">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 bg-black dark:bg-white rounded-2xl flex items-center justify-center shadow-2xl border border-white/10 shrink-0">
+                    <svg class="w-8 h-8 text-blue-500 dark:text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-black flex items-center tracking-tighter select-none">
+                        KitCommand <span class="pro-badge hidden sm:inline-flex">PRO</span>
+                    </h1>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <!-- Theme Toggle -->
+                <div class="flex bg-white dark:bg-darkCard p-1 rounded-2xl border dark:border-darkBorder shadow-sm shrink-0">
+                    <button onclick="toggleTheme()" class="p-3 rounded-xl transition-all active:scale-95 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800" title="Design wechseln">
+                        <svg id="sunIcon" class="w-5 h-5 text-amber-500 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"></path></svg>
+                        <svg id="moonIcon" class="w-5 h-5 text-slate-700 dark:text-slate-300" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-stretch pb-20">
+            
+            <!-- LINKE SPALTE: Offen -->
+            <section class="card p-6 flex flex-col h-full">
+                <h2 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-5 border-b dark:border-darkBorder pb-3">Offene Kommissionen</h2>
+                
+                <!-- Eingabe -->
+                <form id="add-commission-form" class="bg-slate-50 dark:bg-black p-4 md:p-5 rounded-xl border border-slate-200 dark:border-darkBorder mb-6 flex flex-col gap-4 focus-within:border-blue-500 focus-within:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <input type="text" id="comm-name" placeholder="Kunde / Kommissions-Nr." required class="input-field text-sm">
+                        <div class="relative">
+                            <input type="number" id="comm-price" placeholder="Kaufpreis" required min="0" step="0.01" inputmode="decimal" class="input-field text-sm font-mono text-left pl-3 pr-8">
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">€</span>
+                        </div>
+                    </div>
+                    <button type="submit" class="bg-blue-600 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-600/20 active:scale-95 transition-all w-full">
+                        Anlegen
+                    </button>
+                </form>
+
+                <!-- Liste -->
+                <div id="open-list" class="flex-1 overflow-y-auto space-y-3 pr-2 min-h-[300px]">
+                    <!-- Wird dynamisch befüllt -->
+                </div>
+            </section>
+
+            <!-- RECHTE SPALTE: Verkauft -->
+            <section class="card p-6 flex flex-col h-full">
+                <div class="flex justify-between items-center mb-5 border-b dark:border-darkBorder pb-3">
+                    <h2 class="text-[10px] font-black uppercase tracking-widest text-emerald-500">Verkaufte Kommissionen</h2>
+                    <span id="sold-count" class="text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded-md">0</span>
+                </div>
+                
+                <!-- Liste -->
+                <div id="sold-list" class="flex-1 overflow-y-auto space-y-4 pr-2 min-h-[300px]">
+                    <!-- Wird dynamisch befüllt -->
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Error Modal (Angepasst an LithoScale Design) -->
+    <div id="error-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
+        <div class="card p-8 max-w-sm w-full shadow-2xl modal-fade border-red-500/50">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </div>
+                <h2 class="text-xl font-black tracking-tight text-red-500">Fehler</h2>
+                <p id="error-message" class="text-xs text-slate-500 mt-2 font-medium"></p>
+            </div>
+            <button onclick="document.getElementById('error-modal').classList.add('hidden')" class="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 active:scale-95 transition-transform">Schließen</button>
+        </div>
+    </div>
+
+    <!-- Firebase v9 Modular SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- KONFIGURATION FÜR GITHUB PAGES ---
+        const myGitHubPagesConfig = {
+            apiKey: "DEIN_API_KEY",
+            authDomain: "DEINE_DOMAIN.firebaseapp.com",
+            projectId: "DEIN_PROJECT_ID",
+            storageBucket: "DEIN_PROJECT_ID.appspot.com",
+            messagingSenderId: "DEINE_SENDER_ID",
+            appId: "DEINE_APP_ID"
+        };
+
+        // Dynamische Weiche (Canvas Umgebung vs. Eigenes Hosting)
+        let firebaseConfig;
+        let isCanvasEnv = typeof __firebase_config !== 'undefined';
+        
+        if (isCanvasEnv) {
+            firebaseConfig = JSON.parse(__firebase_config);
+        } else {
+            firebaseConfig = myGitHubPagesConfig;
+        }
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // State
+        let commissionsData = [];
+        let currentUser = null;
+        let unsubscribeSnapshot = null;
+
+        // DOM Elemente
+        const formEl = document.getElementById('add-commission-form');
+        const openListEl = document.getElementById('open-list');
+        const soldListEl = document.getElementById('sold-list');
+
+        const updateStatus = (text, colorClass, debugMsg = "") => {
+            const elText = document.getElementById('status-text');
+            const elIcon = document.getElementById('status-icon');
+            const elErr = document.getElementById('error-display');
+            if (elText) elText.innerText = text;
+            if (elIcon) elIcon.className = `w-2 h-2 rounded-full ${colorClass}`;
+            if (debugMsg && elErr) {
+                elErr.innerText = debugMsg;
+                elErr.classList.remove('hidden');
+            } else if (elErr) {
+                elErr.classList.add('hidden');
+            }
+        };
+
+        function showError(msg) {
+            document.getElementById('error-message').innerText = msg;
+            document.getElementById('error-modal').classList.remove('hidden');
+        }
+
+        function getDbCollection() {
+            if (isCanvasEnv && currentUser) {
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                return collection(db, 'artifacts', appId, 'users', currentUser.uid, 'kuechen_commissions');
+            } else {
+                // WICHTIG: Nutzt eine andere Collection als die LithoScale App!
+                return collection(db, 'kuechen_commissions');
+            }
+        }
+
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                showError("Auth fehlgeschlagen: " + error.message);
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                updateStatus("Authentifiziert", "bg-blue-500 animate-pulse");
+                startListening();
+            } else {
+                currentUser = null;
+                updateStatus("Getrennt", "bg-slate-400");
+                if (unsubscribeSnapshot) unsubscribeSnapshot();
+            }
+        });
+
+        function startListening() {
+            if (unsubscribeSnapshot) unsubscribeSnapshot();
+            const colRef = getDbCollection();
+            
+            updateStatus("Lade Daten...", "bg-blue-500 animate-pulse");
+            
+            unsubscribeSnapshot = onSnapshot(colRef, (snapshot) => {
+                commissionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderUI();
+                updateStatus("Live Sync", "bg-green-500");
+            }, (error) => {
+                showError("Fehler beim Laden: " + error.message);
+                updateStatus("Sync Fehler", "bg-red-500", error.message);
+            });
+        }
+
+        // --- EVENTS ---
+        formEl.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUser) return;
+
+            const nameInput = document.getElementById('comm-name');
+            const priceInput = document.getElementById('comm-price');
+            
+            const newCommission = {
+                name: nameInput.value.trim(),
+                price: parseFloat(priceInput.value),
+                status: "open",
+                installationsplan: false,
+                abVerschickt: false,
+                aufmass: false,
+                bestellt: false,
+                createdAt: new Date().toISOString()
+            };
+
+            try {
+                updateStatus("Speichere...", "bg-amber-500 animate-pulse");
+                const colRef = getDbCollection();
+                await addDoc(colRef, newCommission);
+                nameInput.value = '';
+                priceInput.value = '';
+                nameInput.focus();
+            } catch (error) {
+                showError("Fehler beim Speichern: " + error.message);
+                updateStatus("Fehler", "bg-red-500", error.message);
+            }
+        });
+
+        // Global am Window-Objekt registrieren für Inline-HTML-Aufrufe
+        window.updateCommissionField = async (id, field, value) => {
+            if (!currentUser) return;
+            try {
+                updateStatus("Update...", "bg-amber-500 animate-pulse");
+                const docRef = doc(getDbCollection(), id);
+                await updateDoc(docRef, { [field]: value });
+            } catch (error) {
+                showError("Fehler beim Aktualisieren: " + error.message);
+                updateStatus("Fehler", "bg-red-500", error.message);
+            }
+        };
+
+        window.deleteCommission = async (id) => {
+            if (!currentUser) return;
+            if(!confirm("Kommission endgültig löschen?")) return;
+            try {
+                updateStatus("Lösche...", "bg-amber-500 animate-pulse");
+                const docRef = doc(getDbCollection(), id);
+                await deleteDoc(docRef);
+            } catch (error) {
+                showError("Fehler beim Löschen: " + error.message);
+                updateStatus("Fehler", "bg-red-500", error.message);
+            }
+        };
+
+        // --- RENDER LOGIK ---
+        function renderUI() {
+            openListEl.innerHTML = '';
+            soldListEl.innerHTML = '';
+
+            const sortedData = [...commissionsData].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+            const openItems = sortedData.filter(c => c.status === 'open');
+            const soldItems = sortedData.filter(c => c.status === 'sold');
+            
+            document.getElementById('sold-count').innerText = soldItems.length;
+
+            if (openItems.length === 0) {
+                openListEl.innerHTML = '<div class="text-center p-6 text-slate-400 dark:text-slate-600 font-bold text-sm">Keine offenen Kommissionen.</div>';
+            }
+            if (soldItems.length === 0) {
+                soldListEl.innerHTML = '<div class="text-center p-6 text-slate-400 dark:text-slate-600 font-bold text-sm">Noch keine Verkäufe.</div>';
+            }
+
+            const formatter = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
+
+            openItems.forEach(comm => {
+                const card = document.createElement('div');
+                card.className = "bg-white dark:bg-darkCard p-4 rounded-xl border border-slate-200 dark:border-darkBorder flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all hover:border-blue-500 shadow-sm group";
+                
+                card.innerHTML = `
+                    <div class="flex-1 w-full">
+                        <div class="flex justify-between items-start">
+                            <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100 break-all">${escapeHtml(comm.name)}</h3>
+                            <button onclick="window.deleteCommission('${comm.id}')" class="text-slate-300 hover:text-red-500 transition-colors w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-500/10 font-bold active:scale-90 opacity-0 group-hover:opacity-100 sm:-mt-2 sm:-mr-2" title="Löschen">✕</button>
+                        </div>
+                        <p class="font-mono text-blue-500 font-bold text-xs mt-1 font-mono-tabular">${formatter.format(comm.price)}</p>
+                    </div>
+                    <button onclick="window.updateCommissionField('${comm.id}', 'status', 'sold')" class="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs tracking-widest uppercase shadow-md active:scale-95 transition-all w-full sm:w-auto shrink-0">
+                        Verkaufen
+                    </button>
+                `;
+                openListEl.appendChild(card);
+            });
+
+            soldItems.forEach(comm => {
+                const card = document.createElement('div');
+                // Optisches Feedback wenn alles angehakt ist
+                const allDone = comm.installationsplan && comm.aufmass && comm.abVerschickt && comm.bestellt;
+                const borderClass = allDone ? "border-emerald-500/50 bg-emerald-500/5 dark:bg-emerald-500/5" : "border-slate-200 dark:border-darkBorder bg-white dark:bg-darkCard";
+                
+                card.className = `p-4 rounded-xl border ${borderClass} shadow-sm transition-all mb-4`;
+                
+                card.innerHTML = `
+                    <div class="mb-3 border-b border-slate-100 dark:border-white/5 pb-3 flex justify-between items-start">
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100 mb-1">${escapeHtml(comm.name)}</h3>
+                            <span class="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded uppercase tracking-widest font-mono-tabular">${formatter.format(comm.price)}</span>
+                        </div>
+                        <button onclick="window.updateCommissionField('${comm.id}', 'status', 'open')" class="text-[10px] font-bold text-slate-400 hover:text-blue-500 uppercase tracking-widest transition-colors active:scale-95 bg-slate-100 dark:bg-white/5 px-2 py-1 rounded" title="Zurücksetzen">Zurück</button>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                        ${createCheckbox(comm, 'installationsplan', 'Plan erstellt')}
+                        ${createCheckbox(comm, 'aufmass', 'Aufmaß erledigt')}
+                        ${createCheckbox(comm, 'abVerschickt', 'AB verschickt')}
+                        ${createCheckbox(comm, 'bestellt', 'Küche bestellt')}
+                    </div>
+                `;
+                soldListEl.appendChild(card);
+            });
+        }
+
+        function createCheckbox(comm, field, label) {
+            const isChecked = comm[field];
+            const textClass = isChecked ? 'text-slate-400 dark:text-slate-600 line-through' : 'text-slate-700 dark:text-slate-300';
+            const bgClass = isChecked ? 'bg-slate-50 dark:bg-black/50' : 'hover:bg-slate-50 dark:hover:bg-white/5';
+            
+            return `
+                <label class="flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all active:scale-[0.98] ${bgClass} border border-transparent ${isChecked ? '' : 'hover:border-slate-200 dark:hover:border-darkBorder'}">
+                    <input type="checkbox" 
+                           class="custom-checkbox rounded shadow-inner" 
+                           ${isChecked ? 'checked' : ''} 
+                           onchange="window.updateCommissionField('${comm.id}', '${field}', this.checked)">
+                    <span class="text-xs font-bold ${textClass} transition-colors">${label}</span>
+                </label>
+            `;
+        }
+
+        function escapeHtml(unsafe) {
+            return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // --- THEME LOGIK ---
+        window.toggleTheme = () => {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('kk_theme', isDark ? 'dark' : 'light');
+            document.getElementById('sunIcon').classList.toggle('hidden', !isDark);
+            document.getElementById('moonIcon').classList.toggle('hidden', isDark);
+        };
+
+        const initUIStates = () => {
+            const t = localStorage.getItem('kk_theme');
+            if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme:dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                document.getElementById('sunIcon').classList.remove('hidden');
+                document.getElementById('moonIcon').classList.add('hidden');
+            }
+        };
+
+        // Start
+        initUIStates();
+        initAuth();
+
+    </script>
+</body>
+</html>
