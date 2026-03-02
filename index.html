@@ -94,7 +94,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <input type="text" id="comm-name" placeholder="Kunde / Kommissions-Nr." required class="input-field text-sm">
                         <div class="relative">
-                            <input type="number" id="comm-price" placeholder="Kaufpreis" required min="0" step="0.01" inputmode="decimal" class="input-field text-sm font-mono text-left pl-3 pr-8">
+                            <input type="text" id="comm-price" placeholder="Kaufpreis" required inputmode="decimal" class="input-field text-sm font-mono text-left pl-3 pr-8">
                             <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">€</span>
                         </div>
                     </div>
@@ -146,7 +146,7 @@
         import { getFirestore, collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- KONFIGURATION FÜR GITHUB PAGES ---
-        const firebaseConfig = {
+        const myConfig = {
     apiKey: "AIzaSyCAoHre4UD7u88JyGvyPYzrfm50OsMOrZ8",
     authDomain: "lithoscalepro.firebaseapp.com",
     projectId: "lithoscalepro",
@@ -155,17 +155,8 @@
     appId: "1:1090400345045:web:fd1cc58fd1e620a9127b5c"
         };
 
-        // Dynamische Weiche (Canvas Umgebung vs. Eigenes Hosting)
-        let firebaseConfig;
-        let isCanvasEnv = typeof __firebase_config !== 'undefined';
-        
-        if (isCanvasEnv) {
-            firebaseConfig = JSON.parse(__firebase_config);
-        } else {
-            firebaseConfig = myGitHubPagesConfig;
-        }
-
-        const app = initializeApp(firebaseConfig);
+        const activeConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : myConfig;
+        const app = initializeApp(activeConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
@@ -199,7 +190,7 @@
         }
 
         function getDbCollection() {
-            if (isCanvasEnv && currentUser) {
+            if (typeof __firebase_config !== 'undefined' && currentUser) {
                 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                 return collection(db, 'artifacts', appId, 'users', currentUser.uid, 'kuechen_commissions');
             } else {
@@ -210,13 +201,16 @@
 
         async function initAuth() {
             try {
+                updateStatus("Authentifiziere...", "bg-blue-500 animate-pulse");
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
                     await signInAnonymously(auth);
                 }
             } catch (error) {
-                showError("Auth fehlgeschlagen: " + error.message);
+                console.error("Auth-Fehler:", error);
+                showError("Auth fehlgeschlagen (Ist die Domain autorisiert?): " + error.message);
+                updateStatus("Auth-Fehler", "bg-red-500");
             }
         }
 
@@ -243,8 +237,9 @@
                 renderUI();
                 updateStatus("Live Sync", "bg-green-500");
             }, (error) => {
-                showError("Fehler beim Laden: " + error.message);
-                updateStatus("Sync Fehler", "bg-red-500", error.message);
+                console.error("Firestore-Fehler:", error);
+                showError("Fehler beim Laden (Fehlen die Firestore Rules?): " + error.message);
+                updateStatus("Sync Fehler", "bg-red-500");
             });
         }
 
@@ -256,9 +251,12 @@
             const nameInput = document.getElementById('comm-name');
             const priceInput = document.getElementById('comm-price');
             
+            // Komma in Punkt umwandeln (deutsches Zahlenformat absichern)
+            let parsedPrice = parseFloat(priceInput.value.replace(',', '.')) || 0;
+            
             const newCommission = {
                 name: nameInput.value.trim(),
-                price: parseFloat(priceInput.value),
+                price: parsedPrice,
                 status: "open",
                 installationsplan: false,
                 abVerschickt: false,
@@ -410,11 +408,40 @@
             }
         };
 
+        // Automatisches Apple Touch Icon (generiert das Logo für den iPhone Homescreen)
+        (function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            
+            // Hintergrund (Schwarz für starken Kontrast auf dem Homescreen)
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, 512, 512);
+            
+            // Icon zeichnen (skaliert und zentriert auf 512x512)
+            ctx.translate(112, 112);
+            ctx.scale(12, 12);
+            ctx.strokeStyle = '#3b82f6'; // Tailwind blue-500
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            // Der exakte SVG-Pfad des Klemmbrett-Icons aus dem Header
+            const path = new Path2D("M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4");
+            ctx.stroke(path);
+
+            // Icon als Meta-Tag in den Head injecten
+            const link = document.createElement('link');
+            link.rel = 'apple-touch-icon';
+            link.href = canvas.toDataURL('image/png');
+            document.head.appendChild(link);
+        })();
+
         // Start
         initUIStates();
         initAuth();
 
     </script>
 </body>
-
 </html>
