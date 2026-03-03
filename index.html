@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Küchen-Kommissionen</title>
+    <title>KitCommand</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -35,13 +35,16 @@
         .dark .card { background: #121212; border-color: #262626; }
         .pro-badge { display: inline-flex; align-items: center; border: 1.2px solid #fbbf24; color: #fbbf24; border-radius: 5px; padding: 2px 6px; font-size: 0.45em; font-weight: 900; margin-left: 10px; vertical-align: middle; transform: translateY(-2px); }
         
+        /* Tab Styles */
+        .tab-btn { padding: 0.8rem 1rem; font-weight: 700; font-size: 0.85rem; border-radius: 0.8rem; flex: 1; text-align: center; transition: all 0.2s; }
+        .active-tab { background: #1a1a1a; color: white; }
+        .dark .active-tab { background: #ffffff; color: #000000; }
+        .inactive-tab { color: #64748b; background: transparent; }
+        
         .modal-fade { animation: fadeIn 0.2s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         
-        /* Custom Checkbox passend zum LithoScale-Look */
         .custom-checkbox { width: 1.25rem; height: 1.25rem; cursor: pointer; accent-color: #3b82f6; }
-        
-        /* Verhindert Layout-Sprünge bei Zahlen */
         .font-mono-tabular { font-variant-numeric: tabular-nums; }
     </style>
 </head>
@@ -56,9 +59,10 @@
         <div id="error-display" class="hidden text-[8px] text-red-500 bg-red-500/10 p-2 px-3 rounded-lg border border-red-500/20 max-w-[250px] text-right pointer-events-auto"></div>
     </div>
 
-    <div class="max-w-6xl mx-auto w-full flex-1 pt-8 lg:pt-0">
-        <!-- Header im LithoScale Style -->
-        <header class="flex flex-col md:flex-row justify-between items-center mb-10 gap-4 mt-4 lg:mt-0">
+    <div class="max-w-4xl mx-auto w-full flex-1 pt-8 lg:pt-0">
+        
+        <!-- Header -->
+        <header class="flex flex-col justify-center items-center mb-8 gap-4 mt-4 lg:mt-0 relative">
             <div class="flex items-center gap-4">
                 <div class="w-14 h-14 bg-black dark:bg-white rounded-2xl flex items-center justify-center shadow-2xl border border-white/10 shrink-0">
                     <svg class="w-8 h-8 text-blue-500 dark:text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -66,31 +70,33 @@
                     </svg>
                 </div>
                 <div>
-                    <h1 class="text-2xl sm:text-3xl font-black flex items-center tracking-tighter select-none">
-                        KitCommand <span class="pro-badge hidden sm:inline-flex">PRO</span>
+                    <h1 class="text-3xl font-black flex items-center tracking-tighter select-none">
+                        KitCommand <span class="pro-badge">PRO</span>
                     </h1>
                 </div>
             </div>
             
-            <div class="flex items-center gap-2">
-                <!-- Theme Toggle -->
-                <div class="flex bg-white dark:bg-darkCard p-1 rounded-2xl border dark:border-darkBorder shadow-sm shrink-0">
-                    <button onclick="toggleTheme()" class="p-3 rounded-xl transition-all active:scale-95 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800" title="Design wechseln">
-                        <svg id="sunIcon" class="w-5 h-5 text-amber-500 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"></path></svg>
-                        <svg id="moonIcon" class="w-5 h-5 text-slate-700 dark:text-slate-300" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
-                    </button>
-                </div>
-            </div>
+            <!-- Theme Toggle -->
+            <button onclick="toggleTheme()" class="absolute right-0 top-2 p-3 rounded-xl transition-all active:scale-95 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 bg-white dark:bg-darkCard border dark:border-darkBorder shadow-sm" title="Design wechseln">
+                <svg id="sunIcon" class="w-5 h-5 text-amber-500 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"></path></svg>
+                <svg id="moonIcon" class="w-5 h-5 text-slate-700 dark:text-slate-300" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+            </button>
         </header>
 
-        <main class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-stretch pb-20">
+        <!-- TABS BAR -->
+        <div class="flex bg-white dark:bg-darkCard p-1 rounded-2xl border dark:border-darkBorder shadow-sm mb-6 max-w-md mx-auto relative z-10">
+            <button onclick="window.switchTab('open')" id="btn-tab-open" class="tab-btn active-tab uppercase tracking-widest text-[10px]">Offen</button>
+            <button onclick="window.switchTab('sold')" id="btn-tab-sold" class="tab-btn inactive-tab uppercase tracking-widest text-[10px]">Verkauft</button>
+            <button onclick="window.switchTab('stats')" id="btn-tab-stats" class="tab-btn inactive-tab uppercase tracking-widest text-[10px]">Statistik</button>
+        </div>
+
+        <main class="pb-20">
             
-            <!-- LINKE SPALTE: Offen -->
-            <section class="card p-6 flex flex-col h-full">
-                <h2 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-5 border-b dark:border-darkBorder pb-3">Offene Kommissionen</h2>
+            <!-- TAB 1: OFFEN -->
+            <section id="tab-open" class="card p-6 flex flex-col min-h-[500px] block">
+                <h2 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-5 border-b dark:border-darkBorder pb-3">Neue Kommission anlegen</h2>
                 
-                <!-- Eingabe -->
-                <form id="add-commission-form" class="bg-slate-50 dark:bg-black p-4 md:p-5 rounded-xl border border-slate-200 dark:border-darkBorder mb-6 flex flex-col gap-4 focus-within:border-blue-500 focus-within:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all">
+                <form id="add-commission-form" class="bg-slate-50 dark:bg-black p-4 md:p-5 rounded-xl border border-slate-200 dark:border-darkBorder mb-8 flex flex-col gap-4 focus-within:border-blue-500 focus-within:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <input type="text" id="comm-name" placeholder="Kunde / Kommissions-Nr." required class="input-field text-sm">
                         <div class="relative">
@@ -98,34 +104,109 @@
                             <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">€</span>
                         </div>
                     </div>
-                    <button type="submit" class="bg-blue-600 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-600/20 active:scale-95 transition-all w-full">
-                        Anlegen
+                    
+                    <!-- Bauart Toggle -->
+                    <div class="flex items-center gap-2 bg-white dark:bg-darkCard p-1 rounded-xl border border-slate-200 dark:border-darkBorder w-full sm:w-fit shadow-sm">
+                        <label class="flex-1 sm:flex-none relative cursor-pointer">
+                            <input type="radio" name="bauart" value="bestand" class="peer sr-only" checked>
+                            <div class="px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 peer-checked:bg-blue-600 peer-checked:text-white transition-all text-center">Bestand</div>
+                        </label>
+                        <label class="flex-1 sm:flex-none relative cursor-pointer">
+                            <input type="radio" name="bauart" value="neubau" class="peer sr-only">
+                            <div class="px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 peer-checked:bg-blue-600 peer-checked:text-white transition-all text-center">Neubau</div>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="bg-blue-600 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-600/20 active:scale-95 transition-all w-full mt-2">
+                        Hinzufügen
                     </button>
                 </form>
 
-                <!-- Liste -->
-                <div id="open-list" class="flex-1 overflow-y-auto space-y-3 pr-2 min-h-[300px]">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-[10px] font-black uppercase tracking-widest text-slate-400">Laufende Angebote</h2>
+                    <span id="open-count" class="text-[10px] font-mono font-bold bg-slate-200 dark:bg-darkBorder text-slate-600 dark:text-slate-400 px-2 py-1 rounded-md">0</span>
+                </div>
+                <div id="open-list" class="space-y-3">
                     <!-- Wird dynamisch befüllt -->
                 </div>
             </section>
 
-            <!-- RECHTE SPALTE: Verkauft -->
-            <section class="card p-6 flex flex-col h-full">
+            <!-- TAB 2: VERKAUFT -->
+            <section id="tab-sold" class="card p-6 flex flex-col min-h-[500px] hidden">
                 <div class="flex justify-between items-center mb-5 border-b dark:border-darkBorder pb-3">
-                    <h2 class="text-[10px] font-black uppercase tracking-widest text-emerald-500">Verkaufte Kommissionen</h2>
+                    <h2 class="text-[10px] font-black uppercase tracking-widest text-emerald-500">Verkaufte Kommissionen (Aktiv)</h2>
                     <span id="sold-count" class="text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded-md">0</span>
                 </div>
-                
-                <!-- Liste -->
-                <div id="sold-list" class="flex-1 overflow-y-auto space-y-4 pr-2 min-h-[300px]">
+                <div id="sold-list" class="space-y-4">
                     <!-- Wird dynamisch befüllt -->
                 </div>
+            </section>
+
+            <!-- TAB 3: STATISTIK -->
+            <section id="tab-stats" class="card p-6 flex flex-col min-h-[500px] hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b dark:border-darkBorder pb-4">
+                    <h2 class="text-[10px] font-black uppercase tracking-widest text-blue-500">Umsatz & Abschluss</h2>
+                    
+                    <!-- Filter -->
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <select id="filter-year" onchange="window.renderStats()" class="input-field text-xs py-2 px-3 !w-auto bg-slate-50 dark:bg-black">
+                            <!-- Jahre werden dynamisch befüllt -->
+                        </select>
+                        <select id="filter-month" onchange="window.renderStats()" class="input-field text-xs py-2 px-3 !w-auto bg-slate-50 dark:bg-black">
+                            <option value="all">Ganzes Jahr</option>
+                            <option value="1">Januar</option>
+                            <option value="2">Februar</option>
+                            <option value="3">März</option>
+                            <option value="4">April</option>
+                            <option value="5">Mai</option>
+                            <option value="6">Juni</option>
+                            <option value="7">Juli</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">Oktober</option>
+                            <option value="11">November</option>
+                            <option value="12">Dezember</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- KPI Grid -->
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <!-- Umsatz -->
+                    <div class="col-span-2 bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 rounded-2xl p-6 text-center shadow-inner relative overflow-hidden">
+                        <div class="absolute inset-0 bg-blue-500/5"></div>
+                        <p class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-2 relative">Umsatz (Verkauft)</p>
+                        <p id="stat-revenue" class="text-3xl md:text-4xl font-black text-blue-500 tracking-tighter font-mono-tabular relative">0,00 €</p>
+                    </div>
+
+                    <!-- Abschlussquote -->
+                    <div class="bg-gold/5 border border-gold/20 rounded-2xl p-5 text-center">
+                        <p class="text-[9px] font-black text-gold uppercase tracking-widest mb-1">Abschlussquote</p>
+                        <p id="stat-winrate" class="text-2xl font-black text-gold tracking-tighter font-mono-tabular">0 %</p>
+                    </div>
+
+                    <!-- Total Verkauft -->
+                    <div class="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-5 text-center">
+                        <p class="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">Verkauft</p>
+                        <p id="stat-sold-count" class="text-2xl font-black text-emerald-500 tracking-tighter font-mono-tabular">0</p>
+                    </div>
+
+                    <!-- Total Abgesagt -->
+                    <div class="bg-red-500/5 border border-red-500/20 rounded-2xl p-5 text-center col-span-2 sm:col-span-1 sm:col-start-2">
+                        <p class="text-[9px] font-black text-red-500 uppercase tracking-widest mb-1">Nicht Verkauft</p>
+                        <p id="stat-lost-count" class="text-2xl font-black text-red-500 tracking-tighter font-mono-tabular">0</p>
+                    </div>
+                </div>
+                
+                <p class="text-xs text-slate-400 text-center italic mt-auto pt-4 border-t dark:border-darkBorder">
+                    Die Abschlussquote berechnet sich aus allen endgültig abgeschlossenen Angeboten (Verkauft vs. Nicht Verkauft) im gewählten Zeitraum.
+                </p>
             </section>
 
         </main>
     </div>
 
-    <!-- Error Modal (Angepasst an LithoScale Design) -->
+    <!-- Error Modal -->
     <div id="error-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
         <div class="card p-8 max-w-sm w-full shadow-2xl modal-fade border-red-500/50">
             <div class="text-center mb-6">
@@ -136,6 +217,40 @@
                 <p id="error-message" class="text-xs text-slate-500 mt-2 font-medium"></p>
             </div>
             <button onclick="document.getElementById('error-modal').classList.add('hidden')" class="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 active:scale-95 transition-transform">Schließen</button>
+        </div>
+    </div>
+
+    <!-- Confirm Delete Modal -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
+        <div class="card p-8 max-w-sm w-full shadow-2xl modal-fade border-orange-500/50">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-orange-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </div>
+                <h2 class="text-xl font-black tracking-tight text-slate-800 dark:text-slate-100">Wirklich löschen?</h2>
+                <p class="text-xs text-slate-500 mt-2 font-medium">Diese Aktion kann nicht rückgängig gemacht werden. Die Kommission verschwindet auch aus der Statistik.</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="window.closeDeleteConfirm()" class="py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 active:scale-95 transition-transform">Abbrechen</button>
+                <button onclick="window.executeDelete()" class="py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-red-500 text-white shadow-lg shadow-red-500/20 active:scale-95 transition-transform">Löschen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Price Modal -->
+    <div id="edit-price-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
+        <div class="card p-8 max-w-sm w-full shadow-2xl modal-fade border-blue-500/50">
+            <div class="text-center mb-6">
+                <h2 class="text-xl font-black tracking-tight text-slate-800 dark:text-slate-100">Preis anpassen</h2>
+            </div>
+            <div class="relative mb-6">
+                <input type="text" id="edit-price-input" inputmode="decimal" class="input-field text-sm font-mono text-center pl-3 pr-8" placeholder="Neuer Kaufpreis">
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">€</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="window.closeEditPrice()" class="py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 active:scale-95 transition-transform">Abbrechen</button>
+                <button onclick="window.executeEditPrice()" class="py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-blue-600 text-white shadow-lg shadow-blue-600/20 active:scale-95 transition-transform">Speichern</button>
+            </div>
         </div>
     </div>
 
@@ -164,6 +279,8 @@
         let commissionsData = [];
         let currentUser = null;
         let unsubscribeSnapshot = null;
+        let pendingDeleteId = null;
+        let pendingEditId = null;
 
         // DOM Elemente
         const formEl = document.getElementById('add-commission-form');
@@ -194,7 +311,6 @@
                 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                 return collection(db, 'artifacts', appId, 'users', currentUser.uid, 'kuechen_commissions');
             } else {
-                // WICHTIG: Nutzt eine andere Collection als die LithoScale App!
                 return collection(db, 'kuechen_commissions');
             }
         }
@@ -209,7 +325,7 @@
                 }
             } catch (error) {
                 console.error("Auth-Fehler:", error);
-                showError("Auth fehlgeschlagen (Ist die Domain autorisiert?): " + error.message);
+                showError("Auth fehlgeschlagen: " + error.message);
                 updateStatus("Auth-Fehler", "bg-red-500");
             }
         }
@@ -234,14 +350,34 @@
             
             unsubscribeSnapshot = onSnapshot(colRef, (snapshot) => {
                 commissionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderUI();
+                window.updateYearFilterOptions();
+                window.renderUI();
+                window.renderStats();
                 updateStatus("Live Sync", "bg-green-500");
             }, (error) => {
                 console.error("Firestore-Fehler:", error);
-                showError("Fehler beim Laden (Fehlen die Firestore Rules?): " + error.message);
+                showError("Fehler beim Laden: " + error.message);
                 updateStatus("Sync Fehler", "bg-red-500");
             });
         }
+
+        // --- TAB LOGIK ---
+        window.switchTab = (tabId) => {
+            ['open', 'sold', 'stats'].forEach(id => {
+                const section = document.getElementById(`tab-${id}`);
+                const btn = document.getElementById(`btn-tab-${id}`);
+                
+                if (id === tabId) {
+                    section.classList.remove('hidden');
+                    section.classList.add('block');
+                    btn.classList.replace('inactive-tab', 'active-tab');
+                } else {
+                    section.classList.add('hidden');
+                    section.classList.remove('block');
+                    btn.classList.replace('active-tab', 'inactive-tab');
+                }
+            });
+        };
 
         // --- EVENTS ---
         formEl.addEventListener('submit', async (e) => {
@@ -250,14 +386,17 @@
 
             const nameInput = document.getElementById('comm-name');
             const priceInput = document.getElementById('comm-price');
+            const isNeubau = document.querySelector('input[name="bauart"]:checked').value === 'neubau';
             
-            // Komma in Punkt umwandeln (deutsches Zahlenformat absichern)
             let parsedPrice = parseFloat(priceInput.value.replace(',', '.')) || 0;
             
             const newCommission = {
                 name: nameInput.value.trim(),
                 price: parsedPrice,
-                status: "open",
+                status: "open", // Mögliche Status: "open", "sold", "lost"
+                isNeubau: isNeubau,
+                vorabPlan: false,
+                vorabAb: false,
                 installationsplan: false,
                 abVerschickt: false,
                 aufmass: false,
@@ -271,6 +410,8 @@
                 await addDoc(colRef, newCommission);
                 nameInput.value = '';
                 priceInput.value = '';
+                // Setze Toggle wieder auf Default (Bestand)
+                document.querySelector('input[name="bauart"][value="bestand"]').checked = true;
                 nameInput.focus();
             } catch (error) {
                 showError("Fehler beim Speichern: " + error.message);
@@ -278,7 +419,6 @@
             }
         });
 
-        // Global am Window-Objekt registrieren für Inline-HTML-Aufrufe
         window.updateCommissionField = async (id, field, value) => {
             if (!currentUser) return;
             try {
@@ -291,9 +431,21 @@
             }
         };
 
-        window.deleteCommission = async (id) => {
-            if (!currentUser) return;
-            if(!confirm("Kommission endgültig löschen?")) return;
+        window.showDeleteConfirm = (id) => {
+            pendingDeleteId = id;
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        };
+
+        window.closeDeleteConfirm = () => {
+            pendingDeleteId = null;
+            document.getElementById('confirm-modal').classList.add('hidden');
+        };
+
+        window.executeDelete = async () => {
+            if (!currentUser || !pendingDeleteId) return;
+            const id = pendingDeleteId;
+            window.closeDeleteConfirm();
+            
             try {
                 updateStatus("Lösche...", "bg-amber-500 animate-pulse");
                 const docRef = doc(getDbCollection(), id);
@@ -304,8 +456,38 @@
             }
         };
 
-        // --- RENDER LOGIK ---
-        function renderUI() {
+        window.showEditPrice = (id, currentPrice) => {
+            pendingEditId = id;
+            const input = document.getElementById('edit-price-input');
+            input.value = currentPrice.toString().replace('.', ',');
+            document.getElementById('edit-price-modal').classList.remove('hidden');
+            setTimeout(() => input.focus(), 100);
+        };
+
+        window.closeEditPrice = () => {
+            pendingEditId = null;
+            document.getElementById('edit-price-modal').classList.add('hidden');
+        };
+
+        window.executeEditPrice = async () => {
+            if (!currentUser || !pendingEditId) return;
+            const input = document.getElementById('edit-price-input');
+            let parsedPrice = parseFloat(input.value.replace(',', '.')) || 0;
+            const id = pendingEditId;
+            window.closeEditPrice();
+            
+            try {
+                updateStatus("Update...", "bg-amber-500 animate-pulse");
+                const docRef = doc(getDbCollection(), id);
+                await updateDoc(docRef, { price: parsedPrice });
+            } catch (error) {
+                showError("Fehler beim Aktualisieren: " + error.message);
+                updateStatus("Fehler", "bg-red-500", error.message);
+            }
+        };
+
+        // --- RENDER LOGIK UI ---
+        window.renderUI = () => {
             openListEl.innerHTML = '';
             soldListEl.innerHTML = '';
 
@@ -313,63 +495,138 @@
             const openItems = sortedData.filter(c => c.status === 'open');
             const soldItems = sortedData.filter(c => c.status === 'sold');
             
+            document.getElementById('open-count').innerText = openItems.length;
             document.getElementById('sold-count').innerText = soldItems.length;
 
             if (openItems.length === 0) {
-                openListEl.innerHTML = '<div class="text-center p-6 text-slate-400 dark:text-slate-600 font-bold text-sm">Keine offenen Kommissionen.</div>';
+                openListEl.innerHTML = `
+                    <div class="flex flex-col items-center justify-center p-8 text-slate-400 dark:text-slate-600 text-center">
+                        <svg class="w-12 h-12 mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <p class="font-bold text-sm">Keine offenen Angebote.</p>
+                    </div>`;
             }
             if (soldItems.length === 0) {
-                soldListEl.innerHTML = '<div class="text-center p-6 text-slate-400 dark:text-slate-600 font-bold text-sm">Noch keine Verkäufe.</div>';
+                soldListEl.innerHTML = `
+                    <div class="flex flex-col items-center justify-center p-8 text-slate-400 dark:text-slate-600 text-center">
+                        <svg class="w-12 h-12 mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                        <p class="font-bold text-sm">Aktuell keine laufenden Aufträge.</p>
+                    </div>`;
             }
 
             const formatter = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
 
+            // OFFEN LISTE
             openItems.forEach(comm => {
+                const daysOld = (Date.now() - new Date(comm.createdAt).getTime()) / (1000 * 3600 * 24);
+                const isUrgent = daysOld > 14;
+                const borderClass = isUrgent ? "border-orange-400 dark:border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.1)]" : "border-slate-200 dark:border-darkBorder hover:border-blue-500";
+                const urgentBadge = isUrgent ? `<span class="text-[9px] font-black text-orange-600 dark:text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded uppercase tracking-widest inline-block mt-1.5 mr-2">Seit ${Math.floor(daysOld)} Tagen offen</span>` : '';
+                
+                // Badge als anklickbaren Button umgebaut
+                const typeBadge = `<button onclick="window.updateCommissionField('${comm.id}', 'isNeubau', ${!comm.isNeubau})" class="text-[9px] font-black ${comm.isNeubau ? 'text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20' : 'text-slate-500 bg-slate-200 dark:bg-white/10 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-white/20'} px-2 py-0.5 rounded uppercase tracking-widest inline-block mt-1.5 transition-colors cursor-pointer" title="Bauart ändern">${comm.isNeubau ? 'Neubau' : 'Bestand'}</button>`;
+
                 const card = document.createElement('div');
-                card.className = "bg-white dark:bg-darkCard p-4 rounded-xl border border-slate-200 dark:border-darkBorder flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all hover:border-blue-500 shadow-sm group";
+                card.className = `bg-white dark:bg-darkCard p-4 rounded-xl border ${borderClass} flex flex-col gap-4 transition-all shadow-sm group`;
                 
                 card.innerHTML = `
-                    <div class="flex-1 w-full">
-                        <div class="flex justify-between items-start">
+                    <div class="flex justify-between items-start">
+                        <div>
                             <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100 break-all">${escapeHtml(comm.name)}</h3>
-                            <button onclick="window.deleteCommission('${comm.id}')" class="text-slate-300 hover:text-red-500 transition-colors w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-500/10 font-bold active:scale-90 opacity-0 group-hover:opacity-100 sm:-mt-2 sm:-mr-2" title="Löschen">✕</button>
+                            <div class="flex items-center gap-2 mt-1">
+                                <p class="font-mono text-blue-500 font-bold text-xs font-mono-tabular">${formatter.format(comm.price)}</p>
+                                <button onclick="window.showEditPrice('${comm.id}', ${comm.price})" class="text-slate-400 hover:text-blue-500 transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-white/5" title="Preis anpassen">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                </button>
+                            </div>
+                            <div>${urgentBadge}${typeBadge}</div>
                         </div>
-                        <p class="font-mono text-blue-500 font-bold text-xs mt-1 font-mono-tabular">${formatter.format(comm.price)}</p>
+                        <button onclick="window.showDeleteConfirm('${comm.id}')" class="text-slate-300 hover:text-red-500 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-500/10 font-bold active:scale-90 opacity-0 group-hover:opacity-100 -mr-2 -mt-2" title="Löschen">✕</button>
                     </div>
-                    <button onclick="window.updateCommissionField('${comm.id}', 'status', 'sold')" class="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs tracking-widest uppercase shadow-md active:scale-95 transition-all w-full sm:w-auto shrink-0">
-                        Verkaufen
-                    </button>
+                    
+                    <div class="grid grid-cols-2 gap-2 mt-2 border-t dark:border-darkBorder pt-4">
+                        <button onclick="window.updateCommissionField('${comm.id}', 'status', 'sold')" class="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white py-2.5 rounded-xl font-bold text-[10px] tracking-widest uppercase active:scale-95 transition-all">
+                            Verkauft
+                        </button>
+                        <button onclick="window.updateCommissionField('${comm.id}', 'status', 'lost')" class="bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white py-2.5 rounded-xl font-bold text-[10px] tracking-widest uppercase active:scale-95 transition-all">
+                            Nicht Verkauft
+                        </button>
+                    </div>
                 `;
                 openListEl.appendChild(card);
             });
 
+            // VERKAUFT LISTE
             soldItems.forEach(comm => {
-                const card = document.createElement('div');
-                // Optisches Feedback wenn alles angehakt ist
-                const allDone = comm.installationsplan && comm.aufmass && comm.abVerschickt && comm.bestellt;
-                const borderClass = allDone ? "border-emerald-500/50 bg-emerald-500/5 dark:bg-emerald-500/5" : "border-slate-200 dark:border-darkBorder bg-white dark:bg-darkCard";
+                let checkedCount = 0;
+                let totalCheckboxes = 4;
+                let checkboxesHtml = '';
+
+                // Checkboxen dynamisch nach Bauart generieren
+                if (comm.isNeubau) {
+                    totalCheckboxes = 6;
+                    checkedCount = [comm.vorabPlan, comm.vorabAb, comm.aufmass, comm.installationsplan, comm.abVerschickt, comm.bestellt].filter(Boolean).length;
+                    
+                    checkboxesHtml = `
+                        ${createCheckbox(comm, 'vorabPlan', 'Vorab-Installationsplan')}
+                        ${createCheckbox(comm, 'vorabAb', 'Vorab-Auftragsbestätigung')}
+                        ${createCheckbox(comm, 'aufmass', 'Aufmaß')}
+                        ${createCheckbox(comm, 'installationsplan', 'Finaler Installationsplan')}
+                        ${createCheckbox(comm, 'abVerschickt', 'Finale Auftragsbestätigung')}
+                        ${createCheckbox(comm, 'bestellt', 'Bestellung')}
+                    `;
+                } else {
+                    totalCheckboxes = 4;
+                    checkedCount = [comm.aufmass, comm.installationsplan, comm.abVerschickt, comm.bestellt].filter(Boolean).length;
+                    
+                    checkboxesHtml = `
+                        ${createCheckbox(comm, 'aufmass', 'Aufmaß')}
+                        ${createCheckbox(comm, 'installationsplan', 'Installationsplan')}
+                        ${createCheckbox(comm, 'abVerschickt', 'Auftragsbestätigung')}
+                        ${createCheckbox(comm, 'bestellt', 'Bestellung')}
+                    `;
+                }
+
+                const percent = (checkedCount / totalCheckboxes) * 100;
+                const barColor = percent === 100 ? 'bg-emerald-500' : 'bg-blue-500';
                 
+                // Badge als anklickbaren Button umgebaut
+                const typeBadge = `<button onclick="window.updateCommissionField('${comm.id}', 'isNeubau', ${!comm.isNeubau})" class="text-[9px] font-black ${comm.isNeubau ? 'text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20' : 'text-slate-500 bg-slate-200 dark:bg-white/10 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-white/20'} px-2 py-0.5 rounded uppercase tracking-widest ml-2 transition-colors cursor-pointer" title="Bauart ändern">${comm.isNeubau ? 'Neubau' : 'Bestand'}</button>`;
+                
+                const allDone = percent === 100;
+                const borderClass = allDone ? "border-emerald-500/50 bg-emerald-500/5 dark:bg-emerald-500/5" : "border-slate-200 dark:border-darkBorder bg-white dark:bg-darkCard hover:border-blue-300 dark:hover:border-blue-500/50";
+                
+                const card = document.createElement('div');
                 card.className = `p-4 rounded-xl border ${borderClass} shadow-sm transition-all mb-4`;
                 
                 card.innerHTML = `
                     <div class="mb-3 border-b border-slate-100 dark:border-white/5 pb-3 flex justify-between items-start">
                         <div>
                             <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100 mb-1">${escapeHtml(comm.name)}</h3>
-                            <span class="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded uppercase tracking-widest font-mono-tabular">${formatter.format(comm.price)}</span>
+                            <div class="flex items-center">
+                                <span class="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded uppercase tracking-widest font-mono-tabular">${formatter.format(comm.price)}</span>
+                                ${typeBadge}
+                            </div>
                         </div>
                         <button onclick="window.updateCommissionField('${comm.id}', 'status', 'open')" class="text-[10px] font-bold text-slate-400 hover:text-blue-500 uppercase tracking-widest transition-colors active:scale-95 bg-slate-100 dark:bg-white/5 px-2 py-1 rounded" title="Zurücksetzen">Zurück</button>
                     </div>
                     
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                        ${createCheckbox(comm, 'installationsplan', 'Plan erstellt')}
-                        ${createCheckbox(comm, 'aufmass', 'Aufmaß erledigt')}
-                        ${createCheckbox(comm, 'abVerschickt', 'AB verschickt')}
-                        ${createCheckbox(comm, 'bestellt', 'Küche bestellt')}
+                        ${checkboxesHtml}
+                    </div>
+                    
+                    <div class="mt-4 pt-3 border-t border-slate-100 dark:border-white/5">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">Fortschritt</span>
+                            <span class="text-[9px] font-black uppercase tracking-widest ${percent === 100 ? 'text-emerald-500' : 'text-blue-500'} font-mono-tabular">${percent}%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 dark:bg-black h-1.5 rounded-full overflow-hidden">
+                            <div class="${barColor} h-full transition-all duration-500 ease-out" style="width: ${percent}%"></div>
+                        </div>
                     </div>
                 `;
                 soldListEl.appendChild(card);
             });
-        }
+        };
 
         function createCheckbox(comm, field, label) {
             const isChecked = comm[field];
@@ -386,6 +643,74 @@
                 </label>
             `;
         }
+
+        // --- STATISTIK LOGIK ---
+        window.updateYearFilterOptions = () => {
+            const yearSelect = document.getElementById('filter-year');
+            const currentSelected = yearSelect.value;
+            
+            // Finde alle vorkommenden Jahre in den Daten
+            const years = new Set();
+            commissionsData.forEach(c => {
+                if (c.createdAt) years.add(new Date(c.createdAt).getFullYear());
+            });
+            
+            // Immer das aktuelle Jahr hinzufügen, auch wenn noch keine Daten existieren
+            years.add(new Date().getFullYear());
+            
+            const sortedYears = Array.from(years).sort((a, b) => b - a); // Neuestes zuerst
+            
+            yearSelect.innerHTML = '<option value="all">Alle Jahre</option>' + 
+                sortedYears.map(y => `<option value="${y}">${y}</option>`).join('');
+            
+            // Auswahl beibehalten falls möglich, sonst auf "all"
+            if (currentSelected && (currentSelected === 'all' || years.has(parseInt(currentSelected)))) {
+                yearSelect.value = currentSelected;
+            } else {
+                yearSelect.value = new Date().getFullYear().toString(); // Default auf aktuelles Jahr
+            }
+        };
+
+        window.renderStats = () => {
+            const yearFilter = document.getElementById('filter-year').value;
+            const monthFilter = document.getElementById('filter-month').value;
+            
+            let filteredData = commissionsData.filter(c => {
+                // Wir betrachten für die Abschlussquote nur Kommissionen, die ein finales Ergebnis haben
+                if (c.status === 'open') return false;
+                
+                if (!c.createdAt) return false;
+                const date = new Date(c.createdAt);
+                
+                if (yearFilter !== 'all' && date.getFullYear().toString() !== yearFilter) return false;
+                if (monthFilter !== 'all' && (date.getMonth() + 1).toString() !== monthFilter) return false;
+                
+                return true;
+            });
+
+            let soldCount = 0;
+            let lostCount = 0;
+            let revenue = 0;
+
+            filteredData.forEach(c => {
+                if (c.status === 'sold') {
+                    soldCount++;
+                    revenue += parseFloat(c.price || 0);
+                } else if (c.status === 'lost') {
+                    lostCount++;
+                }
+            });
+
+            const totalResolved = soldCount + lostCount;
+            const winRate = totalResolved > 0 ? ((soldCount / totalResolved) * 100).toFixed(1) : 0;
+
+            const formatter = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
+
+            document.getElementById('stat-revenue').innerText = formatter.format(revenue);
+            document.getElementById('stat-winrate').innerText = winRate.toString().replace('.', ',') + ' %';
+            document.getElementById('stat-sold-count').innerText = soldCount;
+            document.getElementById('stat-lost-count').innerText = lostCount;
+        };
 
         function escapeHtml(unsafe) {
             return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
@@ -408,30 +733,26 @@
             }
         };
 
-        // Automatisches Apple Touch Icon (generiert das Logo für den iPhone Homescreen)
+        // Automatisches Apple Touch Icon
         (function() {
             const canvas = document.createElement('canvas');
             canvas.width = 512;
             canvas.height = 512;
             const ctx = canvas.getContext('2d');
             
-            // Hintergrund (Schwarz für starken Kontrast auf dem Homescreen)
             ctx.fillStyle = '#000000';
             ctx.fillRect(0, 0, 512, 512);
             
-            // Icon zeichnen (skaliert und zentriert auf 512x512)
             ctx.translate(112, 112);
             ctx.scale(12, 12);
-            ctx.strokeStyle = '#3b82f6'; // Tailwind blue-500
+            ctx.strokeStyle = '#3b82f6'; 
             ctx.lineWidth = 2;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             
-            // Der exakte SVG-Pfad des Klemmbrett-Icons aus dem Header
             const path = new Path2D("M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4");
             ctx.stroke(path);
 
-            // Icon als Meta-Tag in den Head injecten
             const link = document.createElement('link');
             link.rel = 'apple-touch-icon';
             link.href = canvas.toDataURL('image/png');
