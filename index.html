@@ -158,7 +158,20 @@
                     <span id="sold-archive-count" class="text-[10px] font-mono font-bold bg-slate-200 dark:bg-darkBorder text-slate-600 dark:text-slate-400 px-2 py-1 rounded-md">0</span>
                 </div>
                 <!-- Initial ausgeblendet (hidden) -->
-                <div id="sold-archive-list" class="space-y-4 hidden transition-all duration-300">
+                <div id="sold-archive-list" class="space-y-4 hidden transition-all duration-300 mb-8">
+                    <!-- Wird dynamisch befüllt -->
+                </div>
+
+                <!-- Akkordeon Header: Abgesagt (Nicht Verkauft) -->
+                <div class="mb-5 border-b dark:border-darkBorder pb-3 flex justify-between items-center cursor-pointer group" onclick="window.toggleSection('lost-list', 'lost-icon')">
+                    <div class="flex items-center gap-2">
+                        <svg id="lost-icon" class="w-4 h-4 text-red-500 transition-transform duration-300 -rotate-90 group-hover:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        <h2 class="text-[10px] font-black uppercase tracking-widest text-red-500 group-hover:text-red-400 transition-colors">Abgesagt (Nicht Verkauft)</h2>
+                    </div>
+                    <span id="lost-count" class="text-[10px] font-mono font-bold bg-red-500/10 text-red-500 px-2 py-1 rounded-md">0</span>
+                </div>
+                <!-- Initial ausgeblendet (hidden) -->
+                <div id="lost-list" class="space-y-4 hidden transition-all duration-300">
                     <!-- Wird dynamisch befüllt -->
                 </div>
 
@@ -328,6 +341,7 @@
         const openListEl = document.getElementById('open-list');
         const soldActiveListEl = document.getElementById('sold-active-list');
         const soldArchiveListEl = document.getElementById('sold-archive-list');
+        const lostListEl = document.getElementById('lost-list');
 
         const updateStatus = (text, colorClass, debugMsg = "") => {
             const elText = document.getElementById('status-text');
@@ -641,6 +655,7 @@
             openListEl.innerHTML = '';
             soldActiveListEl.innerHTML = '';
             soldArchiveListEl.innerHTML = '';
+            lostListEl.innerHTML = '';
 
             const sortedData = [...commissionsData].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
             
@@ -648,10 +663,12 @@
             // Splitting sold items into active and archived (bestellt)
             const activeSoldItems = sortedData.filter(c => c.status === 'sold' && !c.bestellt);
             const archivedItems = sortedData.filter(c => c.status === 'sold' && c.bestellt);
+            const lostItems = sortedData.filter(c => c.status === 'lost');
             
             document.getElementById('open-count').innerText = openItems.length;
             document.getElementById('sold-active-count').innerText = activeSoldItems.length;
             document.getElementById('sold-archive-count').innerText = archivedItems.length;
+            document.getElementById('lost-count').innerText = lostItems.length;
 
             if (openItems.length === 0) {
                 openListEl.innerHTML = `
@@ -822,6 +839,44 @@
             renderSoldCards(activeSoldItems, soldActiveListEl, "Aktuell keine Küchen in Bearbeitung.");
             // 3. ARCHIVIERTE RENTERN
             renderSoldCards(archivedItems, soldArchiveListEl, "Noch keine Küchen fertig bestellt.");
+            
+            // 4. ABGESAGTE RENTERN
+            if (lostItems.length === 0) {
+                lostListEl.innerHTML = `
+                    <div class="flex flex-col items-center justify-center p-8 text-slate-400 dark:text-slate-600 text-center">
+                        <svg class="w-12 h-12 mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <p class="font-bold text-sm">Keine abgesagten Aufträge.</p>
+                    </div>`;
+            } else {
+                lostItems.forEach(comm => {
+                    const type = comm.bauart || (comm.isNeubau ? 'neubau' : 'bestand');
+                    const badgeConf = typeBadgeConfig[type] || typeBadgeConfig['bestand'];
+                    const typeBadge = `<button onclick="window.cycleBauart('${comm.id}', '${type}')" class="text-[9px] font-black ${badgeConf.colorClass} px-2 py-0.5 rounded uppercase tracking-widest ml-2 transition-colors cursor-pointer" title="Bauart ändern">${badgeConf.text}</button>`;
+                    
+                    const resolveDateStr = comm.resolvedAt || comm.createdAt;
+                    const resolveDateObj = new Date(resolveDateStr);
+                    const displayDate = resolveDateObj.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                    const dateBadge = `<div class="flex items-center gap-1 mt-1.5"><span class="text-[9px] font-black text-slate-500 bg-slate-200 dark:bg-white/10 dark:text-slate-300 px-2 py-0.5 rounded uppercase tracking-widest inline-block">${displayDate}</span><button onclick="window.showEditDate('${comm.id}', '${resolveDateStr}')" class="text-slate-400 hover:text-blue-500 transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-white/5" title="Buchungsdatum anpassen"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button></div>`;
+                    
+                    const card = document.createElement('div');
+                    card.className = `p-4 rounded-xl border border-red-500/30 bg-red-500/5 dark:bg-red-500/5 shadow-sm transition-all mb-4`;
+                    
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100 mb-1">${escapeHtml(comm.name)}</h3>
+                                <div class="flex flex-wrap items-center">
+                                    <span class="text-[10px] font-mono font-bold text-red-600 dark:text-red-400 bg-red-500/10 px-2 py-0.5 rounded uppercase tracking-widest font-mono-tabular">${formatter.format(comm.price)}</span>
+                                    ${typeBadge}
+                                </div>
+                                ${dateBadge}
+                            </div>
+                            <button onclick="window.reopenCommission('${comm.id}')" class="text-[10px] font-bold text-slate-400 hover:text-blue-500 uppercase tracking-widest transition-colors active:scale-95 bg-slate-100 dark:bg-white/5 px-2 py-1 rounded" title="Zurücksetzen">Zurück</button>
+                        </div>
+                    `;
+                    lostListEl.appendChild(card);
+                });
+            }
         };
 
         function createCheckbox(comm, field, label) {
