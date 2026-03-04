@@ -50,6 +50,23 @@
 </head>
 <body class="p-3 md:p-8 bg-slate-50 dark:bg-trueBlack text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
 
+    <!-- PIN Overlay (Sichtbar by default) -->
+    <div id="pin-overlay" class="fixed inset-0 z-[300] bg-slate-50 dark:bg-trueBlack flex items-center justify-center p-4">
+        <div class="card p-8 max-w-sm w-full shadow-2xl text-center">
+            <div class="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+            </div>
+            <h2 class="text-xl font-black tracking-tight text-slate-800 dark:text-slate-100 mb-2">App gesperrt</h2>
+            <p class="text-xs text-slate-500 mb-6 font-medium">Bitte gib deinen PIN ein, um KitCommand zu entsperren.</p>
+            
+            <form id="pin-form" onsubmit="event.preventDefault(); window.verifyPin();" class="flex flex-col gap-4">
+                <input type="password" id="pin-input" inputmode="numeric" pattern="[0-9]*" class="input-field text-center text-2xl tracking-[0.5em] font-mono" placeholder="••••" required autofocus>
+                <p id="pin-error" class="text-xs text-red-500 font-bold hidden -mt-2">Falscher PIN. Bitte versuche es erneut.</p>
+                <button type="submit" class="bg-blue-600 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-600/20 active:scale-95 transition-all w-full">Entsperren</button>
+            </form>
+        </div>
+    </div>
+
     <!-- Cloud Sync Status Bar -->
     <div id="cloud-status" class="fixed top-4 right-4 text-[9px] font-bold uppercase tracking-widest z-50 flex flex-col items-end gap-1 pointer-events-none">
         <div class="flex items-center gap-2 bg-white/90 dark:bg-black/80 p-2 px-3 rounded-full shadow-lg border dark:border-darkBorder backdrop-blur-md">
@@ -992,6 +1009,30 @@
             }
         };
 
+        // --- PIN LOGIK ---
+        const APP_PIN = "1234"; // <-- HIER KANNST DU DEINEN PIN ÄNDERN
+
+        const checkPinState = () => {
+            if (sessionStorage.getItem('kk_unlocked') === 'true') {
+                document.getElementById('pin-overlay').classList.add('hidden');
+            }
+        };
+
+        window.verifyPin = () => {
+            const input = document.getElementById('pin-input');
+            const errEl = document.getElementById('pin-error');
+            
+            if (input.value === APP_PIN) {
+                sessionStorage.setItem('kk_unlocked', 'true');
+                document.getElementById('pin-overlay').classList.add('hidden');
+                errEl.classList.add('hidden');
+            } else {
+                errEl.classList.remove('hidden');
+                input.value = '';
+                input.focus();
+            }
+        };
+
         // Automatisches Apple Touch Icon
         (function() {
             const canvas = document.createElement('canvas');
@@ -1019,6 +1060,7 @@
         })();
 
         // Start
+        checkPinState();
         initUIStates();
         initAuth();
 
