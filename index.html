@@ -95,11 +95,25 @@
             </div>
         </header>
 
-        <!-- TABS BAR -->
-        <div class="flex bg-white dark:bg-darkCard p-1 rounded-2xl border dark:border-darkBorder shadow-sm mb-6 max-w-md mx-auto relative z-10">
-            <button onclick="window.switchTab('open')" id="btn-tab-open" class="tab-btn active-tab uppercase tracking-widest text-[10px]">Offen</button>
-            <button onclick="window.switchTab('sold')" id="btn-tab-sold" class="tab-btn inactive-tab uppercase tracking-widest text-[10px]">Verkauft</button>
-            <button onclick="window.switchTab('stats')" id="btn-tab-stats" class="tab-btn inactive-tab uppercase tracking-widest text-[10px]">Statistik</button>
+        <!-- STICKY NAV ISLAND (Suche + Tabs) -->
+        <div class="sticky top-4 z-40 max-w-md mx-auto mb-6">
+            <div class="bg-white/80 dark:bg-darkCard/80 backdrop-blur-xl p-2 rounded-2xl border border-slate-200/50 dark:border-darkBorder/50 shadow-lg shadow-black/5 dark:shadow-black/20 flex flex-col gap-2">
+                
+                <!-- Suchfeld -->
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                    <input type="text" id="search-input" oninput="window.handleSearch(this.value)" class="w-full bg-slate-100/50 dark:bg-black/50 border-none rounded-xl py-2 pl-10 pr-4 text-sm font-bold text-slate-800 dark:text-slate-200 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500 transition-all" placeholder="Kunde / Komm.-Nr. suchen...">
+                </div>
+
+                <!-- Tabs -->
+                <div class="flex gap-1">
+                    <button onclick="window.switchTab('open')" id="btn-tab-open" class="tab-btn active-tab uppercase tracking-widest text-[10px]">Offen</button>
+                    <button onclick="window.switchTab('sold')" id="btn-tab-sold" class="tab-btn inactive-tab uppercase tracking-widest text-[10px]">Verkauft</button>
+                    <button onclick="window.switchTab('stats')" id="btn-tab-stats" class="tab-btn inactive-tab uppercase tracking-widest text-[10px]">Statistik</button>
+                </div>
+            </div>
         </div>
 
         <main class="pb-20">
@@ -352,6 +366,7 @@
         let pendingDeleteId = null;
         let pendingEditId = null;
         let pendingEditDateId = null;
+        let currentSearchTerm = "";
 
         // DOM Elemente
         const formEl = document.getElementById('add-commission-form');
@@ -463,6 +478,12 @@
                 el.classList.add('hidden');
                 icon.style.transform = 'rotate(-90deg)';
             }
+        };
+
+        // Suchfunktion
+        window.handleSearch = (term) => {
+            currentSearchTerm = term.toLowerCase().trim();
+            window.renderUI();
         };
 
         // --- EVENTS ---
@@ -674,13 +695,18 @@
             soldArchiveListEl.innerHTML = '';
             lostListEl.innerHTML = '';
 
-            const sortedData = [...commissionsData].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+            let displayData = [...commissionsData].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
             
-            const openItems = sortedData.filter(c => c.status === 'open');
+            // Suchfilter anwenden
+            if (currentSearchTerm) {
+                displayData = displayData.filter(c => c.name.toLowerCase().includes(currentSearchTerm));
+            }
+            
+            const openItems = displayData.filter(c => c.status === 'open');
             // Splitting sold items into active and archived (bestellt)
-            const activeSoldItems = sortedData.filter(c => c.status === 'sold' && !c.bestellt);
-            const archivedItems = sortedData.filter(c => c.status === 'sold' && c.bestellt);
-            const lostItems = sortedData.filter(c => c.status === 'lost');
+            const activeSoldItems = displayData.filter(c => c.status === 'sold' && !c.bestellt);
+            const archivedItems = displayData.filter(c => c.status === 'sold' && c.bestellt);
+            const lostItems = displayData.filter(c => c.status === 'lost');
             
             document.getElementById('open-count').innerText = openItems.length;
             document.getElementById('sold-active-count').innerText = activeSoldItems.length;
