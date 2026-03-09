@@ -96,9 +96,9 @@
         </header>
 
         <!-- STICKY NAV ISLAND (Suche + Tabs) -->
-        <!-- Auf Mobile fixiert unten, ab Tablet (md:) sticky oben -->
-        <div class="fixed bottom-4 left-3 right-3 z-50 md:sticky md:top-4 md:bottom-auto md:left-auto md:right-auto max-w-md mx-auto md:mb-6">
-            <div class="bg-white/90 dark:bg-darkCard/90 backdrop-blur-xl p-2 rounded-2xl border border-slate-200/50 dark:border-darkBorder/50 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.15)] dark:shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.5)] md:shadow-lg md:shadow-black/5 flex flex-col gap-2">
+        <!-- Auf Mobile fixiert unten (mit safe-area), ab Tablet (md:) sticky oben -->
+        <div class="fixed left-4 right-4 z-50 md:sticky md:top-4 md:bottom-auto md:left-auto md:right-auto max-w-md mx-auto md:mb-6" style="bottom: max(1rem, env(safe-area-inset-bottom));">
+            <div class="bg-white/90 dark:bg-darkCard/90 backdrop-blur-xl p-2.5 rounded-[2rem] border border-slate-200/50 dark:border-darkBorder/50 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.7)] md:shadow-lg flex flex-col gap-2 transition-all">
                 
                 <!-- Suchfeld -->
                 <div class="relative">
@@ -117,8 +117,8 @@
             </div>
         </div>
 
-        <!-- Extra Padding unten auf Mobile (pb-40), damit das letzte Element nicht verdeckt wird -->
-        <main class="pb-40 md:pb-20 mt-2 md:mt-0">
+        <!-- Extra Padding unten auf Mobile (pb-48), damit das letzte Element nicht verdeckt wird -->
+        <main class="pb-48 md:pb-20 mt-2 md:mt-0">
             
             <!-- TAB 1: OFFEN -->
             <section id="tab-open" class="card p-6 flex flex-col min-h-[500px] block">
@@ -160,7 +160,10 @@
                         <svg id="open-icon" class="w-4 h-4 text-slate-400 transition-transform duration-300 group-hover:text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                         <h2 class="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-blue-500 transition-colors">Laufende Angebote</h2>
                     </div>
-                    <span id="open-count" class="text-[10px] font-mono font-bold bg-slate-200 dark:bg-darkBorder text-slate-600 dark:text-slate-400 px-2 py-1 rounded-md">0</span>
+                    <div class="flex items-center gap-2">
+                        <span id="open-sum" class="text-[10px] font-mono font-bold text-blue-500 bg-blue-500/10 px-2 py-1 rounded-md">0,00 €</span>
+                        <span id="open-count" class="text-[10px] font-mono font-bold bg-slate-200 dark:bg-darkBorder text-slate-600 dark:text-slate-400 px-2 py-1 rounded-md">0</span>
+                    </div>
                 </div>
                 <div id="open-list" class="space-y-3 transition-all duration-300">
                     <!-- Wird dynamisch befüllt -->
@@ -710,7 +713,13 @@
             const archivedItems = displayData.filter(c => c.status === 'sold' && c.bestellt);
             const lostItems = displayData.filter(c => c.status === 'lost');
             
+            const formatter = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
+            
+            // Berechnung der kumulierten Summe aller offenen Angebote
+            const openSum = openItems.reduce((acc, c) => acc + (c.price || 0), 0);
+            
             document.getElementById('open-count').innerText = openItems.length;
+            document.getElementById('open-sum').innerText = formatter.format(openSum);
             document.getElementById('sold-active-count').innerText = activeSoldItems.length;
             document.getElementById('sold-archive-count').innerText = archivedItems.length;
             document.getElementById('lost-count').innerText = lostItems.length;
@@ -722,8 +731,6 @@
                         <p class="font-bold text-sm">Keine offenen Angebote.</p>
                     </div>`;
             }
-
-            const formatter = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
 
             // 1. OFFEN LISTE RENTERN
             openItems.forEach(comm => {
@@ -986,11 +993,9 @@
                 return true;
             });
 
-            let soldCount = 0;
-            let lostCount = 0;
             let revenue = 0;
             
-            // Relevante Variablen für die reine Abschlussquote (ohne Kleinaufträge)
+            // Relevante Variablen für die reine Statistik (ohne Kleinaufträge für die Quoten/Stückzahlen)
             let qualifiedSoldCount = 0;
             let qualifiedLostCount = 0;
 
@@ -999,11 +1004,9 @@
                 const isKleinauftrag = type === 'kleinauftrag';
 
                 if (c.status === 'sold') {
-                    soldCount++;
-                    revenue += parseFloat(c.price || 0);
-                    if (!isKleinauftrag) qualifiedSoldCount++;
+                    revenue += parseFloat(c.price || 0); // Kleinaufträge zählen weiterhin zum Geld
+                    if (!isKleinauftrag) qualifiedSoldCount++; // Aber nicht zur verkauften Küchen-Stückzahl
                 } else if (c.status === 'lost') {
-                    lostCount++;
                     if (!isKleinauftrag) qualifiedLostCount++;
                 }
             });
@@ -1016,8 +1019,10 @@
 
             document.getElementById('stat-revenue').innerText = formatter.format(revenue);
             document.getElementById('stat-winrate').innerText = winRate.toString().replace('.', ',') + ' %';
-            document.getElementById('stat-sold-count').innerText = soldCount;
-            document.getElementById('stat-lost-count').innerText = lostCount;
+            
+            // Update UI: Nur qualifizierte (echte Küchen) anzeigen
+            document.getElementById('stat-sold-count').innerText = qualifiedSoldCount;
+            document.getElementById('stat-lost-count').innerText = qualifiedLostCount;
         };
 
         function escapeHtml(unsafe) {
