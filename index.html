@@ -263,15 +263,21 @@
                     </div>
 
                     <!-- Total Abgesagt -->
-                    <div class="bg-red-500/5 border border-red-500/20 rounded-2xl p-5 text-center col-span-2 sm:col-span-1 sm:col-start-2">
+                    <div class="bg-red-500/5 border border-red-500/20 rounded-2xl p-5 text-center">
                         <p class="text-[9px] font-black text-red-500 uppercase tracking-widest mb-1">Nicht Verkauft</p>
                         <p id="stat-lost-count" class="text-2xl font-black text-red-500 tracking-tighter font-mono-tabular">0</p>
+                    </div>
+
+                    <!-- Durchschnittswert -->
+                    <div class="bg-purple-500/5 border border-purple-500/20 rounded-2xl p-5 text-center">
+                        <p class="text-[9px] font-black text-purple-500 uppercase tracking-widest mb-1">Ø Auftrags-Wert</p>
+                        <p id="stat-avg-value" class="text-2xl font-black text-purple-500 tracking-tighter font-mono-tabular">0,00 €</p>
                     </div>
                 </div>
                 
                 <p class="text-xs text-slate-400 text-center italic mt-auto pt-4 border-t dark:border-darkBorder">
                     Die Abschlussquote berechnet sich aus allen endgültig abgeschlossenen Angeboten (Verkauft vs. Nicht Verkauft) im gewählten Zeitraum.<br><br>
-                    <strong>Kleinaufträge</strong> sind von der Quote ausgeschlossen, zählen aber regulär zum Umsatz.
+                    <strong>Kleinaufträge</strong> sind von Quote, Stückzahl und Durchschnittswert ausgeschlossen, zählen aber regulär zum Gesamtumsatz.
                 </p>
             </section>
 
@@ -995,17 +1001,22 @@
 
             let revenue = 0;
             
-            // Relevante Variablen für die reine Statistik (ohne Kleinaufträge für die Quoten/Stückzahlen)
+            // Relevante Variablen für die reine Statistik (ohne Kleinaufträge für die Quoten/Stückzahlen/Durchschnitt)
             let qualifiedSoldCount = 0;
             let qualifiedLostCount = 0;
+            let qualifiedRevenue = 0;
 
             filteredData.forEach(c => {
                 const type = c.bauart || (c.isNeubau ? 'neubau' : 'bestand');
                 const isKleinauftrag = type === 'kleinauftrag';
+                const price = parseFloat(c.price || 0);
 
                 if (c.status === 'sold') {
-                    revenue += parseFloat(c.price || 0); // Kleinaufträge zählen weiterhin zum Geld
-                    if (!isKleinauftrag) qualifiedSoldCount++; // Aber nicht zur verkauften Küchen-Stückzahl
+                    revenue += price; // Kleinaufträge zählen weiterhin zum Gesamt-Geld
+                    if (!isKleinauftrag) {
+                        qualifiedSoldCount++; // Aber nicht zur verkauften Küchen-Stückzahl
+                        qualifiedRevenue += price; // Umsatz der echten Küchen für den Durchschnitt
+                    }
                 } else if (c.status === 'lost') {
                     if (!isKleinauftrag) qualifiedLostCount++;
                 }
@@ -1014,11 +1025,15 @@
             // WinRate basiert NUR auf qualifizierten Aufträgen
             const totalQualified = qualifiedSoldCount + qualifiedLostCount;
             const winRate = totalQualified > 0 ? ((qualifiedSoldCount / totalQualified) * 100).toFixed(1) : 0;
+            
+            // Durchschnittswert der echten Küchen
+            const avgValue = qualifiedSoldCount > 0 ? (qualifiedRevenue / qualifiedSoldCount) : 0;
 
             const formatter = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
 
             document.getElementById('stat-revenue').innerText = formatter.format(revenue);
             document.getElementById('stat-winrate').innerText = winRate.toString().replace('.', ',') + ' %';
+            document.getElementById('stat-avg-value').innerText = formatter.format(avgValue);
             
             // Update UI: Nur qualifizierte (echte Küchen) anzeigen
             document.getElementById('stat-sold-count').innerText = qualifiedSoldCount;
