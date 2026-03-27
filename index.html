@@ -349,6 +349,22 @@
         </div>
     </div>
 
+    <!-- Edit Note Modal -->
+    <div id="edit-note-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
+        <div class="card p-8 max-w-sm w-full shadow-2xl modal-fade border-blue-500/50">
+            <div class="text-center mb-6">
+                <h2 class="text-xl font-black tracking-tight text-slate-800 dark:text-slate-100">Notiz zur Kommission</h2>
+            </div>
+            <div class="mb-6">
+                <textarea id="edit-note-input" rows="4" class="input-field text-sm w-full resize-none leading-relaxed" placeholder="z. B. Wartet auf Fliesenleger, Küche ist von Nolte, meldet sich in KW 15..."></textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="window.closeEditNote()" class="py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 active:scale-95 transition-transform">Schließen</button>
+                <button onclick="window.executeEditNote()" class="py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-blue-600 text-white shadow-lg shadow-blue-600/20 active:scale-95 transition-transform">Speichern</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase v9 Modular SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -377,6 +393,7 @@
         let pendingDeleteId = null;
         let pendingEditId = null;
         let pendingEditDateId = null;
+        let pendingEditNoteId = null;
         let currentSearchTerm = "";
 
         // DOM Elemente
@@ -685,6 +702,41 @@
             }
         };
 
+        // --- NOTIZEN LOGIK ---
+        window.showEditNote = (id) => {
+            pendingEditNoteId = id;
+            const comm = commissionsData.find(c => c.id === id);
+            const input = document.getElementById('edit-note-input');
+            input.value = comm && comm.note ? comm.note : '';
+            document.getElementById('edit-note-modal').classList.remove('hidden');
+            setTimeout(() => input.focus(), 100);
+        };
+
+        window.closeEditNote = () => {
+            pendingEditNoteId = null;
+            document.getElementById('edit-note-modal').classList.add('hidden');
+        };
+
+        window.executeEditNote = async () => {
+            if (!currentUser || !pendingEditNoteId) return;
+            const input = document.getElementById('edit-note-input');
+            const newNote = input.value.trim();
+            const id = pendingEditNoteId;
+            window.closeEditNote();
+            
+            try {
+                updateStatus("Update...", "bg-amber-500 animate-pulse");
+                const docRef = doc(getDbCollection(), id);
+                await updateDoc(docRef, { 
+                    note: newNote,
+                    lastContactAt: new Date().toISOString() // Notiz schreiben = Kontakt. Timer wird resettet.
+                });
+            } catch (error) {
+                showError("Fehler beim Aktualisieren: " + error.message);
+                updateStatus("Fehler", "bg-red-500", error.message);
+            }
+        };
+
         // Manueller Reset-Button für den Kontakt-Timer
         window.resetContactTimer = async (id) => {
             if (!currentUser) return;
@@ -771,6 +823,11 @@
                 const badgeConf = typeBadgeConfig[type] || typeBadgeConfig['bestand'];
                 const typeBadge = `<button onclick="window.cycleBauart('${comm.id}', '${type}')" class="text-[9px] font-black ${badgeConf.colorClass} px-2 py-0.5 rounded uppercase tracking-widest inline-block transition-colors cursor-pointer" title="Bauart ändern">${badgeConf.text}</button>`;
 
+                // Notiz-Icon Indikator
+                const hasNote = comm.note && comm.note.trim() !== '';
+                const noteIconColor = hasNote ? 'text-blue-500 bg-blue-500/10 hover:bg-blue-500/20' : 'text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-white/5';
+                const noteIconFilled = hasNote ? 'fill="currentColor"' : 'fill="none"';
+
                 const card = document.createElement('div');
                 card.className = `bg-white dark:bg-darkCard p-4 rounded-xl border ${borderClass} flex flex-col gap-4 transition-all shadow-sm group`;
                 
@@ -778,10 +835,13 @@
                     <div class="flex justify-between items-start">
                         <div>
                             <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100 break-all">${escapeHtml(comm.name)}</h3>
-                            <div class="flex items-center gap-2 mt-1">
-                                <p class="font-mono text-blue-500 font-bold text-xs font-mono-tabular">${formatter.format(comm.price)}</p>
+                            <div class="flex items-center gap-1 mt-1">
+                                <p class="font-mono text-blue-500 font-bold text-xs font-mono-tabular mr-1">${formatter.format(comm.price)}</p>
                                 <button onclick="window.showEditPrice('${comm.id}', ${comm.price})" class="text-slate-400 hover:text-blue-500 transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-white/5" title="Preis anpassen">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                </button>
+                                <button onclick="window.showEditNote('${comm.id}')" class="${noteIconColor} transition-colors p-1 rounded" title="${hasNote ? 'Notiz ansehen/bearbeiten' : 'Notiz hinzufügen'}">
+                                    <svg class="w-3.5 h-3.5" ${noteIconFilled} stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                                 </button>
                             </div>
                             <div class="flex flex-wrap items-center gap-1.5 mt-1.5">${contactBadge}${typeBadge}</div>
@@ -882,12 +942,17 @@
                     }
                     
                     const badgeConf = typeBadgeConfig[type] || typeBadgeConfig['bestand'];
-                    const typeBadge = `<button onclick="window.cycleBauart('${comm.id}', '${type}')" class="text-[9px] font-black ${badgeConf.colorClass} px-2 py-0.5 rounded uppercase tracking-widest ml-2 transition-colors cursor-pointer" title="Bauart ändern">${badgeConf.text}</button>`;
+                    const typeBadge = `<button onclick="window.cycleBauart('${comm.id}', '${type}')" class="text-[9px] font-black ${badgeConf.colorClass} px-2 py-0.5 rounded uppercase tracking-widest transition-colors cursor-pointer" title="Bauart ändern">${badgeConf.text}</button>`;
                     
                     const resolveDateStr = comm.resolvedAt || comm.createdAt;
                     const resolveDateObj = new Date(resolveDateStr);
                     const displayDate = resolveDateObj.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                    const dateBadge = `<div class="flex items-center gap-1 mt-1.5"><span class="text-[9px] font-black text-slate-500 bg-slate-200 dark:bg-white/10 dark:text-slate-300 px-2 py-0.5 rounded uppercase tracking-widest inline-block">${displayDate}</span><button onclick="window.showEditDate('${comm.id}', '${resolveDateStr}')" class="text-slate-400 hover:text-blue-500 transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-white/5" title="Buchungsdatum anpassen"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button></div>`;
+                    const dateBadge = `<div class="flex items-center gap-1"><span class="text-[9px] font-black text-slate-500 bg-slate-200 dark:bg-white/10 dark:text-slate-300 px-2 py-0.5 rounded uppercase tracking-widest inline-block">${displayDate}</span><button onclick="window.showEditDate('${comm.id}', '${resolveDateStr}')" class="text-slate-400 hover:text-blue-500 transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-white/5" title="Buchungsdatum anpassen"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button></div>`;
+                    
+                    // Notiz-Icon Indikator für Verkauft / Ablage
+                    const hasNote = comm.note && comm.note.trim() !== '';
+                    const noteIconColor = hasNote ? 'text-blue-500 bg-blue-500/10 hover:bg-blue-500/20' : 'text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-white/5';
+                    const noteIconFilled = hasNote ? 'fill="currentColor"' : 'fill="none"';
                     
                     const borderClass = allDone ? "border-emerald-500/50 bg-emerald-500/5 dark:bg-emerald-500/5" : "border-slate-200 dark:border-darkBorder bg-white dark:bg-darkCard hover:border-blue-300 dark:hover:border-blue-500/50";
                     
@@ -898,11 +963,14 @@
                         <div class="mb-3 border-b border-slate-100 dark:border-white/5 pb-3 flex justify-between items-start">
                             <div>
                                 <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100 mb-1">${escapeHtml(comm.name)}</h3>
-                                <div class="flex flex-wrap items-center">
+                                <div class="flex flex-wrap items-center gap-1.5">
                                     <span class="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded uppercase tracking-widest font-mono-tabular">${formatter.format(comm.price)}</span>
+                                    <button onclick="window.showEditNote('${comm.id}')" class="${noteIconColor} transition-colors p-1 rounded" title="${hasNote ? 'Notiz ansehen/bearbeiten' : 'Notiz hinzufügen'}">
+                                        <svg class="w-3.5 h-3.5" ${noteIconFilled} stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                    </button>
                                     ${typeBadge}
                                 </div>
-                                ${dateBadge}
+                                <div class="mt-1.5">${dateBadge}</div>
                             </div>
                             <button onclick="window.reopenCommission('${comm.id}')" class="text-[10px] font-bold text-slate-400 hover:text-blue-500 uppercase tracking-widest transition-colors active:scale-95 bg-slate-100 dark:bg-white/5 px-2 py-1 rounded" title="Zurücksetzen">Zurück</button>
                         </div>
@@ -930,13 +998,18 @@
                 lostItems.forEach(comm => {
                     const type = comm.bauart || (comm.isNeubau ? 'neubau' : 'bestand');
                     const badgeConf = typeBadgeConfig[type] || typeBadgeConfig['bestand'];
-                    const typeBadge = `<button onclick="window.cycleBauart('${comm.id}', '${type}')" class="text-[9px] font-black ${badgeConf.colorClass} px-2 py-0.5 rounded uppercase tracking-widest ml-2 transition-colors cursor-pointer" title="Bauart ändern">${badgeConf.text}</button>`;
+                    const typeBadge = `<button onclick="window.cycleBauart('${comm.id}', '${type}')" class="text-[9px] font-black ${badgeConf.colorClass} px-2 py-0.5 rounded uppercase tracking-widest transition-colors cursor-pointer" title="Bauart ändern">${badgeConf.text}</button>`;
                     
                     const resolveDateStr = comm.resolvedAt || comm.createdAt;
                     const resolveDateObj = new Date(resolveDateStr);
                     const displayDate = resolveDateObj.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                    const dateBadge = `<div class="flex items-center gap-1 mt-1.5"><span class="text-[9px] font-black text-slate-500 bg-slate-200 dark:bg-white/10 dark:text-slate-300 px-2 py-0.5 rounded uppercase tracking-widest inline-block">${displayDate}</span><button onclick="window.showEditDate('${comm.id}', '${resolveDateStr}')" class="text-slate-400 hover:text-blue-500 transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-white/5" title="Buchungsdatum anpassen"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button></div>`;
+                    const dateBadge = `<div class="flex items-center gap-1"><span class="text-[9px] font-black text-slate-500 bg-slate-200 dark:bg-white/10 dark:text-slate-300 px-2 py-0.5 rounded uppercase tracking-widest inline-block">${displayDate}</span><button onclick="window.showEditDate('${comm.id}', '${resolveDateStr}')" class="text-slate-400 hover:text-blue-500 transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-white/5" title="Buchungsdatum anpassen"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button></div>`;
                     
+                    // Notiz-Icon Indikator für Abgesagt
+                    const hasNote = comm.note && comm.note.trim() !== '';
+                    const noteIconColor = hasNote ? 'text-blue-500 bg-blue-500/10 hover:bg-blue-500/20' : 'text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-white/5';
+                    const noteIconFilled = hasNote ? 'fill="currentColor"' : 'fill="none"';
+
                     const card = document.createElement('div');
                     card.className = `p-4 rounded-xl border border-red-500/30 bg-red-500/5 dark:bg-red-500/5 shadow-sm transition-all mb-4`;
                     
@@ -944,11 +1017,14 @@
                         <div class="flex justify-between items-start">
                             <div>
                                 <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100 mb-1">${escapeHtml(comm.name)}</h3>
-                                <div class="flex flex-wrap items-center">
+                                <div class="flex flex-wrap items-center gap-1.5">
                                     <span class="text-[10px] font-mono font-bold text-red-600 dark:text-red-400 bg-red-500/10 px-2 py-0.5 rounded uppercase tracking-widest font-mono-tabular">${formatter.format(comm.price)}</span>
+                                    <button onclick="window.showEditNote('${comm.id}')" class="${noteIconColor} transition-colors p-1 rounded" title="${hasNote ? 'Notiz ansehen/bearbeiten' : 'Notiz hinzufügen'}">
+                                        <svg class="w-3.5 h-3.5" ${noteIconFilled} stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                    </button>
                                     ${typeBadge}
                                 </div>
-                                ${dateBadge}
+                                <div class="mt-1.5">${dateBadge}</div>
                             </div>
                             <button onclick="window.reopenCommission('${comm.id}')" class="text-[10px] font-bold text-slate-400 hover:text-blue-500 uppercase tracking-widest transition-colors active:scale-95 bg-slate-100 dark:bg-white/5 px-2 py-1 rounded" title="Zurücksetzen">Zurück</button>
                         </div>
