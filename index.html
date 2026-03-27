@@ -520,7 +520,8 @@
                 abVerschickt: false,
                 aufmass: false,
                 bestellt: false,
-                createdAt: new Date().toISOString()
+                createdAt: new Date().toISOString(),
+                lastContactAt: new Date().toISOString() // Startpunkt für den Timer
             };
 
             try {
@@ -543,7 +544,10 @@
             try {
                 updateStatus("Update...", "bg-amber-500 animate-pulse");
                 const docRef = doc(getDbCollection(), id);
-                await updateDoc(docRef, { [field]: value });
+                await updateDoc(docRef, { 
+                    [field]: value,
+                    lastContactAt: new Date().toISOString() // Automatischer Reset bei jeder Änderung
+                });
             } catch (error) {
                 showError("Fehler beim Aktualisieren: " + error.message);
                 updateStatus("Fehler", "bg-red-500", error.message);
@@ -562,7 +566,8 @@
                 const docRef = doc(getDbCollection(), id);
                 await updateDoc(docRef, { 
                     bauart: nextType,
-                    isNeubau: nextType === 'neubau' // Für Kompatibilität beibehalten
+                    isNeubau: nextType === 'neubau', // Für Kompatibilität beibehalten
+                    lastContactAt: new Date().toISOString() // Automatischer Reset
                 });
             } catch (error) {
                 showError("Fehler beim Aktualisieren: " + error.message);
@@ -618,21 +623,9 @@
             try {
                 updateStatus("Update...", "bg-amber-500 animate-pulse");
                 const docRef = doc(getDbCollection(), id);
-                await updateDoc(docRef, { price: parsedPrice });
-            } catch (error) {
-                showError("Fehler beim Aktualisieren: " + error.message);
-                updateStatus("Fehler", "bg-red-500", error.message);
-            }
-        };
-
-        window.resolveCommission = async (id, status) => {
-            if (!currentUser) return;
-            try {
-                updateStatus("Update...", "bg-amber-500 animate-pulse");
-                const docRef = doc(getDbCollection(), id);
                 await updateDoc(docRef, { 
-                    status: status,
-                    resolvedAt: new Date().toISOString()
+                    price: parsedPrice,
+                    lastContactAt: new Date().toISOString() // Automatischer Reset
                 });
             } catch (error) {
                 showError("Fehler beim Aktualisieren: " + error.message);
@@ -647,7 +640,8 @@
                 const docRef = doc(getDbCollection(), id);
                 await updateDoc(docRef, { 
                     status: 'open',
-                    resolvedAt: null
+                    resolvedAt: null,
+                    lastContactAt: new Date().toISOString() // Reset beim Reaktivieren
                 });
             } catch (error) {
                 showError("Fehler beim Aktualisieren: " + error.message);
@@ -685,6 +679,19 @@
                 updateStatus("Update...", "bg-amber-500 animate-pulse");
                 const docRef = doc(getDbCollection(), id);
                 await updateDoc(docRef, { resolvedAt: newDate });
+            } catch (error) {
+                showError("Fehler beim Aktualisieren: " + error.message);
+                updateStatus("Fehler", "bg-red-500", error.message);
+            }
+        };
+
+        // Manueller Reset-Button für den Kontakt-Timer
+        window.resetContactTimer = async (id) => {
+            if (!currentUser) return;
+            try {
+                updateStatus("Update...", "bg-amber-500 animate-pulse");
+                const docRef = doc(getDbCollection(), id);
+                await updateDoc(docRef, { lastContactAt: new Date().toISOString() });
             } catch (error) {
                 showError("Fehler beim Aktualisieren: " + error.message);
                 updateStatus("Fehler", "bg-red-500", error.message);
@@ -740,15 +747,29 @@
 
             // 1. OFFEN LISTE RENTERN
             openItems.forEach(comm => {
-                const daysOld = (Date.now() - new Date(comm.createdAt).getTime()) / (1000 * 3600 * 24);
-                const isUrgent = daysOld > 14;
+                // Timer-Logik basiert jetzt auf letztem Kontakt oder Erstellungsdatum
+                const referenceDateStr = comm.lastContactAt || comm.createdAt;
+                const daysOld = Math.floor((Date.now() - new Date(referenceDateStr).getTime()) / (1000 * 3600 * 24));
+                const isUrgent = daysOld >= 14;
+                
                 const borderClass = isUrgent ? "border-orange-400 dark:border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.1)]" : "border-slate-200 dark:border-darkBorder hover:border-blue-500";
-                const urgentBadge = isUrgent ? `<span class="text-[9px] font-black text-orange-600 dark:text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded uppercase tracking-widest inline-block mt-1.5 mr-2">Seit ${Math.floor(daysOld)} Tagen offen</span>` : '';
+                
+                // Kontakt-Badge: Grau (OK) oder Orange (Dringend)
+                const contactBadgeClass = isUrgent 
+                    ? "text-orange-600 dark:text-orange-400 bg-orange-500/10 hover:bg-orange-500/20" 
+                    : "text-slate-500 bg-slate-200 dark:bg-white/10 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-white/20";
+                
+                const contactText = daysOld === 0 ? 'Heute Kontakt' : `Vor ${daysOld} Tag${daysOld !== 1 ? 'en' : ''}`;
+                
+                const contactBadge = `<button onclick="window.resetContactTimer('${comm.id}')" class="text-[9px] font-black ${contactBadgeClass} px-2 py-0.5 rounded uppercase tracking-widest inline-flex items-center gap-1 transition-colors cursor-pointer" title="Kontakt aktualisieren (Timer auf 0 setzen)">
+                    ${contactText}
+                    <svg class="w-2.5 h-2.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                </button>`;
                 
                 // Bauart ermitteln (Rückwärtskompatibilität für alte Einträge ohne 'bauart')
                 const type = comm.bauart || (comm.isNeubau ? 'neubau' : 'bestand');
                 const badgeConf = typeBadgeConfig[type] || typeBadgeConfig['bestand'];
-                const typeBadge = `<button onclick="window.cycleBauart('${comm.id}', '${type}')" class="text-[9px] font-black ${badgeConf.colorClass} px-2 py-0.5 rounded uppercase tracking-widest inline-block mt-1.5 transition-colors cursor-pointer" title="Bauart ändern">${badgeConf.text}</button>`;
+                const typeBadge = `<button onclick="window.cycleBauart('${comm.id}', '${type}')" class="text-[9px] font-black ${badgeConf.colorClass} px-2 py-0.5 rounded uppercase tracking-widest inline-block transition-colors cursor-pointer" title="Bauart ändern">${badgeConf.text}</button>`;
 
                 const card = document.createElement('div');
                 card.className = `bg-white dark:bg-darkCard p-4 rounded-xl border ${borderClass} flex flex-col gap-4 transition-all shadow-sm group`;
@@ -763,7 +784,7 @@
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                 </button>
                             </div>
-                            <div>${urgentBadge}${typeBadge}</div>
+                            <div class="flex flex-wrap items-center gap-1.5 mt-1.5">${contactBadge}${typeBadge}</div>
                         </div>
                         <button onclick="window.showDeleteConfirm('${comm.id}')" class="text-slate-300 hover:text-red-500 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-500/10 font-bold active:scale-90 opacity-0 group-hover:opacity-100 -mr-2 -mt-2" title="Löschen">✕</button>
                     </div>
