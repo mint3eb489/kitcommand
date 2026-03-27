@@ -78,7 +78,7 @@
     </div>
 
     <!-- Floating Action Button (FAB) -->
-    <button onclick="window.showAddModal()" class="fixed z-40 bg-blue-600 text-white w-14 h-14 rounded-full shadow-[0_10px_25px_rgba(37,99,235,0.5)] flex items-center justify-center hover:bg-blue-700 active:scale-90 transition-all group" style="bottom: calc(5.5rem + env(safe-area-inset-bottom)); right: 1rem;">
+    <button onclick="window.showAddModal()" class="fixed z-40 bg-blue-600 text-white w-14 h-14 rounded-full shadow-[0_10px_25px_rgba(37,99,235,0.5)] flex items-center justify-center hover:bg-blue-700 active:scale-90 transition-all group bottom-[calc(9.5rem+env(safe-area-inset-bottom))] md:bottom-8 right-4 md:right-8">
         <svg class="w-6 h-6 transform group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
     </button>
 
@@ -1085,35 +1085,7 @@
 
                     const type = comm.bauart || (comm.isNeubau ? 'neubau' : 'bestand');
 
-                    if (type === 'neubau') {
-                        totalCheckboxes = 6;
-                        checkedCount = [comm.vorabPlan, comm.vorabAb, comm.aufmass, comm.installationsplan, comm.abVerschickt, comm.bestellt].filter(Boolean).length;
-                        
-                        checkboxesHtml = `
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                                ${createCheckbox(comm, 'vorabPlan', 'Vorab-Installationsplan')}
-                                ${createCheckbox(comm, 'vorabAb', 'Vorab-Auftragsbestätigung')}
-                                ${createCheckbox(comm, 'aufmass', 'Aufmaß')}
-                                ${createCheckbox(comm, 'installationsplan', 'Finaler Installationsplan')}
-                                ${createCheckbox(comm, 'abVerschickt', 'Finale Auftragsbestätigung')}
-                                ${createCheckbox(comm, 'bestellt', 'Bestellung')}
-                            </div>
-                        `;
-                        percent = (checkedCount / totalCheckboxes) * 100;
-                    } else if (type === 'bestand') {
-                        totalCheckboxes = 4;
-                        checkedCount = [comm.aufmass, comm.installationsplan, comm.abVerschickt, comm.bestellt].filter(Boolean).length;
-                        
-                        checkboxesHtml = `
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                                ${createCheckbox(comm, 'aufmass', 'Aufmaß')}
-                                ${createCheckbox(comm, 'installationsplan', 'Installationsplan')}
-                                ${createCheckbox(comm, 'abVerschickt', 'Auftragsbestätigung')}
-                                ${createCheckbox(comm, 'bestellt', 'Bestellung')}
-                            </div>
-                        `;
-                        percent = (checkedCount / totalCheckboxes) * 100;
-                    } else if (type === 'kleinauftrag') {
+                    if (type === 'kleinauftrag') {
                         checkboxesHtml = `
                             <div class="mt-2 flex justify-end">
                                 <button onclick="window.updateCommissionField('${comm.id}', 'bestellt', ${!comm.bestellt})" class="bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-blue-500 hover:text-white py-2 px-4 rounded-xl font-bold text-[10px] tracking-widest uppercase transition-all shadow-sm">
@@ -1121,6 +1093,55 @@
                                 </button>
                             </div>
                         `;
+                    } else {
+                        const showVorab = type === 'neubau' || comm.needsVorab;
+                        let checkboxesContent = '';
+
+                        if (showVorab) {
+                            totalCheckboxes = 6;
+                            checkedCount = [comm.vorabPlan, comm.vorabAb, comm.aufmass, comm.installationsplan, comm.abVerschickt, comm.bestellt].filter(Boolean).length;
+                            
+                            checkboxesContent = `
+                                ${createCheckbox(comm, 'vorabPlan', 'Vorab-Installationsplan')}
+                                ${createCheckbox(comm, 'vorabAb', 'Vorab-Auftragsbestätigung')}
+                                ${createCheckbox(comm, 'aufmass', 'Aufmaß')}
+                                ${createCheckbox(comm, 'installationsplan', 'Finaler Installationsplan')}
+                                ${createCheckbox(comm, 'abVerschickt', 'Finale Auftragsbestätigung')}
+                                ${createCheckbox(comm, 'bestellt', 'Bestellung')}
+                            `;
+                        } else {
+                            totalCheckboxes = 4;
+                            checkedCount = [comm.aufmass, comm.installationsplan, comm.abVerschickt, comm.bestellt].filter(Boolean).length;
+                            
+                            checkboxesContent = `
+                                ${createCheckbox(comm, 'aufmass', 'Aufmaß')}
+                                ${createCheckbox(comm, 'installationsplan', 'Installationsplan')}
+                                ${createCheckbox(comm, 'abVerschickt', 'Auftragsbestätigung')}
+                                ${createCheckbox(comm, 'bestellt', 'Bestellung')}
+                            `;
+                        }
+                        
+                        percent = (checkedCount / totalCheckboxes) * 100;
+
+                        if (type === 'bestand') {
+                            checkboxesHtml = `
+                                <div class="mt-3 flex justify-between items-center px-1 border-b border-slate-100 dark:border-white/5 pb-2 mb-2">
+                                    <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">Prozess-Schritte</span>
+                                    <button onclick="window.updateCommissionField('${comm.id}', 'needsVorab', ${!showVorab})" class="text-[9px] font-bold text-blue-500 hover:text-blue-600 uppercase tracking-widest transition-colors flex items-center gap-1">
+                                        ${showVorab ? 'Standard-Ablauf' : '+ Vorab-Planung'}
+                                    </button>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    ${checkboxesContent}
+                                </div>
+                            `;
+                        } else {
+                            checkboxesHtml = `
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                                    ${checkboxesContent}
+                                </div>
+                            `;
+                        }
                     }
 
                     if (type !== 'kleinauftrag') {
