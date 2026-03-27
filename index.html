@@ -36,7 +36,7 @@
         .pro-badge { display: inline-flex; align-items: center; border: 1.2px solid #fbbf24; color: #fbbf24; border-radius: 5px; padding: 2px 6px; font-size: 0.45em; font-weight: 900; margin-left: 10px; vertical-align: middle; transform: translateY(-2px); }
         
         /* Tab Styles */
-        .tab-btn { padding: 0.8rem 1rem; font-weight: 700; font-size: 0.85rem; border-radius: 0.8rem; flex: 1; text-align: center; transition: all 0.2s; }
+        .tab-btn { padding: 0.8rem 0.5rem; font-weight: 700; font-size: 0.85rem; border-radius: 0.8rem; flex: 1; text-align: center; transition: all 0.2s; }
         .active-tab { background: #1a1a1a; color: white; }
         .dark .active-tab { background: #ffffff; color: #000000; }
         .inactive-tab { color: #64748b; background: transparent; }
@@ -110,9 +110,10 @@
                     <input type="text" id="search-input" oninput="window.handleSearch(this.value)" class="w-full bg-slate-100/50 dark:bg-black/50 border-none rounded-xl py-2 pl-10 pr-4 text-sm font-bold text-slate-800 dark:text-slate-200 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500 transition-all" placeholder="Kunde / Komm.-Nr. suchen...">
                 </div>
                 <div class="flex gap-1">
-                    <button onclick="window.switchTab('open')" id="btn-tab-open" class="tab-btn active-tab uppercase tracking-widest text-[10px]">Offen</button>
-                    <button onclick="window.switchTab('sold')" id="btn-tab-sold" class="tab-btn inactive-tab uppercase tracking-widest text-[10px]">Verkauft</button>
-                    <button onclick="window.switchTab('stats')" id="btn-tab-stats" class="tab-btn inactive-tab uppercase tracking-widest text-[10px]">Statistik</button>
+                    <button onclick="window.switchTab('open')" id="btn-tab-open" class="tab-btn active-tab uppercase tracking-widest text-[9px] sm:text-[10px]">Offen</button>
+                    <button onclick="window.switchTab('sold')" id="btn-tab-sold" class="tab-btn inactive-tab uppercase tracking-widest text-[9px] sm:text-[10px]">Verkauft</button>
+                    <button onclick="window.switchTab('stats')" id="btn-tab-stats" class="tab-btn inactive-tab uppercase tracking-widest text-[9px] sm:text-[10px]">Statistik</button>
+                    <button onclick="window.switchTab('admin')" id="btn-tab-admin" class="tab-btn inactive-tab uppercase tracking-widest text-[9px] sm:text-[10px]">Admin</button>
                 </div>
             </div>
         </div>
@@ -121,7 +122,6 @@
             
             <!-- TAB 1: OFFEN -->
             <section id="tab-open" class="card p-4 md:p-6 flex flex-col min-h-[500px] block border-none bg-transparent dark:bg-transparent shadow-none">
-                
                 <div class="mb-4 pb-3 flex justify-between items-center cursor-pointer group" onclick="window.toggleSection('open-list', 'open-icon')">
                     <div class="flex items-center gap-2">
                         <svg id="open-icon" class="w-4 h-4 text-slate-400 transition-transform duration-300 group-hover:text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
@@ -139,7 +139,6 @@
 
             <!-- TAB 2: VERKAUFT -->
             <section id="tab-sold" class="card p-4 md:p-6 flex flex-col min-h-[500px] hidden border-none bg-transparent dark:bg-transparent shadow-none">
-                
                 <div class="mb-5 pb-3 flex justify-between items-center cursor-pointer group" onclick="window.toggleSection('sold-active-list', 'sold-active-icon')">
                     <div class="flex items-center gap-2">
                         <svg id="sold-active-icon" class="w-4 h-4 text-emerald-500 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
@@ -172,7 +171,6 @@
                 <div id="lost-list" class="space-y-4 hidden transition-all duration-300">
                     <!-- Wird dynamisch befüllt -->
                 </div>
-
             </section>
 
             <!-- TAB 3: STATISTIK -->
@@ -202,14 +200,13 @@
                     </div>
                 </div>
 
-                <!-- GAMIFICATION: JAHRESZIEL -->
+                <!-- GAMIFICATION: JAHRESZIEL (Nur Anzeige) -->
                 <div class="mb-6 bg-slate-100 dark:bg-white/5 rounded-2xl p-5 border border-slate-200 dark:border-white/10 relative overflow-hidden">
                     <div class="flex justify-between items-end mb-3 relative z-10">
                         <div>
                             <p class="text-[9px] font-black uppercase tracking-widest text-slate-400">Dein Umsatzziel</p>
                             <p class="text-xl font-black text-slate-800 dark:text-slate-100 font-mono-tabular tracking-tighter" id="target-display">0,00 €</p>
                         </div>
-                        <button onclick="window.showEditTarget()" class="text-[10px] font-bold text-blue-500 hover:text-white hover:bg-blue-500 uppercase tracking-widest bg-blue-500/10 px-3 py-1.5 rounded-lg active:scale-95 transition-all">Ziel anpassen</button>
                     </div>
                     <div class="w-full bg-slate-200 dark:bg-black/50 h-2.5 rounded-full overflow-hidden relative z-10">
                         <div id="target-progress-bar" class="bg-blue-500 h-full transition-all duration-1000 ease-out" style="width: 0%"></div>
@@ -288,7 +285,6 @@
                     </div>
                     
                     <div class="relative flex justify-center w-full sm:w-1/2">
-                        <!-- Das Chart wird über CSS conic-gradient gefüllt. Die Maske erzeugt das Loch in der Mitte. -->
                         <div class="w-32 h-32 rounded-full shrink-0 transition-all duration-700 ease-out" id="type-donut-chart" style="-webkit-mask-image: radial-gradient(circle, transparent 55%, black 56%); mask-image: radial-gradient(circle, transparent 55%, black 56%);"></div>
                     </div>
                 </div>
@@ -297,6 +293,37 @@
                     Die Abschlussquote berechnet sich aus allen endgültig abgeschlossenen Angeboten (Verkauft vs. Nicht Verkauft) im gewählten Zeitraum.<br><br>
                     <strong>Kleinaufträge</strong> sind von Quote, Stückzahl und Durchschnittswert ausgeschlossen, zählen aber regulär zum Gesamtumsatz.
                 </p>
+            </section>
+
+            <!-- TAB 4: ADMIN / EINSTELLUNGEN -->
+            <section id="tab-admin" class="card p-6 flex flex-col min-h-[500px] hidden">
+                <div class="mb-6 border-b dark:border-darkBorder pb-4">
+                    <h2 class="text-[10px] font-black uppercase tracking-widest text-blue-500">System & Admin</h2>
+                    <p class="text-xs text-slate-500 mt-1">Zentrale Einstellungen für dein KitCommand.</p>
+                </div>
+
+                <div class="space-y-6">
+                    <!-- Block: Persönliche Einstellungen -->
+                    <div class="bg-slate-50 dark:bg-white/5 rounded-2xl p-5 border border-slate-200 dark:border-white/10 shadow-sm">
+                        <h3 class="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200 mb-4">Persönliche Ziele</h3>
+                        
+                        <div class="flex flex-col gap-2">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Jahres-Umsatzziel (€)</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="admin-target-input" inputmode="decimal" class="input-field text-sm font-mono text-left" placeholder="z. B. 1.500.000">
+                                <button onclick="window.saveAdminTarget()" class="bg-blue-600 text-white px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-blue-600/20 active:scale-95 transition-all whitespace-nowrap">Speichern</button>
+                            </div>
+                            <p class="text-[9px] text-slate-400 mt-1">Dieses Ziel wird für die Berechnung deines Fortschritts in der Statistik verwendet.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Platzhalter für zukünftige Blöcke -->
+                    <div class="bg-slate-50/50 dark:bg-white/5 rounded-2xl p-5 border border-slate-200/50 dark:border-white/5 border-dashed flex flex-col items-center justify-center text-center opacity-70">
+                        <svg class="w-6 h-6 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                        <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Team-Verwaltung</h3>
+                        <p class="text-[9px] text-slate-400">Bald verfügbar. Hier kannst du künftig weitere Mitarbeiter hinzufügen.</p>
+                    </div>
+                </div>
             </section>
 
         </main>
@@ -335,24 +362,6 @@
                     Speichern
                 </button>
             </form>
-        </div>
-    </div>
-
-    <!-- Edit Target Modal (Gamification) -->
-    <div id="edit-target-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
-        <div class="card p-8 max-w-sm w-full shadow-2xl modal-fade border-blue-500/50">
-            <div class="text-center mb-6">
-                <h2 class="text-xl font-black tracking-tight text-slate-800 dark:text-slate-100">Umsatzziel anpassen</h2>
-                <p class="text-xs text-slate-500 mt-2 font-medium">Dein persönliches Ziel für den gewählten Zeitraum.</p>
-            </div>
-            <div class="relative mb-6">
-                <input type="text" id="edit-target-input" inputmode="decimal" class="input-field text-sm font-mono text-center pl-3 pr-8" placeholder="Ziel">
-                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">€</span>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <button onclick="window.closeEditTarget()" class="py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 active:scale-95 transition-transform">Abbrechen</button>
-                <button onclick="window.executeEditTarget()" class="py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-blue-600 text-white shadow-lg shadow-blue-600/20 active:scale-95 transition-transform">Speichern</button>
-            </div>
         </div>
     </div>
 
@@ -468,7 +477,7 @@
         let pendingEditDateId = null;
         let pendingEditNoteId = null;
         let currentSearchTerm = "";
-        let currentAnnualTarget = 1500000; // Cloud-synchronisiertes Ziel (Standard 1,5 Mio)
+        let currentAnnualTarget = 1500000;
 
         // DOM Elemente
         const formEl = document.getElementById('add-commission-form');
@@ -543,10 +552,15 @@
             
             updateStatus("Lade Daten...", "bg-blue-500 animate-pulse");
             
-            // 1. Settings Listener (Für das Umsatzziel)
+            // 1. Settings Listener
             unsubscribeSettings = onSnapshot(settingsRef, (docSnap) => {
                 if (docSnap.exists() && docSnap.data().annualTarget) {
                     currentAnnualTarget = docSnap.data().annualTarget;
+                }
+                // Input Feld im Admin Bereich synchronisieren
+                const adminInput = document.getElementById('admin-target-input');
+                if (adminInput && document.activeElement !== adminInput) {
+                    adminInput.value = currentAnnualTarget.toString().replace('.', ',');
                 }
                 window.renderStats();
             }, (error) => console.error("Settings-Fehler:", error));
@@ -567,7 +581,7 @@
 
         // --- TAB & UI LOGIK ---
         window.switchTab = (tabId) => {
-            ['open', 'sold', 'stats'].forEach(id => {
+            ['open', 'sold', 'stats', 'admin'].forEach(id => {
                 const section = document.getElementById(`tab-${id}`);
                 const btn = document.getElementById(`btn-tab-${id}`);
                 
@@ -856,32 +870,26 @@
             }
         };
 
-        // --- ZIEL LOGIK (GAMIFICATION) CLOUD SYNC ---
-        window.showEditTarget = () => {
-            const input = document.getElementById('edit-target-input');
-            input.value = currentAnnualTarget.toString().replace('.', ',');
-            document.getElementById('edit-target-modal').classList.remove('hidden');
-            setTimeout(() => input.focus(), 100);
-        };
-
-        window.closeEditTarget = () => {
-            document.getElementById('edit-target-modal').classList.add('hidden');
-        };
-
-        window.executeEditTarget = async () => {
+        // --- ADMIN / EINSTELLUNGEN LOGIK ---
+        window.saveAdminTarget = async () => {
             if (!currentUser) return;
-            const input = document.getElementById('edit-target-input');
-            let parsedTarget = parseFloat(input.value.replace(',', '.')) || 0;
+            const input = document.getElementById('admin-target-input');
+            
+            // Robustes Parsing: Tausendertrennzeichen (.) entfernen, Komma zu Punkt
+            let rawVal = input.value.replace(/\./g, '').replace(',', '.');
+            let parsedTarget = parseFloat(rawVal) || 0;
             
             if (parsedTarget > 0) {
-                window.closeEditTarget();
                 try {
-                    updateStatus("Update Ziel...", "bg-amber-500 animate-pulse");
+                    updateStatus("Speichere Ziel...", "bg-amber-500 animate-pulse");
                     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                     const settingsRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'general');
                     
-                    // setDoc mit merge: true erstellt das Dokument, falls es noch nicht existiert
                     await setDoc(settingsRef, { annualTarget: parsedTarget }, { merge: true });
+                    updateStatus("Ziel gespeichert", "bg-green-500");
+                    
+                    // Input Feld sauber formatieren nach dem Speichern
+                    input.value = parsedTarget.toString().replace('.', ',');
                 } catch (error) {
                     showError("Fehler beim Speichern des Ziels: " + error.message);
                     updateStatus("Fehler", "bg-red-500", error.message);
@@ -933,7 +941,6 @@
                 currentX = diffX;
                 panel.style.transform = `translateX(${currentX}px)`;
                 
-                // Visual feedback
                 if (currentX > 20) {
                     bgLeft.style.opacity = Math.min(currentX / threshold, 1);
                     bgLeft.style.transform = `translateX(${Math.min(currentX/4, 10)}px)`;
@@ -949,23 +956,18 @@
                 panel.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
                 
                 if (currentX > threshold) {
-                    // Wisch nach rechts (Grün / Aktion)
                     if (comm.status === 'open') {
                         window.resolveCommission(comm.id, 'sold');
                     } else {
                         window.reopenCommission(comm.id);
                     }
                 } else if (currentX < -threshold) {
-                    // Wisch nach links (Blau / Notiz)
                     window.showEditNote(comm.id);
-                    // Panel snapt zurück, weil Modal öffnet
                     panel.style.transform = 'translateX(0)'; 
                 } else {
-                    // Zurückfedern
                     panel.style.transform = 'translateX(0)';
                 }
                 
-                // Reset backgrounds
                 bgLeft.style.opacity = 0;
                 bgLeft.style.transform = 'translateX(0)';
                 bgRight.style.opacity = 0;
@@ -1375,7 +1377,6 @@
 
             const donutEl = document.getElementById('type-donut-chart');
             if (totalSoldAll > 0) {
-                // Tailwind Colors: Blue 500 (#3b82f6), Slate 400 (#94a3b8), Purple 500 (#a855f7)
                 donutEl.style.background = `conic-gradient(
                     #3b82f6 0% ${pctNeubau}%, 
                     #94a3b8 ${pctNeubau}% ${pctNeubau + pctBestand}%, 
