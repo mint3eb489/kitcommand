@@ -514,6 +514,15 @@
             }
         }
 
+        function getSettingsRef() {
+            if (typeof __firebase_config !== 'undefined' && currentUser) {
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                return doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'general');
+            } else {
+                return doc(db, 'settings', 'general');
+            }
+        }
+
         async function initAuth() {
             try {
                 updateStatus("Authentifiziere...", "bg-blue-500 animate-pulse");
@@ -547,8 +556,7 @@
             if (unsubscribeSettings) unsubscribeSettings();
             
             const colRef = getDbCollection();
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            const settingsRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'general');
+            const settingsRef = getSettingsRef();
             
             updateStatus("Lade Daten...", "bg-blue-500 animate-pulse");
             
@@ -882,8 +890,7 @@
             if (parsedTarget > 0) {
                 try {
                     updateStatus("Speichere Ziel...", "bg-amber-500 animate-pulse");
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                    const settingsRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'general');
+                    const settingsRef = getSettingsRef();
                     
                     await setDoc(settingsRef, { annualTarget: parsedTarget }, { merge: true });
                     updateStatus("Ziel gespeichert", "bg-green-500");
