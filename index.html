@@ -245,6 +245,53 @@
                         <p id="stat-lost-count" class="text-2xl font-black text-red-500 tracking-tighter font-mono-tabular">0</p>
                     </div>
                 </div>
+
+                <!-- GAMIFICATION: AUFTRAGS-STRUKTUR (DONUT CHART) -->
+                <div class="mb-6 bg-slate-100 dark:bg-white/5 rounded-2xl p-6 border border-slate-200 dark:border-white/10 flex flex-col sm:flex-row items-center gap-8 justify-between">
+                    <div class="w-full sm:w-1/2 flex flex-col">
+                        <h3 class="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4">Auftrags-Struktur (Verkauft)</h3>
+                        <div class="space-y-3">
+                            <!-- Neubau -->
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-blue-500 shadow-sm"></div>
+                                    <span class="text-xs font-bold text-slate-700 dark:text-slate-300">Neubau</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span id="legend-neubau-count" class="text-xs font-medium text-slate-400 font-mono-tabular">0x</span>
+                                    <span id="legend-neubau-pct" class="text-xs font-mono font-bold text-slate-800 dark:text-slate-100 w-9 text-right">0%</span>
+                                </div>
+                            </div>
+                            <!-- Bestand -->
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-slate-400 shadow-sm"></div>
+                                    <span class="text-xs font-bold text-slate-700 dark:text-slate-300">Bestand</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span id="legend-bestand-count" class="text-xs font-medium text-slate-400 font-mono-tabular">0x</span>
+                                    <span id="legend-bestand-pct" class="text-xs font-mono font-bold text-slate-800 dark:text-slate-100 w-9 text-right">0%</span>
+                                </div>
+                            </div>
+                            <!-- Kleinauftrag -->
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-purple-500 shadow-sm"></div>
+                                    <span class="text-xs font-bold text-slate-700 dark:text-slate-300">Kleinauftrag</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span id="legend-klein-count" class="text-xs font-medium text-slate-400 font-mono-tabular">0x</span>
+                                    <span id="legend-klein-pct" class="text-xs font-mono font-bold text-slate-800 dark:text-slate-100 w-9 text-right">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="relative flex justify-center w-full sm:w-1/2">
+                        <!-- Das Chart wird über CSS conic-gradient gefüllt. Die Maske erzeugt das Loch in der Mitte. -->
+                        <div class="w-32 h-32 rounded-full shrink-0 transition-all duration-700 ease-out" id="type-donut-chart" style="-webkit-mask-image: radial-gradient(circle, transparent 55%, black 56%); mask-image: radial-gradient(circle, transparent 55%, black 56%);"></div>
+                    </div>
+                </div>
                 
                 <p class="text-xs text-slate-400 text-center italic mt-auto pt-4 border-t dark:border-darkBorder">
                     Die Abschlussquote berechnet sich aus allen endgültig abgeschlossenen Angeboten (Verkauft vs. Nicht Verkauft) im gewählten Zeitraum.<br><br>
@@ -1220,6 +1267,20 @@
             const yearFilter = document.getElementById('filter-year').value;
             const monthFilter = document.getElementById('filter-month').value;
             
+            // Jahresumsatz separat berechnen (ignoriert den Monats-Filter für das Gamification-Ziel)
+            let annualRevenue = 0;
+            commissionsData.forEach(c => {
+                if (c.status === 'sold') {
+                    const targetDateStr = c.resolvedAt || c.createdAt;
+                    if (targetDateStr) {
+                        const date = new Date(targetDateStr);
+                        if (yearFilter === 'all' || date.getFullYear().toString() === yearFilter) {
+                            annualRevenue += parseFloat(c.price || 0);
+                        }
+                    }
+                }
+            });
+
             let filteredData = commissionsData.filter(c => {
                 if (c.status === 'open') return false;
                 
@@ -1237,6 +1298,11 @@
             let qualifiedSoldCount = 0;
             let qualifiedLostCount = 0;
             let qualifiedRevenue = 0;
+            
+            // Variablen für das Donut-Chart (Struktur)
+            let countNeubau = 0;
+            let countBestand = 0;
+            let countKlein = 0;
 
             filteredData.forEach(c => {
                 const type = c.bauart || (c.isNeubau ? 'neubau' : 'bestand');
@@ -1245,6 +1311,12 @@
 
                 if (c.status === 'sold') {
                     revenue += price;
+                    
+                    // Struktur-Zähler
+                    if (type === 'neubau') countNeubau++;
+                    else if (type === 'kleinauftrag') countKlein++;
+                    else countBestand++;
+
                     if (!isKleinauftrag) {
                         qualifiedSoldCount++;
                         qualifiedRevenue += price;
@@ -1260,8 +1332,8 @@
 
             const formatter = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
             
-            // Gamification Progress aus der Cloud laden
-            const targetPercent = Math.min((revenue / currentAnnualTarget) * 100, 100).toFixed(1);
+            // Gamification Progress basiert jetzt auf dem separaten Jahresumsatz (annualRevenue)
+            const targetPercent = Math.min((annualRevenue / currentAnnualTarget) * 100, 100).toFixed(1);
 
             document.getElementById('target-display').innerText = formatter.format(currentAnnualTarget);
             document.getElementById('target-progress-bar').style.width = `${targetPercent}%`;
@@ -1273,6 +1345,32 @@
             
             document.getElementById('stat-sold-count').innerText = qualifiedSoldCount;
             document.getElementById('stat-lost-count').innerText = qualifiedLostCount;
+
+            // --- DONUT CHART UPDATE ---
+            const totalSoldAll = countNeubau + countBestand + countKlein;
+            const pctNeubau = totalSoldAll ? (countNeubau / totalSoldAll) * 100 : 0;
+            const pctBestand = totalSoldAll ? (countBestand / totalSoldAll) * 100 : 0;
+            const pctKlein = totalSoldAll ? (countKlein / totalSoldAll) * 100 : 0;
+
+            const donutEl = document.getElementById('type-donut-chart');
+            if (totalSoldAll > 0) {
+                // Tailwind Colors: Blue 500 (#3b82f6), Slate 400 (#94a3b8), Purple 500 (#a855f7)
+                donutEl.style.background = `conic-gradient(
+                    #3b82f6 0% ${pctNeubau}%, 
+                    #94a3b8 ${pctNeubau}% ${pctNeubau + pctBestand}%, 
+                    #a855f7 ${pctNeubau + pctBestand}% 100%
+                )`;
+            } else {
+                const isDark = document.documentElement.classList.contains('dark');
+                donutEl.style.background = isDark ? '#262626' : '#e2e8f0'; // Empty state
+            }
+
+            document.getElementById('legend-neubau-count').innerText = `${countNeubau}x`;
+            document.getElementById('legend-neubau-pct').innerText = `${pctNeubau.toFixed(0)}%`;
+            document.getElementById('legend-bestand-count').innerText = `${countBestand}x`;
+            document.getElementById('legend-bestand-pct').innerText = `${pctBestand.toFixed(0)}%`;
+            document.getElementById('legend-klein-count').innerText = `${countKlein}x`;
+            document.getElementById('legend-klein-pct').innerText = `${pctKlein.toFixed(0)}%`;
         };
 
         function escapeHtml(unsafe) {
