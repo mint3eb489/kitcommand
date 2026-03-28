@@ -515,12 +515,8 @@
         }
 
         function getSettingsRef() {
-            if (typeof __firebase_config !== 'undefined' && currentUser) {
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                return doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'general');
-            } else {
-                return doc(db, 'settings', 'general');
-            }
+            // Nutze den sicheren, freigegebenen Ordner, um Firebase-Regel-Konflikte zu vermeiden
+            return doc(getDbCollection(), '_system_settings_');
         }
 
         async function initAuth() {
@@ -575,7 +571,10 @@
             
             // 2. Commissions Listener
             unsubscribeSnapshot = onSnapshot(colRef, (snapshot) => {
-                commissionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // Filtere das Einstellungs-Dokument heraus, damit es nicht als Küche angezeigt wird
+                commissionsData = snapshot.docs
+                    .filter(doc => doc.id !== '_system_settings_')
+                    .map(doc => ({ id: doc.id, ...doc.data() }));
                 window.updateYearFilterOptions();
                 window.renderUI();
                 window.renderStats();
