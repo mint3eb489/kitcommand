@@ -515,7 +515,6 @@
         }
 
         function getSettingsRef() {
-            // Nutze den sicheren, freigegebenen Ordner, um Firebase-Regel-Konflikte zu vermeiden
             return doc(getDbCollection(), '_system_settings_');
         }
 
@@ -561,7 +560,6 @@
                 if (docSnap.exists() && docSnap.data().annualTarget) {
                     currentAnnualTarget = docSnap.data().annualTarget;
                 }
-                // Input Feld im Admin Bereich synchronisieren
                 const adminInput = document.getElementById('admin-target-input');
                 if (adminInput && document.activeElement !== adminInput) {
                     adminInput.value = currentAnnualTarget.toString().replace('.', ',');
@@ -571,7 +569,6 @@
             
             // 2. Commissions Listener
             unsubscribeSnapshot = onSnapshot(colRef, (snapshot) => {
-                // Filtere das Einstellungs-Dokument heraus, damit es nicht als Küche angezeigt wird
                 commissionsData = snapshot.docs
                     .filter(doc => doc.id !== '_system_settings_')
                     .map(doc => ({ id: doc.id, ...doc.data() }));
@@ -894,7 +891,6 @@
                     await setDoc(settingsRef, { annualTarget: parsedTarget }, { merge: true });
                     updateStatus("Ziel gespeichert", "bg-green-500");
                     
-                    // Input Feld sauber formatieren nach dem Speichern
                     input.value = parsedTarget.toString().replace('.', ',');
                 } catch (error) {
                     showError("Fehler beim Speichern des Ziels: " + error.message);
@@ -912,15 +908,18 @@
             const rightActionText = isSoldOrLost ? 'Zurück' : 'Verkauft';
             const rightActionColor = isSoldOrLost ? 'text-slate-500' : 'text-emerald-500';
             
+            const leftActionText = comm.status === 'open' ? 'Absagen' : 'Löschen';
+            const leftActionColor = 'text-red-500';
+            
             wrapper.innerHTML = `
                 <div class="absolute inset-0 flex justify-between items-center px-6 bg-slate-100 dark:bg-white/5 rounded-xl">
                     <div class="swipe-bg-left ${rightActionColor} font-black tracking-widest text-[10px] uppercase opacity-0 flex items-center gap-2 -ml-4 transition-all">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                         ${rightActionText}
                     </div>
-                    <div class="swipe-bg-right text-blue-500 font-black tracking-widest text-[10px] uppercase opacity-0 flex items-center gap-2 -mr-4 transition-all">
-                        Notiz
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                    <div class="swipe-bg-right ${leftActionColor} font-black tracking-widest text-[10px] uppercase opacity-0 flex items-center gap-2 -mr-4 transition-all">
+                        ${leftActionText}
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                     </div>
                 </div>
                 <div class="swipe-panel relative bg-white dark:bg-darkCard p-4 rounded-xl border border-slate-200 dark:border-darkBorder transition-transform duration-200 ease-out will-change-transform shadow-sm flex flex-col gap-4">
@@ -968,7 +967,11 @@
                         window.reopenCommission(comm.id);
                     }
                 } else if (currentX < -threshold) {
-                    window.showEditNote(comm.id);
+                    if (comm.status === 'open') {
+                        window.resolveCommission(comm.id, 'lost');
+                    } else {
+                        window.showDeleteConfirm(comm.id);
+                    }
                     panel.style.transform = 'translateX(0)'; 
                 } else {
                     panel.style.transform = 'translateX(0)';
