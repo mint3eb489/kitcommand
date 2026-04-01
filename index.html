@@ -933,40 +933,58 @@
             const bgRight = wrapper.querySelector('.swipe-bg-right');
             
             let startX = 0;
+            let startY = 0;
             let currentX = 0;
+            let isScrolling = false;
             const threshold = 80;
 
             panel.addEventListener('touchstart', (e) => {
                 startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                currentX = 0;
+                isScrolling = false;
                 panel.style.transition = 'none';
             }, {passive: true});
 
             panel.addEventListener('touchmove', (e) => {
+                if (isScrolling) return;
+
                 const diffX = e.touches[0].clientX - startX;
-                currentX = diffX;
-                panel.style.transform = `translateX(${currentX}px)`;
-                
-                if (currentX > 20) {
-                    bgLeft.style.opacity = Math.min(currentX / threshold, 1);
-                    bgLeft.style.transform = `translateX(${Math.min(currentX/4, 10)}px)`;
-                    bgRight.style.opacity = 0;
-                } else if (currentX < -20) {
-                    bgRight.style.opacity = Math.min(Math.abs(currentX) / threshold, 1);
-                    bgRight.style.transform = `translateX(-${Math.min(Math.abs(currentX)/4, 10)}px)`;
-                    bgLeft.style.opacity = 0;
+                const diffY = e.touches[0].clientY - startY;
+
+                // Wenn die vertikale Bewegung stärker ist als die horizontale, 
+                // ist es ein Scrollen. Wir blockieren den Swipe.
+                if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 5) {
+                    isScrolling = true;
+                    return;
+                }
+
+                if (Math.abs(diffX) > 10) {
+                    currentX = diffX;
+                    panel.style.transform = `translateX(${currentX}px)`;
+                    
+                    if (currentX > 20) {
+                        bgLeft.style.opacity = Math.min(currentX / threshold, 1);
+                        bgLeft.style.transform = `translateX(${Math.min(currentX/4, 10)}px)`;
+                        bgRight.style.opacity = 0;
+                    } else if (currentX < -20) {
+                        bgRight.style.opacity = Math.min(Math.abs(currentX) / threshold, 1);
+                        bgRight.style.transform = `translateX(-${Math.min(Math.abs(currentX)/4, 10)}px)`;
+                        bgLeft.style.opacity = 0;
+                    }
                 }
             }, {passive: true});
 
             panel.addEventListener('touchend', () => {
                 panel.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
                 
-                if (currentX > threshold) {
+                if (currentX > threshold && !isScrolling) {
                     if (comm.status === 'open') {
                         window.resolveCommission(comm.id, 'sold');
                     } else {
                         window.reopenCommission(comm.id);
                     }
-                } else if (currentX < -threshold) {
+                } else if (currentX < -threshold && !isScrolling) {
                     if (comm.status === 'open') {
                         window.resolveCommission(comm.id, 'lost');
                     } else {
@@ -982,6 +1000,7 @@
                 bgRight.style.opacity = 0;
                 bgRight.style.transform = 'translateX(0)';
                 currentX = 0;
+                isScrolling = false;
             });
 
             return wrapper;
@@ -1069,6 +1088,17 @@
                             <div class="flex flex-wrap items-center gap-1.5 mt-1.5">${contactBadge}${typeBadge}</div>
                         </div>
                         <button onclick="window.showDeleteConfirm('${comm.id}')" class="text-slate-300 hover:text-red-500 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-500/10 font-bold active:scale-90 opacity-0 group-hover:opacity-100 -mr-2 -mt-2" title="Löschen">✕</button>
+                    </div>
+                    
+                    <div class="flex gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-white/5">
+                        <button onclick="window.resolveCommission('${comm.id}', 'sold')" class="flex-1 py-2 rounded-lg font-bold text-[10px] uppercase tracking-widest bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-colors flex items-center justify-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                            Verkauft
+                        </button>
+                        <button onclick="window.resolveCommission('${comm.id}', 'lost')" class="flex-1 py-2 rounded-lg font-bold text-[10px] uppercase tracking-widest bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                            Absagen
+                        </button>
                     </div>
                 `;
                 
