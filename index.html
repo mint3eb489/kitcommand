@@ -613,8 +613,14 @@
             }
         };
 
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
+                // WICHTIG: Kickt alte anonyme Sessions auf deiner Live-Domain sofort raus!
+                if (user.isAnonymous && typeof __firebase_config === 'undefined') {
+                    await signOut(auth);
+                    return; 
+                }
+
                 currentUser = user;
                 document.getElementById('login-overlay').classList.add('hidden');
                 updateStatus("Authentifiziert", "bg-blue-500 animate-pulse");
