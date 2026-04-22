@@ -51,19 +51,20 @@
 </head>
 <body class="p-3 md:p-8 bg-slate-50 dark:bg-trueBlack text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
 
-    <!-- PIN Overlay -->
-    <div id="pin-overlay" class="fixed inset-0 z-[300] bg-slate-50 dark:bg-trueBlack flex items-center justify-center p-4">
+    <!-- LOGIN Overlay (Ersetzt das alte PIN-Overlay) -->
+    <div id="login-overlay" class="fixed inset-0 z-[300] bg-slate-50 dark:bg-trueBlack flex items-center justify-center p-4">
         <div class="card p-8 max-w-sm w-full shadow-2xl text-center">
             <div class="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
             </div>
-            <h2 class="text-xl font-black tracking-tight text-slate-800 dark:text-slate-100 mb-2">App gesperrt</h2>
-            <p class="text-xs text-slate-500 mb-6 font-medium">Bitte gib deinen PIN ein, um KitCommand zu entsperren.</p>
+            <h2 class="text-xl font-black tracking-tight text-slate-800 dark:text-slate-100 mb-2">Login</h2>
+            <p class="text-xs text-slate-500 mb-6 font-medium">Bitte melde dich an, um KitCommand zu nutzen.</p>
             
-            <form id="pin-form" onsubmit="event.preventDefault(); window.verifyPin();" class="flex flex-col gap-4">
-                <input type="password" id="pin-input" inputmode="numeric" pattern="[0-9]*" class="input-field text-center text-2xl tracking-[0.5em] font-mono" placeholder="••••" required autofocus>
-                <p id="pin-error" class="text-xs text-red-500 font-bold hidden -mt-2">Falscher PIN. Bitte versuche es erneut.</p>
-                <button type="submit" class="bg-blue-600 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-600/20 active:scale-95 transition-all w-full">Entsperren</button>
+            <form id="login-form" onsubmit="event.preventDefault(); window.handleLogin();" class="flex flex-col gap-4">
+                <input type="email" id="login-email" class="input-field text-sm" placeholder="E-Mail Adresse" required autofocus>
+                <input type="password" id="login-password" class="input-field text-sm" placeholder="Passwort" required>
+                <p id="login-error" class="text-xs text-red-500 font-bold hidden text-left"></p>
+                <button type="submit" id="login-submit-btn" class="bg-blue-600 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-600/20 active:scale-95 transition-all w-full mt-2">Anmelden</button>
             </form>
         </div>
     </div>
@@ -348,7 +349,7 @@
                     <p class="text-xs text-slate-500 mt-1">Zentrale Einstellungen für dein KitCommand.</p>
                 </div>
 
-                <div class="space-y-6">
+                <div class="space-y-6 flex-1">
                     <!-- Block: Persönliche Einstellungen -->
                     <div class="bg-slate-50 dark:bg-white/5 rounded-2xl p-5 border border-slate-200 dark:border-white/10 shadow-sm">
                         <h3 class="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200 mb-4">Persönliche Ziele</h3>
@@ -369,6 +370,11 @@
                         <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Team-Verwaltung</h3>
                         <p class="text-[9px] text-slate-400">Bald verfügbar. Hier kannst du künftig weitere Mitarbeiter hinzufügen.</p>
                     </div>
+                </div>
+
+                <!-- Abmelden Button am unteren Rand des Admin-Bereichs -->
+                <div class="mt-6 border-t border-slate-200 dark:border-white/10 pt-6 mt-auto">
+                    <button onclick="window.handleLogout()" class="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white transition-colors active:scale-95 shadow-sm">Abmelden</button>
                 </div>
             </section>
 
@@ -495,10 +501,10 @@
     <!-- Firebase v9 Modular SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- KONFIGURATION FÜR GITHUB PAGES ---
+        // --- KONFIGURATION FÜR GITHUB PAGES / EIGENE DOMAIN ---
         const myConfig = {
             apiKey: "AIzaSyCAoHre4UD7u88JyGvyPYzrfm50OsMOrZ8",
             authDomain: "lithoscalepro.firebaseapp.com",
@@ -564,28 +570,58 @@
             return doc(getDbCollection(), '_system_settings_');
         }
 
-        async function initAuth() {
+        // --- AUTH LOGIK (E-Mail / Passwort) ---
+        window.handleLogin = async () => {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const btn = document.getElementById('login-submit-btn');
+            const errEl = document.getElementById('login-error');
+
             try {
-                updateStatus("Authentifiziere...", "bg-blue-500 animate-pulse");
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                btn.innerText = 'Prüfe...';
+                btn.disabled = true;
+                errEl.classList.add('hidden');
+                
+                await signInWithEmailAndPassword(auth, email, password);
+                // Das Login-Fenster wird automatisch vom onAuthStateChanged-Listener ausgeblendet
             } catch (error) {
-                console.error("Auth-Fehler:", error);
-                showError("Auth fehlgeschlagen: " + error.message);
-                updateStatus("Auth-Fehler", "bg-red-500");
+                console.error("Login Fehler:", error);
+                errEl.innerText = 'Zugriff verweigert. Bitte überprüfe deine Daten.';
+                if(error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    errEl.innerText = 'E-Mail oder Passwort ist falsch.';
+                } else if (error.code === 'auth/too-many-requests') {
+                    errEl.innerText = 'Zu viele Versuche. Bitte versuche es später erneut.';
+                }
+                errEl.classList.remove('hidden');
+            } finally {
+                btn.innerText = 'Anmelden';
+                btn.disabled = false;
             }
-        }
+        };
+
+        window.handleLogout = async () => {
+            try {
+                updateStatus("Abmelden...", "bg-amber-500 animate-pulse");
+                await signOut(auth);
+                // Ansicht zurücksetzen (Sicherheitshalber)
+                commissionsData = [];
+                window.renderUI();
+                window.switchTab('open');
+            } catch(error) {
+                console.error("Logout Fehler", error);
+                showError("Fehler beim Abmelden: " + error.message);
+            }
+        };
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
+                document.getElementById('login-overlay').classList.add('hidden');
                 updateStatus("Authentifiziert", "bg-blue-500 animate-pulse");
                 startListening();
             } else {
                 currentUser = null;
+                document.getElementById('login-overlay').classList.remove('hidden');
                 updateStatus("Getrennt", "bg-slate-400");
                 if (unsubscribeSnapshot) unsubscribeSnapshot();
                 if (unsubscribeSettings) unsubscribeSettings();
@@ -1536,30 +1572,6 @@
             }
         };
 
-        // --- PIN LOGIK ---
-        const APP_PIN = "1234";
-
-        const checkPinState = () => {
-            if (sessionStorage.getItem('kk_unlocked') === 'true') {
-                document.getElementById('pin-overlay').classList.add('hidden');
-            }
-        };
-
-        window.verifyPin = () => {
-            const input = document.getElementById('pin-input');
-            const errEl = document.getElementById('pin-error');
-            
-            if (input.value === APP_PIN) {
-                sessionStorage.setItem('kk_unlocked', 'true');
-                document.getElementById('pin-overlay').classList.add('hidden');
-                errEl.classList.add('hidden');
-            } else {
-                errEl.classList.remove('hidden');
-                input.value = '';
-                input.focus();
-            }
-        };
-
         // Automatisches Apple Touch Icon
         (function() {
             const canvas = document.createElement('canvas');
@@ -1587,9 +1599,8 @@
         })();
 
         // Start
-        checkPinState();
         initUIStates();
-        initAuth();
+        // initAuth(); <- Entfernt, da Firebase Auth durch den Listener von selbst startet
 
     </script>
 </body>
