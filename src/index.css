@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+@theme {
+  /* Hochwertige, augenschonende Creme- & Leinentöne für Hintergründe und Ränder */
+  --color-slate-50: #faf8f5;   /* Haupt-Hintergrundfarbe (Sehr sanftes Off-White/Creme) */
+  --color-slate-100: #f3eee5;  /* Sekundäre Hintergründe (z.B. Tabellenkopf, Modals) */
+  --color-slate-200: #e7dfd1;  /* Sanftere Rahmen/Border (Ersetzt das kalte Grau) */
+  --color-slate-300: #d8cebc;  /* Etwas dunklere Akzente für Ränder oder inaktive Buttons */
+
+  /* Wärmere, haptische Ambient-Schatten */
+  --shadow-xs: 0 1px 2px rgba(45, 36, 25, 0.04);
+  --shadow-sm: 0 2px 6px rgba(45, 36, 25, 0.06);
+  --shadow-md: 0 10px 18px -3px rgba(45, 36, 25, 0.08), 0 4px 6px -2px rgba(45, 36, 25, 0.04);
+  --shadow-lg: 0 20px 32px -4px rgba(45, 36, 25, 0.10), 0 8px 16px -4px rgba(45, 36, 25, 0.06);
+  --shadow-xl: 0 30px 48px -6px rgba(45, 36, 25, 0.12), 0 16px 24px -4px rgba(45, 36, 25, 0.08);
+}
+
+@variant dark (&:where(.dark, .dark *));
+
+@utility input-field {
+  width: 100%;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  border-radius: 0.75rem;
+  border-width: 1px;
+  border-color: var(--color-slate-200, #e7dfd1);
+  background-color: rgba(243, 238, 229, 0.15); /* Light linen tint */
+  outline: none;
+  font-family: inherit;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
+:where(.dark) .input-field {
+  border-color: #27272a; /* zinc-800 */
+  background-color: rgba(9, 9, 11, 0.2); /* zinc-950 tint */
+}
+
+.input-field:focus {
+  border-color: #2563eb; /* blue-600 */
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  background-color: rgba(255, 255, 255, 0.85);
+}
+
+:where(.dark) .input-field:focus {
+  background-color: rgba(24, 24, 27, 0.9);
+}
+@layer base {
+  html, body {
+    /* Verhindert Pull-to-refresh Zucken und sorgt für stabiles native-like Scrollen */
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
+    -webkit-text-size-adjust: 100%;
+    /* Entfernt den grauen Kasten beim Tappen auf iOS */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Deaktiviert blauen Auswahleffekt bei schnellen Touch-Gesten */
+  button, a, select, input, textarea, [role="button"] {
+    -webkit-tap-highlight-color: transparent !important;
+    outline-color: transparent;
+  }
+
+  /* VERHINDERT AUTOMATISCHES FOKUS-ZOOMEN auf iPhones (Safari zoomt bei Schriftgrößen unter 16px) */
+  @media (max-width: 768px) {
+    input, textarea, select {
+      font-size: 16px !important;
+    }
+  }
+}
+

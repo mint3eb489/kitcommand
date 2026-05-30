@@ -1,0 +1,6 @@
+{
+  "name": "KitCommand",
+  "description": "A professional tool for tracking kitchen commissions, sales statistics, and processing workflows.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
