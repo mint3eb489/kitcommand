@@ -19,7 +19,7 @@ import {
   EditNoteModal,
   ConfirmDeleteModal,
 } from './components/EditModals.tsx';
-import { Search, Plus, Clipboard, ChevronDown, CheckCircle, Flame, X } from 'lucide-react';
+import { Search, Plus, Clipboard, ChevronDown, CheckCircle, Flame, X, TrendingUp, Sparkles } from 'lucide-react';
 
 export default function App() {
   // Auth & General States
@@ -570,10 +570,10 @@ export default function App() {
   return (
     <div className="p-3 bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-100 min-h-screen flex flex-col pt-[calc(1.25rem+env(safe-area-inset-top))] md:p-8 md:pt-8 transition-colors duration-300">
       
-      {/* Dynamic header / upper controls */}
+      {/* Dynamic header / upper controls - hidden on mobile, beautiful on desktop/tablet */}
       <div
         id="cloud-status"
-        className="fixed top-[calc(1rem+env(safe-area-inset-top))] right-4 text-[9px] font-bold uppercase tracking-widest z-50 flex flex-col sm:flex-row items-end sm:items-center gap-1.5 select-none"
+        className="hidden md:flex fixed top-[calc(1rem+env(safe-area-inset-top))] right-4 text-[9px] font-bold uppercase tracking-widest z-50 flex-col sm:flex-row items-end sm:items-center gap-1.5 select-none"
       >
         {currentUser?.email && (
           <div className="flex items-center gap-1.5 bg-white/95 dark:bg-zinc-900/95 p-1.5 pl-2.5 pr-2.5 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-slate-200/60 dark:border-zinc-800/80 backdrop-blur-md">
@@ -601,10 +601,10 @@ export default function App() {
         </div>
       </div>
 
-      {/* Floating Action Button (FAB) */}
+      {/* Floating Action Button (FAB) - On desktop and tablet */}
       <button
         onClick={() => setIsAddOpen(true)}
-        className="fixed z-40 bg-blue-600 text-white w-14 h-14 rounded-full shadow-[0_10px_25px_rgba(37,99,235,0.5)] flex items-center justify-center hover:bg-blue-700 active:scale-90 transition-all group bottom-[calc(9.5rem+env(safe-area-inset-bottom))] md:bottom-8 right-4 md:right-8 cursor-pointer"
+        className="hidden md:flex fixed z-40 bg-blue-600 text-white w-14 h-14 rounded-full shadow-[0_10px_25px_rgba(37,99,235,0.5)] items-center justify-center hover:bg-blue-700 active:scale-90 transition-all group bottom-8 right-8 cursor-pointer"
       >
         <Plus className="w-6 h-6 transform group-hover:rotate-90 transition-transform duration-300" />
       </button>
@@ -613,15 +613,18 @@ export default function App() {
       <div className="max-w-4xl mx-auto w-full flex-1 pt-4 lg:pt-0">
         
         {/* Header App Identity */}
-        <header className="flex flex-col justify-center items-center mb-6 gap-4 mt-2 lg:mt-0 relative">
+        <header className="flex flex-col justify-center items-center mb-6 gap-3 mt-2 lg:mt-0 relative">
           <div className="flex items-center gap-4">
             <button
               id="app-logo-theme-toggle"
               onClick={toggleTheme}
-              className="w-14 h-14 bg-white dark:bg-zinc-900 border border-blue-500/80 dark:border-blue-400/80 rounded-xl flex items-center justify-center shadow-xs shrink-0 cursor-pointer active:scale-95 transition-all text-blue-600 dark:text-blue-450 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 hover:border-blue-600 dark:hover:border-blue-300"
-              title="KitCommand Logo"
+              className="w-14 h-14 bg-white dark:bg-zinc-900 border border-blue-500/80 dark:border-blue-400/80 rounded-xl flex items-center justify-center shadow-xs shrink-0 cursor-pointer active:scale-95 transition-all text-blue-600 dark:text-blue-450 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 hover:border-blue-600 dark:hover:border-blue-300 group"
+              title="Wechsle Theme / KitCommand dynamic Logo"
             >
-              <Clipboard className="w-6 h-6 stroke-[1.75]" />
+              <div className="relative flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 stroke-[2.25] text-blue-600 dark:text-blue-400 group-hover:scale-110 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-all duration-300 ease-out" />
+                <Sparkles className="w-3.5 h-3.5 absolute -top-2.5 -right-2.5 text-amber-500 fill-amber-500/30 opacity-60 group-hover:opacity-100 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300" />
+              </div>
             </button>
             <div>
               <h1 className="text-3xl font-black flex items-center tracking-tighter select-none">
@@ -632,22 +635,61 @@ export default function App() {
               </h1>
             </div>
           </div>
+
+          {/* Symmetrical secondary information row on Mobile - Extremely clean, avoids collisions */}
+          {currentUser?.email && (
+            <div className="flex md:hidden items-center justify-center gap-1.5 select-none mt-1">
+              <div className="flex items-center gap-1 bg-white/95 dark:bg-zinc-900/95 p-1 pl-2.5 pr-2.5 rounded-full border border-slate-200/50 dark:border-zinc-800/80 shadow-sm leading-none">
+                <span className="w-1 h-1 rounded-full bg-blue-500 shrink-0"></span>
+                <span className="text-slate-500 dark:text-zinc-400 font-mono text-[9px] font-bold lowercase max-w-[130px] truncate">
+                  {currentUser.email.split('@')[0]}
+                </span>
+                {isAdmin && (
+                  <span className="bg-amber-500/10 text-amber-600 dark:text-amber-450 text-[7px] px-1 font-bold rounded uppercase tracking-wider ml-0.5">
+                    Admin
+                  </span>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-1.5 bg-white/95 dark:bg-zinc-900/95 p-1 px-2.5 rounded-full border border-slate-200/50 dark:border-zinc-800/80 shadow-sm leading-none">
+                <div
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    syncStatus === 'synced' ? 'bg-green-500' : 'bg-blue-500 animate-pulse'
+                  }`}
+                ></div>
+                <span className="text-slate-400 dark:text-zinc-500 font-bold uppercase tracking-wider text-[8px]">
+                  {syncStatus === 'synced' ? 'Live' : 'Sync'}
+                </span>
+              </div>
+            </div>
+          )}
         </header>
 
         {/* STICKY NAV ISLAND (Suche + Tabs) */}
         <div className="fixed left-4 right-4 z-50 md:sticky md:top-4 md:bottom-auto md:left-auto md:right-auto max-w-md mx-auto md:mb-6 bottom-[calc(1rem+env(safe-area-inset-bottom))]">
           <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl p-2.5 rounded-xl border border-slate-200/50 dark:border-zinc-800/50 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.7)] md:shadow-lg flex flex-col gap-2 transition-all">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="w-4 h-4 text-slate-400" />
+            <div className="flex gap-2 items-center">
+              <div className="relative flex-1">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="w-4 h-4 text-slate-400" />
+                </div>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-slate-100/50 dark:bg-zinc-950 pb-1.5 pt-2 pl-10 pr-4 text-sm font-bold text-slate-800 dark:text-slate-200 placeholder-slate-400 border-none outline-none focus:ring-2 focus:ring-blue-500 rounded-xl transition-all"
+                  placeholder="Kunde / Komm.-Nr. suchen..."
+                />
               </div>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-100/50 dark:bg-zinc-950 pb-1.5 pt-2 pl-10 pr-4 text-sm font-bold text-slate-800 dark:text-slate-200 placeholder-slate-400 border-none outline-none focus:ring-2 focus:ring-blue-500 rounded-xl transition-all"
-                placeholder="Kunde / Komm.-Nr. suchen..."
-              />
+              
+              {/* Svelte compact add button right in search bar on Mobile */}
+              <button
+                onClick={() => setIsAddOpen(true)}
+                className="md:hidden w-10 h-10 shrink-0 bg-blue-600 hover:bg-blue-750 text-white rounded-xl shadow-md shadow-blue-500/10 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
+                title="Auftrag hinzufügen"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
             </div>
             
             {isAdmin && (

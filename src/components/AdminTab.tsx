@@ -98,7 +98,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
 
       <div className="space-y-6 flex-1">
         {/* Block: Standard-Ziel (Fallback) */}
-        <div className="relative overflow-hidden bg-white dark:bg-zinc-900 rounded-xl p-5 border border-slate-200 dark:border-zinc-800 shadow-xs transition-all duration-300 group/admin-card hover:border-slate-350 dark:hover:border-zinc-700">
+        <div className="relative overflow-hidden isolate bg-white dark:bg-zinc-900 rounded-xl p-5 border border-slate-200 dark:border-zinc-800 shadow-xs transition-all duration-300 group/admin-card hover:border-slate-350 dark:hover:border-zinc-700">
           {/* Ambient Glow for Admin */}
           <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full blur-3xl pointer-events-none opacity-0 group-hover/admin-card:opacity-100 transition-opacity duration-500 bg-indigo-500/12 dark:bg-indigo-400/8" />
           
@@ -139,7 +139,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
         </div>
 
         {/* Block: Jährliche Ziele hinterlegen */}
-        <div className="relative overflow-hidden bg-white dark:bg-zinc-900 rounded-xl p-5 border border-slate-200 dark:border-zinc-800 shadow-xs transition-all duration-300 group/admin-card hover:border-slate-350 dark:hover:border-zinc-700">
+        <div className="relative overflow-hidden isolate bg-white dark:bg-zinc-900 rounded-xl p-5 border border-slate-200 dark:border-zinc-800 shadow-xs transition-all duration-300 group/admin-card hover:border-slate-350 dark:hover:border-zinc-700">
           {/* Ambient Glow for Admin */}
           <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full blur-3xl pointer-events-none opacity-0 group-hover/admin-card:opacity-100 transition-opacity duration-500 bg-indigo-500/12 dark:bg-indigo-400/8" />
           
@@ -243,7 +243,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
         </div>
 
         {/* Team block live members */}
-        <div className="relative overflow-hidden bg-white dark:bg-zinc-900 rounded-xl p-5 border border-slate-200 dark:border-zinc-800 shadow-xs transition-all duration-300 group/admin-card hover:border-slate-350 dark:hover:border-zinc-700">
+        <div className="relative overflow-hidden isolate bg-white dark:bg-zinc-900 rounded-xl p-5 border border-slate-200 dark:border-zinc-800 shadow-xs transition-all duration-300 group/admin-card hover:border-slate-350 dark:hover:border-zinc-700">
           {/* Ambient Glow for Admin */}
           <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full blur-3xl pointer-events-none opacity-0 group-hover/admin-card:opacity-100 transition-opacity duration-500 bg-blue-500/10 dark:bg-blue-400/5" />
           
@@ -306,7 +306,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
         </div>
 
         {/* Block: Administrator-Rechte verwalten */}
-        <div className="relative overflow-hidden bg-white dark:bg-zinc-900 rounded-xl p-5 border border-slate-200 dark:border-zinc-800 shadow-xs transition-all duration-300 group/admin-card hover:border-slate-350 dark:hover:border-zinc-700">
+        <div className="relative overflow-hidden isolate bg-white dark:bg-zinc-900 rounded-xl p-5 border border-slate-200 dark:border-zinc-800 shadow-xs transition-all duration-300 group/admin-card hover:border-slate-350 dark:hover:border-zinc-700">
           <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full blur-3xl pointer-events-none opacity-0 group-hover/admin-card:opacity-100 transition-opacity duration-500 bg-amber-500/10 dark:bg-amber-400/5" />
           
           <div className="relative z-10 flex items-center gap-2 mb-3">

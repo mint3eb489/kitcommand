@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Gradient: Deep Luxury Navy to Obsidian -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="50%" stop-color="#090d16" />
+      <stop offset="100%" stop-color="#020408" />
+    </linearGradient>
+
+    <!-- Electric Neon Blue and Indigo Accent Gradient for the Main Shape -->
+    <linearGradient id="primaryGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="60%" stop-color="#4f46e5" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+
+    <!-- Glowing Aura Path -->
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#818cf8" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Accent Gold/Amber for Professional Contrast (PRO features) -->
+    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+
+    <filter id="glowFilter" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="15" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000000" flood-opacity="0.5" />
+    </filter>
+  </defs>
+
+  <!-- Base App Tile Background with Rounded Corners -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+
+  <!-- Outer Fine Glowing Ring (Futuristic Radar Circle) -->
+  <circle cx="256" cy="256" r="210" fill="none" stroke="url(#primaryGrad)" stroke-dasharray="10 20" stroke-width="2" opacity="0.3" />
+  <circle cx="256" cy="256" r="200" fill="none" stroke="url(#primaryGrad)" stroke-width="1" opacity="0.15" />
+
+  <!-- Elegant Inner Hexagonal Target Core -->
+  <polygon points="256,110 382,183 382,329 256,402 130,329 130,183" fill="none" stroke="url(#primaryGrad)" stroke-width="2" opacity="0.25" />
+
+  <!-- Ambient Glow Behind the Trend Graphic -->
+  <path d="M140 340 L 220 280 L 290 320 L 372 190" fill="none" stroke="url(#glowGrad)" stroke-width="40" stroke-linecap="round" filter="url(#glowFilter)" opacity="0.4" />
+
+  <!-- High-Tech Axis Lines -->
+  <line x1="120" y1="360" x2="392" y2="360" stroke="#1e293b" stroke-width="4" stroke-linecap="round" />
+  <line x1="120" y1="150" x2="120" y2="360" stroke="#1e293b" stroke-width="4" stroke-linecap="round" />
+
+  <!-- Trend Line Shadow -->
+  <path d="M140 340 L 220 280 L 290 320 L 372 190" fill="none" stroke="#000000" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" opacity="0.4" filter="url(#softShadow)" />
+
+  <!-- Main Trend Up Line (Representing Scaling Revenue & Success) -->
+  <path d="M140 340 L 220 280 L 290 320 L 372 190" fill="none" stroke="url(#primaryGrad)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" filter="url(#glowFilter)" />
+  <path d="M140 340 L 220 280 L 290 320 L 372 190" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.6" />
+
+  <!-- Intersecting Dynamic Command Nodes / Data Circles -->
+  <circle cx="140" cy="340" r="10" fill="#0f172a" stroke="url(#primaryGrad)" stroke-width="3" />
+  <circle cx="220" cy="280" r="10" fill="#0f172a" stroke="url(#primaryGrad)" stroke-width="3" />
+  <circle cx="290" cy="320" r="10" fill="#0f172a" stroke="url(#primaryGrad)" stroke-width="3" />
+
+  <!-- Arrow Head pointing towards the top-right (Future & Growth) -->
+  <path d="M340 190 H 372 V 222" fill="none" stroke="url(#primaryGrad)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M340 190 L 372 190 L 372 222" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.6" />
+  <circle cx="372" cy="190" r="12" fill="url(#amberGrad)" filter="url(#glowFilter)" />
+
+  <!-- Subtle grid lines to emphasize precision/measurement -->
+  <line x1="220" y1="280" x2="220" y2="360" stroke="#334155" stroke-dasharray="4 4" stroke-width="1.5" />
+  <line x1="290" y1="320" x2="290" y2="360" stroke="#334155" stroke-dasharray="4 4" stroke-width="1.5" />
+  <line x1="372" y1="190" x2="372" y2="360" stroke="#334155" stroke-dasharray="4 4" stroke-width="1.5" />
+
+  <!-- Golden Elegant Brand Star Emblem (Top Left corner) -->
+  <path d="M80 80 L 83 88 L 91 91 L 83 94 L 80 102 L 77 94 L 69 91 L 77 88 Z" fill="url(#amberGrad)" filter="url(#glowFilter)" />
+  <path d="M420 120 L 422 125 L 427 127 L 422 129 L 420 134 L 418 129 L 413 127 L 418 125 Z" fill="url(#amberGrad)" opacity="0.7" />
+</svg>

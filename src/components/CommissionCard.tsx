@@ -258,7 +258,7 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`relative bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-200 dark:border-zinc-800 transition-all duration-300 ease-out will-change-transform shadow-sm hover:shadow-md hover:-translate-y-0.5 flex flex-col gap-4 group/card overflow-hidden ${hoverBorder}`}
+        className={`relative bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-200 dark:border-zinc-800 transition-all duration-300 ease-out will-change-transform shadow-sm hover:shadow-md hover:-translate-y-0.5 flex flex-col gap-4 group/card overflow-hidden isolate ${hoverBorder}`}
         style={{
           transform: `translateX(${translateX}px)`,
         }}

@@ -50,12 +50,18 @@
 }
 @layer base {
   html, body {
+    background-color: #faf8f5; /* Warm off-white slate-50 */
     /* Verhindert Pull-to-refresh Zucken und sorgt für stabiles native-like Scrollen */
     overscroll-behavior-y: none;
     -webkit-overflow-scrolling: touch;
     -webkit-text-size-adjust: 100%;
     /* Entfernt den grauen Kasten beim Tappen auf iOS */
     -webkit-tap-highlight-color: transparent;
+    transition: background-color 300ms ease;
+  }
+
+  html.dark, html.dark body {
+    background-color: #000000;
   }
 
   /* Deaktiviert blauen Auswahleffekt bei schnellen Touch-Gesten */

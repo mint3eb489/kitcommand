@@ -9,20 +9,29 @@ import { getFirestore, collection, CollectionReference, DocumentData } from 'fir
 import { OperationType, FirestoreErrorInfo } from './types.ts';
 
 // Default configuration from user template
+// HINWEIS: Ersetze diese Werte durch deine tatsächlichen Werte für "kitcommand-74650" aus deiner Firebase-Konsole!
+// (Projekt-Einstellungen -> Allgemein -> Deine Apps -> Web-App)
+const metaEnv = (import.meta as any).env || {};
 const myConfig = {
-  apiKey: "AIzaSyCAoHre4UD7u88JyGvyPYzrfm50OsMOrZ8",
-  authDomain: "lithoscalepro.firebaseapp.com",
-  projectId: "lithoscalepro",
-  storageBucket: "lithoscalepro.firebasestorage.app",
-  messagingSenderId: "1090400345045",
-  appId: "1:1090400345045:web:fd1cc58fd1e620a9127b5c"
+  apiKey: metaEnv.VITE_FIREBASE_API_KEY || "AIzaSyCAoHre4UD7u88JyGvyPYzrfm50OsMOrZ8",
+  authDomain: metaEnv.VITE_FIREBASE_AUTH_DOMAIN || "lithoscalepro.firebaseapp.com", // oder "kitcommand-74650.firebaseapp.com"
+  projectId: metaEnv.VITE_FIREBASE_PROJECT_ID || "lithoscalepro", // oder "kitcommand-74650"
+  storageBucket: metaEnv.VITE_FIREBASE_STORAGE_BUCKET || "lithoscalepro.firebasestorage.app", // oder "kitcommand-74650.firebasestorage.app"
+  messagingSenderId: metaEnv.VITE_FIREBASE_MESSAGING_SENDER_ID || "1090400345045",
+  appId: metaEnv.VITE_FIREBASE_APP_ID || "1:1090400345045:web:fd1cc58fd1e620a9127b5c"
 };
+
+const win = window as any;
+
+// Überprüfe, ob der Benutzer die Sandbox in der AI Studio-Umgebung explizit umgehen möchte,
+// um seine echten Daten aus der produktiven Firebase-Datenbank zu laden.
+const bypassSandbox = localStorage.getItem('bypass_sandbox') === 'true';
 
 // Direct check for platform-injected firebase config or fallback
 let activeConfig = myConfig;
-const win = window as any;
+const isStudioInjected = typeof win.__firebase_config !== 'undefined';
 
-if (typeof win.__firebase_config !== 'undefined') {
+if (isStudioInjected && !bypassSandbox) {
   try {
     if (typeof win.__firebase_config === 'string') {
       activeConfig = JSON.parse(win.__firebase_config);
@@ -37,6 +46,16 @@ if (typeof win.__firebase_config !== 'undefined') {
 const app = initializeApp(activeConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// Hilfsfunktionen für die UI, um den aktiven Status anzuzeigen
+export function getActiveFirebaseInfo() {
+  return {
+    projectId: activeConfig.projectId,
+    isSandbox: isStudioInjected && !bypassSandbox,
+    hasStudioInjected: isStudioInjected,
+    bypassSandbox
+  };
+}
 
 export const ADMIN_EMAILS = [
   'belmonte@fs-kuechen.de',
@@ -55,7 +74,7 @@ export function isUserAdmin(email: string | null | undefined): boolean {
  * This guarantees that all historical data is immediately visible.
  */
 export function getDbCollectionRef(): CollectionReference<DocumentData, DocumentData> {
-  const isStudioEnv = typeof win.__firebase_config !== 'undefined';
+  const isStudioEnv = isStudioInjected && !bypassSandbox;
 
   if (isStudioEnv) {
     const appId = typeof win.__app_id !== 'undefined' ? win.__app_id : '27f298b5-15e3-41c7-b5db-50041df42451';
