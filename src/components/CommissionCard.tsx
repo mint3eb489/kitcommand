@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { Commission } from '../types.ts';
+import { Commission, TeammateConfig } from '../types.ts';
 import { Pencil, ClipboardList, RefreshCw, Trash2, Calendar, Check, X } from 'lucide-react';
 
 interface CommissionCardProps {
@@ -17,6 +17,7 @@ interface CommissionCardProps {
   onEditNote: (id: string) => void;
   onUpdateField: (id: string, field: string, value: any) => void;
   onCycleBauart: (id: string, currentType: 'bestand' | 'neubau' | 'kleinauftrag') => void;
+  teammateConfigs?: TeammateConfig[];
 }
 
 export const CommissionCard: React.FC<CommissionCardProps> = ({
@@ -29,6 +30,7 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
   onEditNote,
   onUpdateField,
   onCycleBauart,
+  teammateConfigs = [],
 }) => {
   // Swipe State
   const [translateX, setTranslateX] = useState(0);
@@ -285,7 +287,16 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                 </div>
                 {commission.createdByEmail && (
                   <p className="text-[8px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500 mt-1 select-none">
-                    Mitarbeiter: <span className="font-mono text-slate-500 dark:text-zinc-400 lowercase font-bold">{commission.createdByEmail}</span>
+                    Mitarbeiter: <span className="font-sans text-slate-500 dark:text-zinc-400 font-bold">
+                      {(() => {
+                        const emailLower = commission.createdByEmail.toLowerCase().trim();
+                        const conf = teammateConfigs.find(t => t.email.toLowerCase().trim() === emailLower);
+                        if (conf && conf.name.trim()) return conf.name;
+                        // Fallback
+                        const prefix = commission.createdByEmail.split('@')[0];
+                        return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+                      })()}
+                    </span>
                   </p>
                 )}
                 <div className="flex items-center gap-1.5 mt-1">
@@ -456,7 +467,16 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                 </div>
                 {commission.createdByEmail && (
                   <p className="text-[8px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500 mb-2 select-none">
-                    Mitarbeiter: <span className="font-mono text-slate-500 dark:text-zinc-400 lowercase font-bold">{commission.createdByEmail}</span>
+                    Mitarbeiter: <span className="font-sans text-slate-500 dark:text-zinc-400 font-bold">
+                      {(() => {
+                        const emailLower = commission.createdByEmail.toLowerCase().trim();
+                        const conf = teammateConfigs.find(t => t.email.toLowerCase().trim() === emailLower);
+                        if (conf && conf.name.trim()) return conf.name;
+                        // Fallback
+                        const prefix = commission.createdByEmail.split('@')[0];
+                        return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+                      })()}
+                    </span>
                   </p>
                 )}
                 <div className="grid grid-cols-[auto_1fr] items-center gap-x-2.5 gap-y-1.5 mt-1.5">
@@ -598,6 +618,33 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                   </div>
                 </div>
               </div>
+
+              {commission.status === 'sold' && (
+                <div className="flex flex-col items-end gap-1 shrink-0 -mt-1 -mr-1">
+                  <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500 leading-none select-none">
+                    Liefer-KW / Jahr
+                  </span>
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      className="w-12 px-1 py-1 text-xs text-center font-bold text-slate-800 dark:text-zinc-200 bg-slate-100 dark:bg-zinc-800 border border-slate-250 dark:border-zinc-700 rounded-md focus:outline-hidden focus:border-emerald-500 focus:bg-white dark:focus:bg-zinc-950 font-sans leading-none placeholder-slate-400 dark:placeholder-zinc-650 transition-all cursor-text shadow-3xs"
+                      placeholder="KW"
+                      value={commission.deliveryKw || ''}
+                      onChange={(e) => onUpdateField(commission.id, 'deliveryKw', e.target.value)}
+                      title="Liefer-Kalenderwoche"
+                    />
+                    <input
+                      type="text"
+                      className="w-14 px-1 py-1 text-xs text-center font-bold text-slate-800 dark:text-zinc-200 bg-slate-100 dark:bg-zinc-800 border border-slate-250 dark:border-zinc-700 rounded-md focus:outline-hidden focus:border-emerald-500 focus:bg-white dark:focus:bg-zinc-950 font-sans leading-none placeholder-slate-400 dark:placeholder-zinc-650 transition-all cursor-text shadow-3xs"
+                      placeholder="Jahr"
+                      maxLength={4}
+                      value={commission.deliveryYear || ''}
+                      onChange={(e) => onUpdateField(commission.id, 'deliveryYear', e.target.value)}
+                      title="Liefer-Jahr"
+                    />
+                  </div>
+                </div>
+              )}
 
               {commission.status === 'lost' && (
                 <button

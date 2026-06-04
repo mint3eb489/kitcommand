@@ -4,16 +4,19 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { Commission } from '../types.ts';
+import { Commission, Ausarbeitung } from '../types.ts';
 import { DonutChart } from './DonutChart.tsx';
 import { motion, AnimatePresence } from 'motion/react';
-import { Target, TrendingUp, Sparkles, Trophy, Flame, Calendar } from 'lucide-react';
+import { Target, TrendingUp, Sparkles, Trophy, Flame, Calendar, BookOpen, Truck } from 'lucide-react';
 
 interface StatsTabProps {
   commissions: Commission[];
   annualTarget: number;
   yearlyTargets?: Record<string, number>;
   availableYears: number[];
+  ausarbeitungen?: Ausarbeitung[];
+  currentUserEmail?: string;
+  selectedColleague?: string;
 }
 
 export const StatsTab: React.FC<StatsTabProps> = ({
@@ -21,19 +24,37 @@ export const StatsTab: React.FC<StatsTabProps> = ({
   annualTarget,
   yearlyTargets,
   availableYears,
+  ausarbeitungen = [],
+  currentUserEmail,
+  selectedColleague,
 }) => {
   const [filterYear, setFilterYear] = useState<string>(new Date().getFullYear().toString());
   const [filterMonth, setFilterMonth] = useState<string>('all');
+  const [filterMonthBestellt, setFilterMonthBestellt] = useState<string>('all');
+  const [filterMonthDelivery, setFilterMonthDelivery] = useState<string>('all');
   const [showRemaining, setShowRemaining] = useState<boolean>(false);
 
   // Get target value for the currently filtered year, falling back to legacy/global target
   const currentYearTarget = useMemo(() => {
+    // Determine the subject email
+    const email = selectedColleague && selectedColleague !== 'all'
+      ? selectedColleague.toLowerCase().trim()
+      : (selectedColleague === 'all' ? 'all' : (currentUserEmail?.toLowerCase().trim() || ''));
+
+    if (email === 'all') {
+      if (filterYear === 'all') {
+        return annualTarget || 1500000;
+      }
+      return yearlyTargets?.[filterYear] ?? annualTarget ?? 1500000;
+    }
+
     if (filterYear === 'all') {
-      // Sum or fallback
       return annualTarget || 1500000;
     }
-    return yearlyTargets?.[filterYear] ?? annualTarget ?? 1500000;
-  }, [filterYear, yearlyTargets, annualTarget]);
+
+    // Try colleague-specific target first: "email_year", then fall back to standard year fallback
+    return yearlyTargets?.[`${email}_${filterYear}`] ?? yearlyTargets?.[filterYear] ?? annualTarget ?? 1500000;
+  }, [filterYear, yearlyTargets, annualTarget, selectedColleague, currentUserEmail]);
 
   // Saisonalitäts-Daten berechnen (unabhängig von filterMonth, aber abhängig von filterYear)
   const monthlySeasonality = useMemo(() => {
@@ -70,12 +91,386 @@ export const StatsTab: React.FC<StatsTabProps> = ({
     });
 
     const maxRevenue = Math.max(...dataset.map((d) => d.revenue), 10000);
+    const maxSoldCount = Math.max(...dataset.map((d) => d.soldCount), 5);
 
     return {
       dataset,
       maxRevenue,
+      maxSoldCount,
     };
   }, [commissions, filterYear]);
+
+  // Bestellungen Saisonalitäts-Daten berechnen (abhängig von filterYear)
+  // Alle Kommissionen mit status === 'sold' und bestellt === true, sowie alle Ausarbeitungen (gelten als bestellt)
+  const bestelltSeasonality = useMemo(() => {
+    const dataset = Array.from({ length: 12 }, (_, i) => ({
+      monthIndex: i + 1,
+      name: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'][i],
+      fullName: ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'][i],
+      sum: 0,
+      count: 0,
+    }));
+
+    commissions.forEach((c) => {
+      if (c.status !== 'sold' || !c.bestellt) return;
+      const dateStr = c.bestelltAt || c.resolvedAt || c.createdAt;
+      if (!dateStr) return;
+      const date = new Date(dateStr);
+      const yearStr = date.getFullYear().toString();
+      
+      if (filterYear !== 'all' && yearStr !== filterYear) return;
+
+      const monthIndex = date.getMonth(); // 0 to 11
+      if (monthIndex >= 0 && monthIndex < 12) {
+        const dItem = dataset[monthIndex];
+        dItem.sum += c.price || 0;
+        dItem.count += 1;
+      }
+    });
+
+    ausarbeitungen.forEach((a) => {
+      const dateStr = a.orderedAt || a.createdAt;
+      if (!dateStr) return;
+      const date = new Date(dateStr);
+      const yearStr = date.getFullYear().toString();
+      
+      if (filterYear !== 'all' && yearStr !== filterYear) return;
+
+      const monthIndex = date.getMonth(); // 0 to 11
+      if (monthIndex >= 0 && monthIndex < 12) {
+        const dItem = dataset[monthIndex];
+        dItem.sum += a.price || 0;
+        dItem.count += 1;
+      }
+    });
+
+    const maxSum = Math.max(...dataset.map((d) => d.sum), 10000);
+
+    return {
+      dataset,
+      maxSum,
+    };
+  }, [commissions, filterYear, ausarbeitungen]);
+
+  // Calculations for ordered commissions KPI based on active database filters
+  const bestelltStats = useMemo(() => {
+    let totalSum = 0;
+    let totalCount = 0;
+
+    commissions.forEach((c) => {
+      if (c.status !== 'sold' || !c.bestellt) return;
+      const dateStr = c.bestelltAt || c.resolvedAt || c.createdAt;
+      if (!dateStr) return;
+      const date = new Date(dateStr);
+      const yearStr = date.getFullYear().toString();
+      
+      if (filterYear !== 'all' && yearStr !== filterYear) return;
+
+      totalSum += c.price || 0;
+      totalCount += 1;
+    });
+
+    ausarbeitungen.forEach((a) => {
+      const dateStr = a.orderedAt || a.createdAt;
+      if (!dateStr) return;
+      const date = new Date(dateStr);
+      const yearStr = date.getFullYear().toString();
+      
+      if (filterYear !== 'all' && yearStr !== filterYear) return;
+
+      totalSum += a.price || 0;
+      totalCount += 1;
+    });
+
+    let filteredSum = totalSum;
+    let filteredCount = totalCount;
+
+    if (filterMonthBestellt !== 'all') {
+      filteredSum = 0;
+      filteredCount = 0;
+      commissions.forEach((c) => {
+        if (c.status !== 'sold' || !c.bestellt) return;
+        const dateStr = c.bestelltAt || c.resolvedAt || c.createdAt;
+        if (!dateStr) return;
+        const date = new Date(dateStr);
+        const yearStr = date.getFullYear().toString();
+        
+        if (filterYear !== 'all' && yearStr !== filterYear) return;
+        if ((date.getMonth() + 1).toString() === filterMonthBestellt) {
+          filteredSum += c.price || 0;
+          filteredCount += 1;
+        }
+      });
+
+      ausarbeitungen.forEach((a) => {
+        const dateStr = a.orderedAt || a.createdAt;
+        if (!dateStr) return;
+        const date = new Date(dateStr);
+        const yearStr = date.getFullYear().toString();
+        
+        if (filterYear !== 'all' && yearStr !== filterYear) return;
+        if ((date.getMonth() + 1).toString() === filterMonthBestellt) {
+          filteredSum += a.price || 0;
+          filteredCount += 1;
+        }
+      });
+    }
+
+    return {
+      filteredSum,
+      filteredCount,
+    };
+  }, [commissions, filterYear, filterMonthBestellt, ausarbeitungen]);
+
+  // Delivery Saisonalität-Daten berechnen (abhängig von filterYear)
+  // Alle Kommissionen mit status === 'sold' und einem eingetragenen Liefer-KW (deliveryKw)
+  const deliverySeasonality = useMemo(() => {
+    const dataset = Array.from({ length: 12 }, (_, i) => ({
+      monthIndex: i + 1,
+      name: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'][i],
+      fullName: ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'][i],
+      sum: 0,
+      count: 0,
+    }));
+
+    const parseKwAndYear = (kwStr: string, defaultYear: number): { week: number; year: number } | null => {
+      if (!kwStr) return null;
+      const numbers = kwStr.match(/\d+/g);
+      if (!numbers || numbers.length === 0) return null;
+      
+      let week = 1;
+      let year = defaultYear;
+      
+      if (numbers.length === 1) {
+        week = parseInt(numbers[0], 10);
+      } else {
+        const n1 = parseInt(numbers[0], 10);
+        const n2 = parseInt(numbers[1], 10);
+        if (n1 > 53) {
+          year = n1;
+          week = n2;
+        } else {
+          week = n1;
+          year = n2;
+        }
+      }
+      
+      if (year < 100) {
+        year = 2000 + year;
+      }
+      
+      if (week < 1 || week > 53) return null;
+      if (year < 2000 || year > 2100) year = defaultYear;
+      
+      return { week, year };
+    };
+
+    const getMonthFromWeekAndYear = (week: number, year: number): number => {
+      const jan4 = new Date(year, 0, 4);
+      const day = jan4.getDay();
+      const mondayOffset = day === 0 ? -6 : 1 - day;
+      const startOfIsoYear = new Date(jan4.getTime() + mondayOffset * 24 * 60 * 60 * 1000);
+      const targetDate = new Date(startOfIsoYear.getTime() + (week - 1) * 7 * 24 * 60 * 60 * 1000 + 3 * 24 * 60 * 60 * 1000);
+      return targetDate.getMonth();
+    };
+
+    commissions.forEach((c) => {
+      if (c.status !== 'sold' || !c.deliveryKw) return;
+      
+      const dateStr = c.resolvedAt || c.createdAt;
+      const defaultYear = dateStr ? new Date(dateStr).getFullYear() : 2026;
+      
+      const parsed = parseKwAndYear(c.deliveryKw, c.deliveryYear ? parseInt(c.deliveryYear, 10) : defaultYear);
+      if (!parsed) return;
+      
+      if (filterYear !== 'all' && parsed.year.toString() !== filterYear) return;
+
+      const monthIndex = getMonthFromWeekAndYear(parsed.week, parsed.year);
+      if (monthIndex >= 0 && monthIndex < 12) {
+        const dItem = dataset[monthIndex];
+        dItem.sum += c.price || 0;
+        dItem.count += 1;
+      }
+    });
+
+    ausarbeitungen.forEach((a) => {
+      if (!a.deliveryKw) return;
+      
+      const dateStr = a.orderedAt || a.createdAt;
+      const defaultYear = dateStr ? new Date(dateStr).getFullYear() : 2026;
+      
+      const parsed = parseKwAndYear(a.deliveryKw, a.deliveryYear ? parseInt(a.deliveryYear, 10) : defaultYear);
+      if (!parsed) return;
+      
+      if (filterYear !== 'all' && parsed.year.toString() !== filterYear) return;
+
+      const monthIndex = getMonthFromWeekAndYear(parsed.week, parsed.year);
+      if (monthIndex >= 0 && monthIndex < 12) {
+        const dItem = dataset[monthIndex];
+        dItem.sum += a.price || 0;
+        dItem.count += 1;
+      }
+    });
+
+    const maxSum = Math.max(...dataset.map((d) => d.sum), 10000);
+
+    return {
+      dataset,
+      maxSum,
+    };
+  }, [commissions, filterYear, ausarbeitungen]);
+
+  // Calculations for delivery commissions KPI based on active database filters
+  const deliveryStats = useMemo(() => {
+    let totalSum = 0;
+    let totalCount = 0;
+    const filteredItems: Array<{
+      id: string;
+      name: string;
+      price: number;
+      type: 'commission' | 'ausarbeitung';
+      deliveryKw?: string;
+      deliveryYear?: string;
+    }> = [];
+
+    const parseKwAndYear = (kwStr: string, defaultYear: number): { week: number; year: number } | null => {
+      if (!kwStr) return null;
+      const numbers = kwStr.match(/\d+/g);
+      if (!numbers || numbers.length === 0) return null;
+      
+      let week = 1;
+      let year = defaultYear;
+      
+      if (numbers.length === 1) {
+        week = parseInt(numbers[0], 10);
+      } else {
+        const n1 = parseInt(numbers[0], 10);
+        const n2 = parseInt(numbers[1], 10);
+        if (n1 > 53) {
+          year = n1;
+          week = n2;
+        } else {
+          week = n1;
+          year = n2;
+        }
+      }
+      
+      if (year < 100) {
+        year = 2000 + year;
+      }
+      
+      if (week < 1 || week > 53) return null;
+      if (year < 2000 || year > 2100) year = defaultYear;
+      
+      return { week, year };
+    };
+
+    const getMonthFromWeekAndYear = (week: number, year: number): number => {
+      const jan4 = new Date(year, 0, 4);
+      const day = jan4.getDay();
+      const mondayOffset = day === 0 ? -6 : 1 - day;
+      const startOfIsoYear = new Date(jan4.getTime() + mondayOffset * 24 * 60 * 60 * 1000);
+      const targetDate = new Date(startOfIsoYear.getTime() + (week - 1) * 7 * 24 * 60 * 60 * 1000 + 3 * 24 * 60 * 60 * 1000);
+      return targetDate.getMonth();
+    };
+
+    commissions.forEach((c) => {
+      if (c.status !== 'sold' || !c.deliveryKw) return;
+      
+      const dateStr = c.resolvedAt || c.createdAt;
+      const defaultYear = dateStr ? new Date(dateStr).getFullYear() : 2026;
+      
+      const parsed = parseKwAndYear(c.deliveryKw, c.deliveryYear ? parseInt(c.deliveryYear, 10) : defaultYear);
+      if (!parsed) return;
+      
+      if (filterYear !== 'all' && parsed.year.toString() !== filterYear) return;
+
+      totalSum += c.price || 0;
+      totalCount += 1;
+    });
+
+    ausarbeitungen.forEach((a) => {
+      if (!a.deliveryKw) return;
+      
+      const dateStr = a.orderedAt || a.createdAt;
+      const defaultYear = dateStr ? new Date(dateStr).getFullYear() : 2026;
+      
+      const parsed = parseKwAndYear(a.deliveryKw, a.deliveryYear ? parseInt(a.deliveryYear, 10) : defaultYear);
+      if (!parsed) return;
+      
+      if (filterYear !== 'all' && parsed.year.toString() !== filterYear) return;
+
+      totalSum += a.price || 0;
+      totalCount += 1;
+    });
+
+    let filteredSum = totalSum;
+    let filteredCount = totalCount;
+
+    if (filterMonthDelivery !== 'all') {
+      filteredSum = 0;
+      filteredCount = 0;
+      commissions.forEach((c) => {
+        if (c.status !== 'sold' || !c.deliveryKw) return;
+        
+        const dateStr = c.resolvedAt || c.createdAt;
+        const defaultYear = dateStr ? new Date(dateStr).getFullYear() : 2026;
+        
+        const parsed = parseKwAndYear(c.deliveryKw, c.deliveryYear ? parseInt(c.deliveryYear, 10) : defaultYear);
+        if (!parsed) return;
+        
+        if (filterYear !== 'all' && parsed.year.toString() !== filterYear) return;
+
+        const monthIndex = getMonthFromWeekAndYear(parsed.week, parsed.year);
+        if ((monthIndex + 1).toString() === filterMonthDelivery) {
+          filteredSum += c.price || 0;
+          filteredCount += 1;
+          filteredItems.push({
+            id: c.id,
+            name: c.name,
+            price: c.price || 0,
+            type: 'commission',
+            deliveryKw: c.deliveryKw,
+            deliveryYear: c.deliveryYear,
+          });
+        }
+      });
+
+      ausarbeitungen.forEach((a) => {
+        if (!a.deliveryKw) return;
+        
+        const dateStr = a.orderedAt || a.createdAt;
+        const defaultYear = dateStr ? new Date(dateStr).getFullYear() : 2026;
+        
+        const parsed = parseKwAndYear(a.deliveryKw, a.deliveryYear ? parseInt(a.deliveryYear, 10) : defaultYear);
+        if (!parsed) return;
+        
+        if (filterYear !== 'all' && parsed.year.toString() !== filterYear) return;
+
+        const monthIndex = getMonthFromWeekAndYear(parsed.week, parsed.year);
+        if ((monthIndex + 1).toString() === filterMonthDelivery) {
+          filteredSum += a.price || 0;
+          filteredCount += 1;
+          filteredItems.push({
+            id: a.id,
+            name: a.customerName,
+            price: a.price || 0,
+            type: 'ausarbeitung',
+            deliveryKw: a.deliveryKw,
+            deliveryYear: a.deliveryYear,
+          });
+        }
+      });
+
+      filteredItems.sort((x, y) => y.price - x.price);
+    }
+
+    return {
+      filteredSum,
+      filteredCount,
+      filteredItems,
+    };
+  }, [commissions, filterYear, filterMonthDelivery, ausarbeitungen]);
 
   // Calculations for Monats-Filter and Jahres-Ziel (ignoring Monats-Filter)
   const stats = useMemo(() => {
@@ -584,6 +979,286 @@ export const StatsTab: React.FC<StatsTabProps> = ({
                       ? stats.revenue 
                       : (monthlySeasonality.dataset[parseInt(filterMonth) - 1]?.revenue || 0)
                   )}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+         {/* TREND-BALKENDIAGRAMM (BESTELLUNGEN) */}
+      <div
+        id="bestellungen-trend-container"
+        className="mb-8 bg-zinc-50 dark:bg-zinc-900/40 rounded-3xl p-6 border border-slate-200/80 dark:border-zinc-800/80 relative overflow-hidden isolate shadow-xs hover:border-slate-300 dark:hover:border-zinc-700 transition-all duration-300 group/trend2"
+      >
+        {/* Soft background ambient glows */}
+        <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-emerald-500/5 dark:bg-emerald-400/5 rounded-full blur-3xl pointer-events-none group-hover/trend2:bg-emerald-500/10 dark:group-hover/trend2:bg-emerald-400/10 transition-colors duration-500" />
+        <div className="absolute -left-20 -top-20 w-64 h-64 bg-green-500/5 dark:bg-green-400/5 rounded-full blur-3xl pointer-events-none group-hover/trend2:bg-green-500/10 dark:group-hover/trend2:bg-green-400/10 transition-colors duration-500" />
+
+        <div className="relative z-10 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-400/10 text-emerald-600 dark:text-emerald-400">
+                <Trophy className="w-5 h-5 stroke-[2]" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+                  Bestell-Trend
+                </span>
+                <span className="block text-xs font-semibold text-slate-600 dark:text-zinc-400">
+                  Umsatz an fertig bestellten Kommissionen pro Monat
+                </span>
+              </div>
+            </div>
+            
+            {/* Quick Helper Badge */}
+            <div className="text-[10px] text-slate-400 dark:text-zinc-550 font-semibold bg-white dark:bg-zinc-900 p-1.5 px-3 rounded-xl border border-slate-200/60 dark:border-zinc-800/80 select-none shadow-3xs">
+              💡 Tipp: Tippe einen Monat an, um zu filtern
+            </div>
+          </div>
+
+          {/* Interactive Chart Zone */}
+          <div className="pt-2 pb-1 overflow-x-auto scrollbar-none">
+            <div className="h-44 flex items-end justify-between gap-1 sm:gap-2.5 md:gap-4 select-none min-w-[280px]">
+              {bestelltSeasonality.dataset.map((item) => {
+                const isSelected = filterMonthBestellt === item.monthIndex.toString();
+                const isAnySelected = filterMonthBestellt !== 'all';
+                const heightPercent = item.sum > 0 ? (item.sum / bestelltSeasonality.maxSum) * 100 : 0;
+                
+                const barColorClass = isSelected
+                  ? 'bg-gradient-to-t from-emerald-600 to-green-500 shadow-[0_4px_14px_rgba(16,185,129,0.35)] dark:shadow-[0_4px_14px_rgba(16,185,129,0.2)]'
+                  : isAnySelected
+                    ? 'bg-slate-200/50 dark:bg-zinc-800/30 opacity-30 hover:opacity-60'
+                    : 'bg-gradient-to-t from-emerald-400/80 to-green-400/80 dark:from-emerald-500/60 dark:to-green-500/60 hover:from-emerald-500 hover:to-green-500 hover:shadow-[0_4px_12px_rgba(16,185,129,0.15)]';
+
+                return (
+                  <div
+                    key={item.monthIndex}
+                    onClick={() => {
+                      if (isSelected) {
+                        setFilterMonthBestellt('all');
+                      } else {
+                        setFilterMonthBestellt(item.monthIndex.toString());
+                      }
+                    }}
+                    className={`flex-1 flex flex-col items-center h-full group/bar cursor-pointer transition-all duration-300 ${isSelected ? 'scale-[1.03]' : 'hover:-translate-y-1'}`}
+                  >
+                    {/* Tooltip on bar hover */}
+                    <div className="absolute bottom-[105%] opacity-0 scale-95 group-hover/bar:opacity-100 group-hover/bar:scale-100 transition-all duration-200 pointer-events-none z-30 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 p-3 rounded-xl shadow-xl flex flex-col gap-1 items-start text-left min-w-[140px]">
+                      <p className="text-xs font-black text-slate-800 dark:text-zinc-100 leading-none mb-1">
+                        {item.fullName} {filterYear !== 'all' ? filterYear : ''}
+                      </p>
+                      <div className="flex items-center justify-between w-full gap-2 text-[10px]">
+                        <span className="text-slate-400">Bestellwert:</span>
+                        <span className="font-mono font-bold text-emerald-500">{formatter.format(item.sum)}</span>
+                      </div>
+                      <div className="flex items-center justify-between w-full gap-2 text-[10px] border-t border-slate-100 dark:border-zinc-900 pt-1 mt-1">
+                        <span className="text-slate-400">Bestellt:</span>
+                        <span className="font-bold text-slate-800 dark:text-zinc-250">{item.count}x</span>
+                      </div>
+                    </div>
+
+                    {/* Bar visual track */}
+                    <div className="w-full bg-slate-100/50 dark:bg-zinc-950 rounded-xl relative flex-1 flex items-end p-0.5 border border-slate-200/30 dark:border-zinc-900/40">
+                      <motion.div
+                        className={`w-full rounded-lg transition-all duration-300 ${barColorClass}`}
+                        style={{ height: `${heightPercent || 2}%`, minHeight: '6px' }}
+                        initial={{ scaleY: 0 }}
+                        animate={{ scaleY: 1 }}
+                        transition={{ duration: 0.8, ease: 'easeOut' }}
+                      />
+                    </div>
+
+                    {/* Month Label */}
+                    <span className={`text-[9px] font-black uppercase tracking-wider mt-2 transition-colors ${isSelected ? 'text-emerald-600 dark:text-emerald-400 font-extrabold' : 'text-slate-400 dark:text-zinc-500'}`}>
+                      {item.name}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Trend Summary Panel */}
+          <div className="bg-white dark:bg-zinc-900/95 border border-slate-200/60 dark:border-zinc-800/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-3xs">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 dark:bg-emerald-400/10 flex items-center justify-center text-emerald-500 animate-pulse">
+                <Trophy className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">
+                  {filterMonthBestellt === 'all' ? 'Aktiver Trend' : `Fokus Monat: ${['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'][parseInt(filterMonthBestellt) - 1]}`}
+                </p>
+                <p className="text-xs font-bold text-slate-600 dark:text-zinc-300">
+                  {filterMonthBestellt === 'all' 
+                    ? 'Bestellte Umsätze über die Monate.' 
+                    : `Gefiltert auf ${['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'][parseInt(filterMonthBestellt) - 1]} ${filterYear !== 'all' ? filterYear : ''}.`}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4 items-center justify-end shrink-0">
+              <div className="text-left sm:text-right bg-slate-50 dark:bg-zinc-950/40 p-2 pl-3.5 pr-3.5 rounded-xl border border-slate-200/50 dark:border-zinc-800/60 shadow-3xs flex flex-col sm:items-end">
+                <span className="text-[9px] font-bold text-slate-450 dark:text-zinc-500 uppercase tracking-widest block leading-none mb-1.5">
+                  {filterMonthBestellt === 'all' ? 'Bestellt (Gesamt)' : 'Monatssumme Bestellt'}
+                </span>
+                <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-600 dark:from-emerald-400 dark:to-green-450 text-base sm:text-lg md:text-xl block leading-none">
+                  {formatter.format(bestelltStats.filteredSum)}
+                </span>
+                <span className="text-[9px] font-bold text-slate-400 dark:text-zinc-500 mt-1">
+                  Gesamtanzahl: {bestelltStats.filteredCount}x
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* TREND-BALKENDIAGRAMM (AUSLIEFERUNGEN) */}
+      <div
+        id="delivery-trend-container"
+        className="mb-8 bg-zinc-50 dark:bg-zinc-900/40 rounded-3xl p-6 border border-slate-200/80 dark:border-zinc-800/80 relative overflow-hidden isolate shadow-xs hover:border-slate-300 dark:hover:border-zinc-700 transition-all duration-300 group/trend3"
+      >
+        {/* Soft background ambient glows */}
+        <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-amber-500/5 dark:bg-amber-400/5 rounded-full blur-3xl pointer-events-none group-hover/trend3:bg-amber-500/10 dark:group-hover/trend3:bg-amber-400/10 transition-colors duration-500" />
+        <div className="absolute -left-20 -top-20 w-64 h-64 bg-yellow-500/5 dark:bg-yellow-400/5 rounded-full blur-3xl pointer-events-none group-hover/trend3:bg-yellow-500/10 dark:group-hover/trend3:bg-yellow-400/10 transition-colors duration-500" />
+
+        <div className="relative z-10 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-amber-500/10 dark:bg-amber-400/10 text-amber-600 dark:text-amber-400">
+                <Truck className="w-5 h-5 stroke-[2]" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+                  Auslieferungs-Trend
+                </span>
+                <span className="block text-xs font-semibold text-slate-600 dark:text-zinc-400">
+                  Umsatz an der Auslieferungswoche zugeordneten Kommissionen pro Monat
+                </span>
+              </div>
+            </div>
+            
+            {/* Quick Helper Badge */}
+            <div className="text-[10px] text-slate-400 dark:text-zinc-550 font-semibold bg-white dark:bg-zinc-900 p-1.5 px-3 rounded-xl border border-slate-200/60 dark:border-zinc-800/80 select-none shadow-3xs">
+              💡 Tipp: Tippe einen Monat an, um zu filtern
+            </div>
+          </div>
+
+          {/* Interactive Chart Zone */}
+          <div className="pt-2 pb-1 overflow-x-auto scrollbar-none">
+            <div className="h-44 flex items-end justify-between gap-1 sm:gap-2.5 md:gap-4 select-none min-w-[280px]">
+              {deliverySeasonality.dataset.map((item) => {
+                const isSelected = filterMonthDelivery === item.monthIndex.toString();
+                const isAnySelected = filterMonthDelivery !== 'all';
+                const heightPercent = item.sum > 0 ? (item.sum / deliverySeasonality.maxSum) * 100 : 0;
+                
+                const barColorClass = isSelected
+                  ? 'bg-gradient-to-t from-amber-600 to-orange-500 shadow-[0_4px_14px_rgba(245,158,11,0.35)] dark:shadow-[0_4px_14px_rgba(245,158,11,0.2)]'
+                  : isAnySelected
+                    ? 'bg-slate-200/50 dark:bg-zinc-800/30 opacity-30 hover:opacity-60'
+                    : 'bg-gradient-to-t from-amber-400/80 to-yellow-400/80 dark:from-amber-500/60 dark:to-yellow-500/60 hover:from-amber-500 hover:to-orange-500 hover:shadow-[0_4px_12px_rgba(245,158,11,0.15)]';
+
+                return (
+                  <div
+                    key={item.monthIndex}
+                    onClick={() => {
+                      if (isSelected) {
+                        setFilterMonthDelivery('all');
+                      } else {
+                        setFilterMonthDelivery(item.monthIndex.toString());
+                      }
+                    }}
+                    className={`flex-1 flex flex-col items-center h-full group/bar cursor-pointer transition-all duration-300 ${isSelected ? 'scale-[1.03]' : 'hover:-translate-y-1'}`}
+                  >
+                    {/* Tooltip on bar hover */}
+                    <div className="absolute bottom-[105%] opacity-0 scale-95 group-hover/bar:opacity-100 group-hover/bar:scale-100 transition-all duration-200 pointer-events-none z-30 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 p-3 rounded-xl shadow-xl flex flex-col gap-1 items-start text-left min-w-[140px]">
+                      <p className="text-xs font-black text-slate-800 dark:text-zinc-100 leading-none mb-1">
+                        {item.fullName} {filterYear !== 'all' ? filterYear : ''}
+                      </p>
+                      <div className="flex items-center justify-between w-full gap-2 text-[10px]">
+                        <span className="text-slate-400">Lieferwert:</span>
+                        <span className="font-mono font-bold text-amber-600 dark:text-amber-400">{formatter.format(item.sum)}</span>
+                      </div>
+                      <div className="flex items-center justify-between w-full gap-2 text-[10px] border-t border-slate-100 dark:border-zinc-900 pt-1 mt-1">
+                        <span className="text-slate-400">Auslieferungen:</span>
+                        <span className="font-bold text-slate-800 dark:text-zinc-250">{item.count}x</span>
+                      </div>
+                    </div>
+
+                    {/* Bar visual track */}
+                    <div className="w-full bg-slate-100/50 dark:bg-zinc-950 rounded-xl relative flex-1 flex items-end p-0.5 border border-slate-200/30 dark:border-zinc-900/40">
+                      <motion.div
+                        className={`w-full rounded-lg transition-all duration-300 ${barColorClass}`}
+                        style={{ height: `${heightPercent || 2}%`, minHeight: '6px' }}
+                        initial={{ scaleY: 0 }}
+                        animate={{ scaleY: 1 }}
+                        transition={{ duration: 0.8, ease: 'easeOut' }}
+                      />
+                    </div>
+
+                    {/* Month Label */}
+                    <span className={`text-[9px] font-black uppercase tracking-wider mt-2 transition-colors ${isSelected ? 'text-amber-600 dark:text-amber-400 font-extrabold' : 'text-slate-400 dark:text-zinc-500'}`}>
+                      {item.name}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Trend Summary Panel */}
+          <div className="bg-white dark:bg-zinc-900/95 border border-slate-200/60 dark:border-zinc-800/80 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-3xs">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/10 dark:bg-amber-400/10 flex items-center justify-center text-amber-500 animate-pulse shrink-0">
+                <Truck className="w-4 h-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">
+                  {filterMonthDelivery === 'all' ? 'Aktiver Trend' : `Fokus Monat: ${['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'][parseInt(filterMonthDelivery) - 1]}`}
+                </p>
+                {filterMonthDelivery === 'all' ? (
+                  <p className="text-xs font-bold text-slate-600 dark:text-zinc-300">
+                    Ausgelieferte Umsätze (KW-berechnet) über die Monate.
+                  </p>
+                ) : (
+                  <div className="space-y-1.5 mt-1.5 pr-2">
+                    <p className="text-[10px] font-extrabold text-amber-600 dark:text-amber-450 select-none">
+                      Lieferungen in diesem Monat:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 max-h-[105px] overflow-y-auto scrollbar-none pb-1">
+                      {deliveryStats.filteredItems && deliveryStats.filteredItems.length > 0 ? (
+                        deliveryStats.filteredItems.map((item) => (
+                          <div 
+                            key={item.id} 
+                            className="inline-flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-zinc-800/60 dark:hover:bg-zinc-800 border border-slate-200/50 dark:border-zinc-700/60 rounded-lg px-2 py-0.5 text-[11px] font-bold text-slate-700 dark:text-zinc-300 transition-colors shadow-3xs"
+                            title={`${item.name} - KW ${item.deliveryKw || ''}${item.deliveryYear ? ` / ${item.deliveryYear}` : ''}`}
+                          >
+                            <span className="text-amber-500">🏷️</span>
+                            <span className="truncate max-w-[120px] font-sans">{item.name}</span>
+                            <span className="text-[9px] font-normal text-slate-500 dark:text-zinc-400 font-mono">({formatter.format(item.price)})</span>
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-[10px] italic text-slate-450">Keine Lieferungen zugeteilt</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-4 items-center justify-end shrink-0">
+              <div className="text-left sm:text-right bg-slate-50 dark:bg-zinc-950/40 p-2 pl-3.5 pr-3.5 rounded-xl border border-slate-200/50 dark:border-zinc-800/60 shadow-3xs flex flex-col sm:items-end">
+                <span className="text-[9px] font-bold text-slate-455 dark:text-zinc-500 uppercase tracking-widest block leading-none mb-1.5">
+                  {filterMonthDelivery === 'all' ? 'Ausgeliefert (Gesamt)' : 'Monatssumme Ausgeliefert'}
+                </span>
+                <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-orange-600 dark:from-amber-400 dark:to-orange-450 text-base sm:text-lg md:text-xl block leading-none">
+                  {formatter.format(deliveryStats.filteredSum)}
+                </span>
+                <span className="text-[9px] font-bold text-slate-400 dark:text-zinc-500 mt-1">
+                  Gesamtanzahl: {deliveryStats.filteredCount}x
                 </span>
               </div>
             </div>

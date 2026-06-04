@@ -16,6 +16,9 @@ export interface Commission {
   installationsplan: boolean;
   abVerschickt: boolean;
   bestellt: boolean;
+  bestelltAt?: string | null;
+  deliveryKw?: string; // e.g. "24" or ""
+  deliveryYear?: string; // e.g. "2026" or ""
   createdAt: string;
   lastContactAt: string;
   resolvedAt?: string | null;
@@ -56,3 +59,26 @@ export interface FirestoreErrorInfo {
     }[];
   };
 }
+
+export interface Ausarbeitung {
+  id: string;
+  customerName: string;
+  colleagueName: string;
+  orderNumber: string;
+  price: number;
+  orderedAt: string;
+  createdAt: string;
+  createdByEmail: string;
+  createdByUid: string;
+  note?: string;
+  deliveryKw?: string;
+  deliveryYear?: string;
+}
+
+export interface TeammateConfig {
+  email: string;
+  name: string;
+  isActive: boolean;
+}
+
+

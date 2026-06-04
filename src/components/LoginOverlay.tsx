@@ -75,7 +75,7 @@ export const LoginOverlay: React.FC<LoginOverlayProps> = () => {
           Login
         </h2>
         <p className="text-xs text-slate-500 mb-6 font-medium">
-          Bitte melde dich an, um KitCommand zu nutzen.
+          Bitte melde dich an, um KitCommand Pro zu nutzen.
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">

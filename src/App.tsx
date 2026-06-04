@@ -6,20 +6,21 @@
 import { useState, useEffect, useMemo } from 'react';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { onSnapshot, addDoc, updateDoc, doc, deleteDoc, setDoc } from 'firebase/firestore';
-import { auth, getDbCollectionRef, handleFirestoreError, isUserAdmin, ADMIN_EMAILS } from './firebase.ts';
-import { Commission, OperationType } from './types.ts';
+import { auth, getDbCollectionRef, getAusarbeitungenCollectionRef, handleFirestoreError, isUserAdmin, ADMIN_EMAILS } from './firebase.ts';
+import { Commission, OperationType, Ausarbeitung, TeammateConfig } from './types.ts';
 import { LoginOverlay } from './components/LoginOverlay.tsx';
 import { CommissionCard } from './components/CommissionCard.tsx';
 import { StatsTab } from './components/StatsTab.tsx';
 import { AdminTab } from './components/AdminTab.tsx';
 import { AddCommissionModal } from './components/AddCommissionModal.tsx';
+import { AusarbeitungenTab } from './components/AusarbeitungenTab.tsx';
 import {
   EditPriceModal,
   EditDateModal,
   EditNoteModal,
   ConfirmDeleteModal,
 } from './components/EditModals.tsx';
-import { Search, Plus, Clipboard, ChevronDown, CheckCircle, Flame, X, TrendingUp, Sparkles } from 'lucide-react';
+import { Search, Plus, Clipboard, ChevronDown, CheckCircle, Flame, X, TrendingUp, Sparkles, Settings } from 'lucide-react';
 
 export default function App() {
   // Auth & General States
@@ -29,14 +30,19 @@ export default function App() {
   const [annualTarget, setAnnualTarget] = useState(1500000);
   const [yearlyTargets, setYearlyTargets] = useState<Record<string, number>>({});
   const [adminEmails, setAdminEmails] = useState<string[]>(['belmonte@fs-kuechen.de', 'belmonte.enrico@gmail.com']);
+  const [teammateConfigs, setTeammateConfigs] = useState<TeammateConfig[]>([]);
   const [syncStatus, setSyncStatus] = useState<'connecting' | 'synced' | 'error'>('connecting');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // App Layout States
-  const [activeTab, setActiveTab] = useState<'open' | 'sold' | 'stats' | 'admin'>('open');
+  const [activeTab, setActiveTab] = useState<'open' | 'sold' | 'ausarbeitung' | 'stats' | 'admin'>('open');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedColleague, setSelectedColleague] = useState<string>('all');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [isNavExpanded, setIsNavExpanded] = useState(false);
+
+  // General state for colleague-ordered kitchens (Ausarbeitungen)
+  const [ausarbeitungen, setAusarbeitungen] = useState<Ausarbeitung[]>([]);
 
   // Collapse Accordion toggles
   const [openSection, setOpenSection] = useState(true);
@@ -126,6 +132,11 @@ export default function App() {
           } else {
             setAdminEmails(['belmonte@fs-kuechen.de', 'belmonte.enrico@gmail.com']);
           }
+          if (data.teammates) {
+            setTeammateConfigs(data.teammates);
+          } else {
+            setTeammateConfigs([]);
+          }
         }
       },
       (error) => {
@@ -147,6 +158,21 @@ export default function App() {
             } as Commission;
           });
 
+        // Trigger dynamic migration: tag blank or gmail accounts under 'belmonte@fs-kuechen.de'
+        loadedCommissions.forEach(async (c) => {
+          const emailLower = (c.createdByEmail || '').toLowerCase().trim();
+          if (!emailLower || emailLower === 'belmonte.enrico@gmail.com') {
+            try {
+              const docRef = doc(colRef, c.id);
+              await updateDoc(docRef, {
+                createdByEmail: 'belmonte@fs-kuechen.de'
+              });
+            } catch (err) {
+              console.error('Migration error for commission item:', c.id, err);
+            }
+          }
+        });
+
         setCommissions(loadedCommissions);
         setSyncStatus('synced');
       },
@@ -162,9 +188,29 @@ export default function App() {
       }
     );
 
+    // 3. Ausarbeitungen Snapshot
+    const ausRef = getAusarbeitungenCollectionRef();
+    const unsubAus = onSnapshot(
+      ausRef,
+      (snapshot) => {
+        const loaded = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+          } as Ausarbeitung;
+        });
+        setAusarbeitungen(loaded);
+      },
+      (error) => {
+        console.error('Ausarbeitungen Firestore-Error:', error);
+      }
+    );
+
     return () => {
       unsubSettings();
       unsubCommissions();
+      unsubAus();
     };
   }, [currentUser]);
 
@@ -250,6 +296,24 @@ export default function App() {
     }
   };
 
+  // Update dynamic managed teammates list in Firestore settings
+  const handleSaveTeammates = async (updatedTeammates: TeammateConfig[]) => {
+    if (!currentUser) return;
+    const colRef = getDbCollectionRef();
+    const settingsDocRef = doc(colRef, '_system_settings_');
+    try {
+      setSyncStatus('connecting');
+      await setDoc(settingsDocRef, { teammates: updatedTeammates }, { merge: true });
+      setSyncStatus('synced');
+    } catch (error) {
+      console.error(error);
+      setErrorMessage('Mitarbeiterliste konnte nicht gespeichert werden.');
+      try {
+        handleFirestoreError(error, OperationType.WRITE, settingsDocRef.path);
+      } catch (e) {}
+    }
+  };
+
   // Add a new Commission entry
   const handleAddCommission = async (
     name: string,
@@ -270,11 +334,12 @@ export default function App() {
       abVerschickt: false,
       aufmass: false,
       bestellt: false,
+      bestelltAt: null,
       createdAt: new Date().toISOString(),
       lastContactAt: new Date().toISOString(),
       needsVorab: false,
       note: '',
-      createdByEmail: currentUser.email?.toLowerCase() || '',
+      createdByEmail: (currentUser.email?.toLowerCase() === 'belmonte.enrico@gmail.com') ? 'belmonte@fs-kuechen.de' : (currentUser.email?.toLowerCase() || ''),
       createdByUid: currentUser.uid,
     };
 
@@ -297,10 +362,14 @@ export default function App() {
     const colRef = getDbCollectionRef();
     const docRef = doc(colRef, id);
     try {
-      await updateDoc(docRef, {
+      const updates: any = {
         [field]: value,
         lastContactAt: new Date().toISOString(),
-      });
+      };
+      if (field === 'bestellt') {
+        updates.bestelltAt = value ? new Date().toISOString() : null;
+      }
+      await updateDoc(docRef, updates);
     } catch (error) {
       console.error(error);
       setErrorMessage('Änderung konnte nicht übertragen werden.');
@@ -399,6 +468,65 @@ export default function App() {
     }
   };
 
+  // Add a new Ausarbeitung entry
+  const handleAddAusarbeitung = async (data: {
+    customerName: string;
+    colleagueName: string;
+    orderNumber: string;
+    price: number;
+    orderedAt: string;
+    note: string;
+    deliveryKw?: string;
+    deliveryYear?: string;
+  }) => {
+    if (!currentUser) return;
+    const colRef = getAusarbeitungenCollectionRef();
+    const newAus = {
+      ...data,
+      createdAt: new Date().toISOString(),
+      createdByEmail: (currentUser.email?.toLowerCase() === 'belmonte.enrico@gmail.com') ? 'belmonte@fs-kuechen.de' : (currentUser.email?.toLowerCase() || ''),
+      createdByUid: currentUser.uid,
+    };
+    try {
+      setSyncStatus('connecting');
+      await addDoc(colRef, newAus);
+      setSyncStatus('synced');
+    } catch (error) {
+      console.error(error);
+      setErrorMessage('Ausarbeitung konnte nicht gespeichert werden.');
+    }
+  };
+
+  // Update fields of an Ausarbeitung entry
+  const handleUpdateAusarbeitung = async (id: string, fields: Partial<Ausarbeitung>) => {
+    if (!currentUser) return;
+    const colRef = getAusarbeitungenCollectionRef();
+    const docRef = doc(colRef, id);
+    try {
+      setSyncStatus('connecting');
+      await updateDoc(docRef, fields);
+      setSyncStatus('synced');
+    } catch (error) {
+      console.error(error);
+      setErrorMessage('Änderung konnte nicht gespeichert werden.');
+    }
+  };
+
+  // Delete an Ausarbeitung entry
+  const handleDeleteAusarbeitung = async (id: string) => {
+    if (!currentUser) return;
+    const colRef = getAusarbeitungenCollectionRef();
+    const docRef = doc(colRef, id);
+    try {
+      setSyncStatus('connecting');
+      await deleteDoc(docRef);
+      setSyncStatus('synced');
+    } catch (error) {
+      console.error(error);
+      setErrorMessage('Ausarbeitung konnte nicht gelöscht werden.');
+    }
+  };
+
   // Sign out
   const handleLogout = async () => {
     try {
@@ -440,7 +568,7 @@ export default function App() {
   // Check if current user is admin
   const isAdmin = useMemo(() => {
     const email = currentUser?.email?.toLowerCase();
-    return email ? adminEmails.includes(email) : false;
+    return email ? adminEmails.includes(email) || email === 'belmonte.enrico@gmail.com' : false;
   }, [currentUser, adminEmails]);
 
   // Extract all distinct teammate emails currently existing in database
@@ -448,12 +576,13 @@ export default function App() {
     const emails = new Set<string>();
     commissions.forEach((c) => {
       if (c.createdByEmail) {
-        emails.add(c.createdByEmail.toLowerCase());
+        emails.add(c.createdByEmail.toLowerCase().trim());
       }
     });
     // Ensure admin emails or current user's email is present
     if (currentUser?.email) {
-      emails.add(currentUser.email.toLowerCase());
+      const email = (currentUser.email.toLowerCase() === 'belmonte.enrico@gmail.com') ? 'belmonte@fs-kuechen.de' : currentUser.email.toLowerCase();
+      emails.add(email);
     }
     return Array.from(emails).sort();
   }, [commissions, currentUser]);
@@ -462,20 +591,21 @@ export default function App() {
   const filteredCommissions = useMemo(() => {
     if (!currentUser) return [];
     
-    const email = currentUser.email?.toLowerCase();
-    const isUserAdmin = email ? adminEmails.includes(email) : false;
+    const rawEmail = currentUser.email?.toLowerCase();
+    const email = (rawEmail === 'belmonte.enrico@gmail.com') ? 'belmonte@fs-kuechen.de' : rawEmail;
+    const isUserAdmin = email ? adminEmails.includes(email) || adminEmails.includes(rawEmail) : false;
 
     if (isUserAdmin) {
       if (selectedColleague === 'all') {
         return commissions;
       } else {
-        const selectedLower = selectedColleague.toLowerCase();
+        const selectedLower = selectedColleague.toLowerCase().trim();
         return commissions.filter((c) => {
-          const creatorEmail = (c.createdByEmail || '').toLowerCase();
+          const creatorEmail = (c.createdByEmail || '').toLowerCase().trim();
           
-          if (selectedLower === 'admin' || adminEmails.includes(selectedLower)) {
+          if (selectedLower === 'admin' || adminEmails.map(e => e.toLowerCase().trim()).includes(selectedLower)) {
             // Unowned (legacy) documents or admin owned documents are visible under admin selection
-            return !creatorEmail || adminEmails.includes(creatorEmail);
+            return !creatorEmail || adminEmails.map(e => e.toLowerCase().trim()).includes(creatorEmail);
           }
           
           return creatorEmail === selectedLower;
@@ -483,9 +613,133 @@ export default function App() {
       }
     } else {
       // Non-admin coworkers: ONLY see records they created!
-      return commissions.filter((c) => (c.createdByEmail || '').toLowerCase() === email);
+      return commissions.filter((c) => {
+        const creatorEmail = (c.createdByEmail || '').toLowerCase().trim();
+        return creatorEmail === email || (email === 'belmonte@fs-kuechen.de' && (creatorEmail === 'belmonte.enrico@gmail.com' || !creatorEmail));
+      });
     }
   }, [commissions, currentUser, selectedColleague, adminEmails]);
+
+  // Check if current logged-in user is Enrico (belmonte@fs-kuechen.de or belmonte.enrico@gmail.com)
+  const isEnrico = useMemo(() => {
+    const rawEmail = currentUser?.email?.toLowerCase();
+    return rawEmail === 'belmonte.enrico@gmail.com' || rawEmail === 'belmonte@fs-kuechen.de';
+  }, [currentUser]);
+
+  // Resolve user display name from configurations or email prefix fallback
+  const currentUserDisplayName = useMemo(() => {
+    if (!currentUser?.email) return '';
+    const emailLower = currentUser.email.toLowerCase().trim();
+    const conf = teammateConfigs.find(t => t.email.toLowerCase().trim() === emailLower);
+    if (conf && conf.name.trim()) {
+      return conf.name;
+    }
+    const prefix = currentUser.email.split('@')[0];
+    return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+  }, [currentUser, teammateConfigs]);
+
+  // Safety routing: Reset activeTab to 'open' if user is not Enrico but on 'ausarbeitung' tab
+  useEffect(() => {
+    if (authChecked && currentUser && !isEnrico && activeTab === 'ausarbeitung') {
+      setActiveTab('open');
+    }
+  }, [isEnrico, activeTab, currentUser, authChecked]);
+
+  // Swipe-up to open, swipe/scroll in app window to collapse the sticky bottom navigation on mobile
+  useEffect(() => {
+    let touchStartY = 0;
+    let touchStartX = 0;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0].clientY;
+      touchStartX = e.touches[0].clientX;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      const touchEndY = e.changedTouches[0].clientY;
+      const touchEndX = e.changedTouches[0].clientX;
+      const diffY = touchStartY - touchEndY;
+      const diffX = Math.abs(touchStartX - touchEndX);
+
+      // DiffY > 30 represents a clear upward swipe movement
+      if (diffY > 30 && diffX < 60) {
+        // Confirm the swipe originated from inside our sticky nav area
+        let node = e.target as HTMLElement | null;
+        let isInsideNav = false;
+        while (node) {
+          if (node.id === 'sticky-nav-island' || node.classList?.contains('sticky-bottom-nav')) {
+            isInsideNav = true;
+            break;
+          }
+          node = node.parentElement;
+        }
+
+        if (isInsideNav) {
+          setIsNavExpanded(true);
+        }
+      }
+    };
+
+    const handleScrollCollapse = () => {
+      // Auto collapse navigation if expanded while scrolling
+      setIsNavExpanded(false);
+    };
+
+    const handleGlobalTouchMove = (e: TouchEvent) => {
+      const currentY = e.touches[0].clientY;
+      const diffY = touchStartY - currentY;
+      // If user is swiping down drastically or swiping around the page (diff > 15), collapse it
+      if (Math.abs(diffY) > 15) {
+        // Only trigger collapse if the touch action is outside the sticky nav island
+        let node = e.target as HTMLElement | null;
+        let isInsideNav = false;
+        while (node) {
+          if (node.id === 'sticky-nav-island' || node.classList?.contains('sticky-bottom-nav')) {
+            isInsideNav = true;
+            break;
+          }
+          node = node.parentElement;
+        }
+        if (!isInsideNav) {
+          setIsNavExpanded(false);
+        }
+      }
+    };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+    window.addEventListener('scroll', handleScrollCollapse, { passive: true });
+    window.addEventListener('touchmove', handleGlobalTouchMove, { passive: true });
+
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('scroll', handleScrollCollapse);
+      window.removeEventListener('touchmove', handleGlobalTouchMove);
+    };
+  }, []);
+
+  // Filter Ausarbeitungen: only Enrico sees this data in general or in stats
+  const filteredAusarbeitungen = useMemo(() => {
+    if (!currentUser) return [];
+    
+    const rawEmail = currentUser.email?.toLowerCase();
+    const email = (rawEmail === 'belmonte.enrico@gmail.com') ? 'belmonte@fs-kuechen.de' : rawEmail;
+    
+    // Only belmonte@fs-kuechen.de works with Ausarbeitungen
+    if (email !== 'belmonte@fs-kuechen.de') {
+      return [];
+    }
+
+    // Filter by selectedColleague dropdown perspective if Enrico wants to view another colleague's stats
+    if (selectedColleague !== 'all') {
+      const selectedLower = selectedColleague.toLowerCase().trim();
+      if (selectedLower !== 'belmonte@fs-kuechen.de' && selectedLower !== 'belmonte.enrico@gmail.com') {
+        return [];
+      }
+    }
+    return ausarbeitungen;
+  }, [ausarbeitungen, currentUser, selectedColleague]);
 
   // Filter commissions based on Search term
   const sortedAndFilteredCommissions = useMemo(() => {
@@ -541,8 +795,10 @@ export default function App() {
     
     // Also include any years that already have custom targets
     if (yearlyTargets) {
-      Object.keys(yearlyTargets).forEach((yr) => {
-        const parsed = parseInt(yr);
+      Object.keys(yearlyTargets).forEach((key) => {
+        const parts = key.split('_');
+        const yearPart = parts[parts.length - 1];
+        const parsed = parseInt(yearPart);
         if (!isNaN(parsed)) {
           years.add(parsed);
         }
@@ -578,9 +834,9 @@ export default function App() {
         {currentUser?.email && (
           <div className="flex items-center gap-1.5 bg-white/95 dark:bg-zinc-900/95 p-1.5 pl-2.5 pr-2.5 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-slate-200/60 dark:border-zinc-800/80 backdrop-blur-md">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
-            <span className="text-slate-500 dark:text-zinc-400 font-mono lowercase text-[10px] font-bold">{currentUser.email}</span>
+            <span className="text-slate-700 dark:text-zinc-300 font-sans text-[10px] font-bold">{currentUserDisplayName}</span>
             {isAdmin && (
-              <span className="bg-amber-500/10 text-amber-550 border border-amber-500/20 text-[8px] px-1 py-0 rounded font-black tracking-wider uppercase ml-0.5">
+              <span className="bg-amber-500/10 text-amber-550 border border-amber-500/20 text-[8px] px-1 py-0 rounded font-black tracking-wider uppercase ml-0.5 animate-pulse">
                 Admin
               </span>
             )}
@@ -618,10 +874,23 @@ export default function App() {
             <button
               id="app-logo-theme-toggle"
               onClick={toggleTheme}
-              className="w-14 h-14 bg-white dark:bg-zinc-900 border border-blue-500/80 dark:border-blue-400/80 rounded-xl flex items-center justify-center shadow-xs shrink-0 cursor-pointer active:scale-95 transition-all text-blue-600 dark:text-blue-450 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 hover:border-blue-600 dark:hover:border-blue-300 group"
+              className="w-14 h-14 bg-white dark:bg-zinc-900 border border-blue-500/80 dark:border-blue-400/80 rounded-xl flex items-center justify-center shadow-xs shrink-0 cursor-pointer active:scale-95 transition-all text-blue-600 dark:text-blue-450 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 hover:border-blue-600 dark:hover:border-blue-300 group relative overflow-hidden"
               title="Wechsle Theme / KitCommand dynamic Logo"
             >
-              <div className="relative flex items-center justify-center">
+              {/* Dynamic Image Logo above vector fallback */}
+              <div className="absolute inset-0 flex items-center justify-center p-1.5 z-10 select-none pointer-events-none">
+                <img
+                  src={theme === 'dark' ? '/icon-dark.png' : '/icon-light.png'}
+                  alt="KitCommand Logo"
+                  className="w-full h-full object-contain rounded-lg group-hover:scale-105 transition-transform duration-300"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </div>
+
+              {/* Symmetrical Vector Emblem behind the image */}
+              <div className="relative flex items-center justify-center z-0">
                 <TrendingUp className="w-6 h-6 stroke-[2.25] text-blue-600 dark:text-blue-400 group-hover:scale-110 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-all duration-300 ease-out" />
                 <Sparkles className="w-3.5 h-3.5 absolute -top-2.5 -right-2.5 text-amber-500 fill-amber-500/30 opacity-60 group-hover:opacity-100 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300" />
               </div>
@@ -629,20 +898,22 @@ export default function App() {
             <div>
               <h1 className="text-3xl font-black flex items-center tracking-tighter select-none">
                 KitCommand{' '}
-                <span className="inline-flex items-center border border-amber-500 text-amber-500 rounded px-1.5 py-0.5 text-[0.45em] font-black ml-2.5 transform translateY(-2px)">
-                  PRO
+                <span className="inline-flex items-center border border-amber-500 text-amber-500 rounded px-1.5 py-0.5 text-[0.45em] font-black ml-2.5 transform translateY(-1px)">
+                  Pro
                 </span>
               </h1>
             </div>
           </div>
+
+
 
           {/* Symmetrical secondary information row on Mobile - Extremely clean, avoids collisions */}
           {currentUser?.email && (
             <div className="flex md:hidden items-center justify-center gap-1.5 select-none mt-1">
               <div className="flex items-center gap-1 bg-white/95 dark:bg-zinc-900/95 p-1 pl-2.5 pr-2.5 rounded-full border border-slate-200/50 dark:border-zinc-800/80 shadow-sm leading-none">
                 <span className="w-1 h-1 rounded-full bg-blue-500 shrink-0"></span>
-                <span className="text-slate-500 dark:text-zinc-400 font-mono text-[9px] font-bold lowercase max-w-[130px] truncate">
-                  {currentUser.email.split('@')[0]}
+                <span className="text-slate-700 dark:text-zinc-300 font-sans text-[9px] font-bold max-w-[130px] truncate">
+                  {currentUserDisplayName}
                 </span>
                 {isAdmin && (
                   <span className="bg-amber-500/10 text-amber-600 dark:text-amber-450 text-[7px] px-1 font-bold rounded uppercase tracking-wider ml-0.5">
@@ -666,8 +937,27 @@ export default function App() {
         </header>
 
         {/* STICKY NAV ISLAND (Suche + Tabs) */}
-        <div className="fixed left-4 right-4 z-50 md:sticky md:top-4 md:bottom-auto md:left-auto md:right-auto max-w-md mx-auto md:mb-6 bottom-[calc(1rem+env(safe-area-inset-bottom))]">
-          <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl p-2.5 rounded-xl border border-slate-200/50 dark:border-zinc-800/50 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.7)] md:shadow-lg flex flex-col gap-2 transition-all">
+        <div 
+          id="sticky-nav-island"
+          className="fixed left-0 right-0 bottom-0 z-50 md:sticky md:top-4 md:bottom-auto md:left-auto md:right-auto max-w-md mx-auto md:mb-6 select-none"
+        >
+          <div className={`bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-t-3xl md:rounded-xl border-t md:border border-slate-200/50 dark:border-zinc-800/50 shadow-[0_-15px_30px_-5px_rgba(0,0,0,0.15)] dark:shadow-[0_-15px_30px_-5px_rgba(0,0,0,0.6)] md:shadow-lg flex flex-col gap-2 transition-all duration-300 ${
+            isNavExpanded 
+              ? 'p-4 pt-2.5 pb-[calc(1.5rem+env(safe-area-inset-bottom))]' 
+              : 'p-4 pt-2.5 pb-[calc(1rem+env(safe-area-inset-bottom))]'
+          } md:p-2.5 md:pb-2.5`}>
+            
+            {/* Minimalist interactive Pill Drag Handle on Mobile - clean, avoids vertical clutter */}
+            <div 
+              onClick={() => setIsNavExpanded(!isNavExpanded)}
+              className="md:hidden flex flex-col items-center justify-center pt-0.5 pb-2 cursor-pointer select-none group"
+            >
+              <div className={`w-14 h-1.5 rounded-full bg-slate-300/80 dark:bg-zinc-800/85 transition-all duration-300 group-hover:bg-slate-400 dark:group-hover:bg-zinc-700 ${
+                isNavExpanded ? 'bg-slate-400 dark:bg-zinc-750 scale-x-90' : 'animate-pulse'
+              }`} />
+            </div>
+
+            {/* Content: Search and Add Button */}
             <div className="flex gap-2 items-center">
               <div className="relative flex-1">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -692,72 +982,113 @@ export default function App() {
               </button>
             </div>
             
-            {isAdmin && (
-              <div className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-100/50 dark:bg-zinc-950/60 rounded-xl border border-slate-200/40 dark:border-zinc-850">
-                <span className="text-[9px] font-black uppercase text-slate-400 dark:text-zinc-500 pl-0.5 tracking-wider select-none shrink-0">Perspektive:</span>
-                <select
-                  value={selectedColleague}
-                  onChange={(e) => setSelectedColleague(e.target.value)}
-                  className="bg-transparent text-xs font-bold text-slate-700 dark:text-zinc-200 border-none outline-none cursor-pointer flex-1 py-0.5"
+            {/* Perspective & Tabs - displayed if expanded on mobile, or displayed as static on desktop */}
+            <div className={`${isNavExpanded ? 'flex' : 'hidden'} md:flex flex-col gap-2.5 transition-all duration-300`}>
+              
+              {isAdmin && (
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0 flex items-center gap-2 px-2.5 py-1.5 bg-slate-100/50 dark:bg-zinc-950/60 rounded-xl border border-slate-200/40 dark:border-zinc-850">
+                    <span className="text-[9px] font-black uppercase text-slate-400 dark:text-zinc-500 pl-0.5 tracking-wider select-none shrink-0">Perspektive:</span>
+                    <select
+                      value={selectedColleague}
+                      onChange={(e) => setSelectedColleague(e.target.value)}
+                      className="bg-transparent text-xs font-bold text-slate-700 dark:text-zinc-200 border-none outline-none cursor-pointer flex-1 py-0.5 min-w-0"
+                    >
+                      <option value="all" className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-100 font-bold">Gesamtes Team</option>
+                      {allTeammates.map((email) => {
+                        const emailLower = email.toLowerCase().trim();
+                        const isAdminUser = adminEmails.includes(emailLower);
+                        const conf = teammateConfigs.find(t => t.email.toLowerCase().trim() === emailLower);
+                        
+                        let displayName = '';
+                        if (conf && conf.name.trim()) {
+                          displayName = conf.name;
+                        } else {
+                          const prefix = email.split('@')[0];
+                          displayName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+                        }
+
+                        if (conf && !conf.isActive) {
+                          displayName = `[Inaktiv] ${displayName}`;
+                        }
+
+                        return (
+                          <option 
+                            key={email} 
+                            value={email}
+                            className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-100"
+                          >
+                            {isAdminUser ? `★ ${displayName}` : displayName}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  {/* Settings gear built right next to it */}
+                  <button
+                    onClick={() => {
+                      setActiveTab(activeTab === 'admin' ? 'open' : 'admin');
+                    }}
+                    className={`w-9 h-9 shrink-0 rounded-xl flex items-center justify-center border transition-all duration-300 active:scale-95 cursor-pointer shadow-xs ${
+                      activeTab === 'admin'
+                        ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/45 ring-2 ring-amber-500/20'
+                        : 'bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800/80 hover:border-slate-350 dark:hover:border-zinc-700 hover:text-slate-800 dark:hover:text-zinc-200'
+                    }`}
+                    title="Admin-Bereich öffnen (Zahnrad)"
+                  >
+                    <Settings className={`w-4 h-4 ${activeTab === 'admin' ? 'animate-spin' : 'hover:rotate-45'}`} style={activeTab === 'admin' ? { animationDuration: '8s' } : undefined} />
+                  </button>
+                </div>
+              )}
+              
+              {/* High-quality tabs, responsive layout */}
+              <div className={`grid ${isEnrico ? 'grid-cols-4' : 'grid-cols-3'} sm:flex sm:flex-wrap gap-1 bg-slate-100/80 dark:bg-zinc-950 p-1 rounded-lg`}>
+                <button
+                  onClick={() => { setActiveTab('open'); setIsNavExpanded(false); }}
+                  className={`sm:flex-1 py-1.5 px-2 rounded-md text-center text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all duration-250 cursor-pointer ${
+                    activeTab === 'open'
+                      ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black'
+                      : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                  }`}
                 >
-                  <option value="all" className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-100 font-bold">Gesamtes Team</option>
-                  {allTeammates.map((email) => {
-                    const isAdminUser = adminEmails.includes(email.toLowerCase());
-                    return (
-                      <option 
-                        key={email} 
-                        value={email}
-                        className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-100"
-                      >
-                        {isAdminUser ? `Admin (${email})` : email}
-                      </option>
-                    );
-                  })}
-                </select>
+                  Offen
+                </button>
+                <button
+                  onClick={() => { setActiveTab('sold'); setIsNavExpanded(false); }}
+                  className={`sm:flex-1 py-1.5 px-2 rounded-md text-center text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all duration-250 cursor-pointer ${
+                    activeTab === 'sold'
+                      ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black'
+                      : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                  }`}
+                >
+                  Verkauft
+                </button>
+                {isEnrico && (
+                  <button
+                    onClick={() => { setActiveTab('ausarbeitung'); setIsNavExpanded(false); }}
+                    className={`sm:flex-1 py-1.5 px-2 rounded-md text-center text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all duration-250 cursor-pointer ${
+                      activeTab === 'ausarbeitung'
+                        ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black'
+                        : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                    }`}
+                    title="Ausarbeitungen dokumentieren"
+                  >
+                    Ausarbeit.
+                  </button>
+                )}
+                <button
+                  onClick={() => { setActiveTab('stats'); setIsNavExpanded(false); }}
+                  className={`sm:flex-1 py-1.5 px-2 rounded-md text-center text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all duration-250 cursor-pointer ${
+                    activeTab === 'stats'
+                      ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black'
+                      : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                  }`}
+                >
+                  Statistik
+                </button>
               </div>
-            )}
-            
-            <div className="flex gap-1 bg-slate-100/80 dark:bg-zinc-950 p-1 rounded-lg">
-              <button
-                onClick={() => setActiveTab('open')}
-                className={`flex-1 py-1.5 px-3 rounded-md text-center text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                  activeTab === 'open'
-                    ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black'
-                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
-                }`}
-              >
-                Offen
-              </button>
-              <button
-                onClick={() => setActiveTab('sold')}
-                className={`flex-1 py-1.5 px-3 rounded-md text-center text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                  activeTab === 'sold'
-                    ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black'
-                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
-                }`}
-              >
-                Verkauft
-              </button>
-              <button
-                onClick={() => setActiveTab('stats')}
-                className={`flex-1 py-1.5 px-3 rounded-md text-center text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                  activeTab === 'stats'
-                    ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black'
-                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
-                }`}
-              >
-                Statistik
-              </button>
-              <button
-                onClick={() => setActiveTab('admin')}
-                className={`flex-1 py-1.5 px-3 rounded-md text-center text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                  activeTab === 'admin'
-                    ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black'
-                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
-                }`}
-              >
-                Admin
-              </button>
+
             </div>
           </div>
         </div>
@@ -816,6 +1147,7 @@ export default function App() {
                         onEditNote={setEditNoteId}
                         onUpdateField={handleUpdateField}
                         onCycleBauart={handleCycleBauart}
+                        teammateConfigs={teammateConfigs}
                       />
                     ))
                   )}
@@ -868,6 +1200,7 @@ export default function App() {
                         onEditNote={setEditNoteId}
                         onUpdateField={handleUpdateField}
                         onCycleBauart={handleCycleBauart}
+                        teammateConfigs={teammateConfigs}
                       />
                     ))
                   )}
@@ -914,6 +1247,7 @@ export default function App() {
                         onEditNote={setEditNoteId}
                         onUpdateField={handleUpdateField}
                         onCycleBauart={handleCycleBauart}
+                        teammateConfigs={teammateConfigs}
                       />
                     ))
                   )}
@@ -960,12 +1294,24 @@ export default function App() {
                         onEditNote={setEditNoteId}
                         onUpdateField={handleUpdateField}
                         onCycleBauart={handleCycleBauart}
+                        teammateConfigs={teammateConfigs}
                       />
                     ))
                   )}
                 </div>
               )}
             </section>
+          )}
+
+          {/* TAB: AUSARBEITUNGEN */}
+          {activeTab === 'ausarbeitung' && isEnrico && (
+            <AusarbeitungenTab
+              items={filteredAusarbeitungen}
+              onAdd={handleAddAusarbeitung}
+              onUpdate={handleUpdateAusarbeitung}
+              onDelete={handleDeleteAusarbeitung}
+              currentUserEmail={currentUser?.email || undefined}
+            />
           )}
 
           {/* TAB: STATISTICS */}
@@ -975,6 +1321,9 @@ export default function App() {
               annualTarget={annualTarget}
               yearlyTargets={yearlyTargets}
               availableYears={availableYears}
+              ausarbeitungen={filteredAusarbeitungen}
+              currentUserEmail={currentUser?.email || undefined}
+              selectedColleague={selectedColleague}
             />
           )}
 
@@ -991,6 +1340,8 @@ export default function App() {
               allTeammates={allTeammates}
               adminEmails={adminEmails}
               onSaveAdminEmails={handleSaveAdminEmails}
+              teammates={teammateConfigs}
+              onSaveTeammates={handleSaveTeammates}
             />
           )}
 

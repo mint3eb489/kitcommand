@@ -87,6 +87,20 @@ export function getDbCollectionRef(): CollectionReference<DocumentData, Document
 }
 
 /**
+ * Returns the proper Firestore collection reference for Ausarbeitungen.
+ */
+export function getAusarbeitungenCollectionRef(): CollectionReference<DocumentData, DocumentData> {
+  const isStudioEnv = isStudioInjected && !bypassSandbox;
+
+  if (isStudioEnv) {
+    const appId = typeof win.__app_id !== 'undefined' ? win.__app_id : '27f298b5-15e3-41c7-b5db-50041df42451';
+    return collection(db, 'artifacts', appId, 'ausarbeitungen');
+  } else {
+    return collection(db, 'ausarbeitungen');
+  }
+}
+
+/**
  * Standardized Firestore error logging, matching FirestoreErrorInfo constraints.
  */
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
