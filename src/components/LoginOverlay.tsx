@@ -6,13 +6,14 @@
 import React, { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, getActiveFirebaseInfo } from '../firebase.ts';
-import { Lock, Database, ShieldAlert, Eye, EyeOff } from 'lucide-react';
+import { Lock, Database, ShieldAlert, Eye, EyeOff, Sparkles } from 'lucide-react';
 
 interface LoginOverlayProps {
   onLoginSuccess?: () => void;
+  onDemoLogin?: () => void;
 }
 
-export const LoginOverlay: React.FC<LoginOverlayProps> = () => {
+export const LoginOverlay: React.FC<LoginOverlayProps> = ({ onDemoLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +85,7 @@ export const LoginOverlay: React.FC<LoginOverlayProps> = () => {
             id="login-email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="input-field text-sm w-full bg-slate-55/10 bg-transparent dark:text-white"
+            className="input-field text-sm w-full font-bold text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 bg-white/50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800/80 rounded-xl transition-all focus:ring-2 focus:ring-blue-500/30"
             placeholder="E-Mail Adresse"
             required
             autoFocus
@@ -96,7 +97,7 @@ export const LoginOverlay: React.FC<LoginOverlayProps> = () => {
               id="login-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="input-field text-sm w-full bg-slate-55/10 bg-transparent pr-11 dark:text-white"
+              className="input-field text-sm w-full font-bold text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 bg-white/50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800/80 pr-11 rounded-xl transition-all focus:ring-2 focus:ring-blue-500/30"
               placeholder="Passwort"
               required
               disabled={loading}
@@ -114,7 +115,7 @@ export const LoginOverlay: React.FC<LoginOverlayProps> = () => {
           {error && (
             <div id="login-error" className="p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 text-left flex gap-2">
               <ShieldAlert className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-              <p className="text-xs text-red-650 dark:text-red-400 font-medium leading-relaxed">
+              <p className="text-xs text-red-600 dark:text-red-400 font-medium leading-relaxed">
                 {error}
               </p>
             </div>
@@ -125,6 +126,21 @@ export const LoginOverlay: React.FC<LoginOverlayProps> = () => {
             className="bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-600/20 active:scale-95 transition-all w-full mt-2 cursor-pointer disabled:opacity-50"
           >
             {loading ? 'Prüfe/Lade...' : 'Anmelden'}
+          </button>
+
+          <div className="relative flex py-2 items-center">
+            <div className="flex-grow border-t border-slate-200 dark:border-zinc-800"></div>
+            <span className="flex-shrink mx-4 text-slate-400 dark:text-zinc-500 text-[10px] font-bold uppercase tracking-wider">oder</span>
+            <div className="flex-grow border-t border-slate-200 dark:border-zinc-800"></div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onDemoLogin}
+            className="flex items-center justify-center gap-2 border border-blue-600/30 dark:border-blue-500/30 hover:border-blue-600 dark:hover:border-blue-500 text-blue-600 dark:text-blue-400 font-bold text-xs uppercase tracking-widest py-3 rounded-xl transition-all w-full cursor-pointer hover:bg-blue-500/5 active:scale-95"
+          >
+            <Sparkles className="w-4 h-4 text-blue-500 animate-pulse" />
+            Demo-Modus
           </button>
         </form>
 

@@ -68,7 +68,7 @@ export const EditPriceModal: React.FC<EditPriceModalProps> = ({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="input-field text-sm bg-transparent dark:text-white"
+              className="input-field text-sm font-bold bg-white/50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 border border-slate-200 dark:border-zinc-800/80 rounded-xl focus:ring-2 focus:ring-blue-500/30 transition-all"
               placeholder="Name der Kommission"
             />
           </div>
@@ -82,7 +82,7 @@ export const EditPriceModal: React.FC<EditPriceModalProps> = ({
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 inputMode="decimal"
-                className="input-field text-sm font-mono text-left pl-3 pr-8 bg-transparent dark:text-white"
+                className="input-field text-sm font-mono font-bold text-left pl-3 pr-8 bg-white/50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 border border-slate-200 dark:border-zinc-800/80 rounded-xl focus:ring-2 focus:ring-blue-500/30 transition-all"
                 placeholder="Neuer Kaufpreis"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold font-sans">
@@ -172,7 +172,7 @@ export const EditDateModal: React.FC<EditDateModalProps> = ({
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="input-field text-sm text-center bg-transparent dark:text-white"
+            className="input-field text-sm font-bold text-center bg-white/50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 border border-slate-200 dark:border-zinc-800/80 rounded-xl focus:ring-2 focus:ring-blue-500/30 transition-all"
           />
         </div>
         <div className="grid grid-cols-2 gap-3 pb-1">
@@ -248,7 +248,7 @@ export const EditNoteModal: React.FC<EditNoteModalProps> = ({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={4}
-            className="input-field text-sm w-full resize-none leading-relaxed bg-transparent dark:text-white"
+            className="input-field text-sm font-medium w-full resize-none leading-relaxed bg-white/50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 border border-slate-200 dark:border-zinc-800/80 rounded-xl focus:ring-2 focus:ring-blue-500/30 transition-all"
             placeholder="z. B. Wartet auf Fliesenleger, Küche ist von Nolte, meldet sich in KW 15..."
           />
         </div>
@@ -327,7 +327,7 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
           <button
             onClick={handleConfirm}
             disabled={deleting}
-            className="py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-red-500 hover:bg-red-650 text-white shadow-lg shadow-red-500/20 active:scale-95 transition-transform cursor-pointer disabled:opacity-50"
+            className="py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20 active:scale-95 transition-transform cursor-pointer disabled:opacity-50"
           >
             {deleting ? 'Löscht...' : 'Löschen'}
           </button>

@@ -23,9 +23,484 @@ import {
 } from './components/EditModals.tsx';
 import { Search, Plus, Clipboard, ChevronDown, CheckCircle, Flame, X, TrendingUp, Sparkles, Settings } from 'lucide-react';
 
+const INITIAL_DEMO_COMMISSIONS: Commission[] = [
+  // 5 running offers (status: 'open', bestellt: false)
+  {
+    id: 'demo-open-1',
+    name: 'Müller-Bruchsal / EFH Neubau',
+    price: 18500,
+    status: 'open',
+    bauart: 'neubau',
+    isNeubau: true,
+    vorabPlan: true,
+    vorabAb: false,
+    aufmass: true,
+    installationsplan: false,
+    abVerschickt: false,
+    bestellt: false,
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    lastContactAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    note: 'Küche mit Kochinsel, wartet auf finale Elektroplanfreigabe.',
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid'
+  },
+  {
+    id: 'demo-open-2',
+    name: 'Schmidt-Ettlingen / Küche Umbau',
+    price: 12400,
+    status: 'open',
+    bauart: 'bestand',
+    isNeubau: false,
+    vorabPlan: false,
+    vorabAb: false,
+    aufmass: false,
+    installationsplan: false,
+    abVerschickt: false,
+    bestellt: false,
+    createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+    lastContactAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    note: 'Altbausanierung. Aufmaß erfolgt nach Demontage der Altküche.',
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid'
+  },
+  {
+    id: 'demo-open-3',
+    name: 'Bauer-Karlsruhe / Einliegerwohnung',
+    price: 6800,
+    status: 'open',
+    bauart: 'kleinauftrag',
+    isNeubau: false,
+    vorabPlan: false,
+    vorabAb: false,
+    aufmass: true,
+    installationsplan: true,
+    abVerschickt: false,
+    bestellt: false,
+    createdAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+    lastContactAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    note: 'Kompakte Küchenzeile. Geräte komplett von Siemens.',
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid'
+  },
+  {
+    id: 'demo-open-4',
+    name: 'Wagner-Stutensee / Zeilenküche',
+    price: 9200,
+    status: 'open',
+    bauart: 'bestand',
+    isNeubau: false,
+    vorabPlan: true,
+    vorabAb: true,
+    aufmass: false,
+    installationsplan: false,
+    abVerschickt: false,
+    bestellt: false,
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    lastContactAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    note: 'Nolte Küche in Lacklaminat weiß matt. Granitarbeitsplatte gewünscht.',
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid'
+  },
+  {
+    id: 'demo-open-5',
+    name: 'Hoffmann-Pforzheim / Penthouse',
+    price: 32500,
+    status: 'open',
+    bauart: 'neubau',
+    isNeubau: true,
+    vorabPlan: false,
+    vorabAb: false,
+    aufmass: false,
+    installationsplan: false,
+    abVerschickt: false,
+    bestellt: false,
+    createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+    lastContactAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    note: 'Premium Designküche mit Next125 Fronten, Bora Kochfeld und Miele Geräten.',
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid'
+  },
+
+  // 5 in bearbeitung (status: 'sold', bestellt: false)
+  {
+    id: 'demo-sold-1',
+    name: 'Fischer-Karlsdorf / Zeile + Block',
+    price: 15300,
+    status: 'sold',
+    bauart: 'bestand',
+    isNeubau: false,
+    vorabPlan: true,
+    vorabAb: true,
+    aufmass: true,
+    installationsplan: true,
+    abVerschickt: true,
+    bestellt: false,
+    createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+    lastContactAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    resolvedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    note: 'Installationspläne verschickt. Kunde prüft die Maße.',
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid'
+  },
+  {
+    id: 'demo-sold-2',
+    name: 'Weber-Bruchsal / L-Küche Landhaus',
+    price: 14200,
+    status: 'sold',
+    bauart: 'bestand',
+    isNeubau: false,
+    vorabPlan: true,
+    vorabAb: false,
+    aufmass: true,
+    installationsplan: false,
+    abVerschickt: false,
+    bestellt: false,
+    createdAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
+    lastContactAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+    resolvedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+    note: 'Landhausküche barrierefrei. Aufmaß ist erledigt.',
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid'
+  },
+  {
+    id: 'demo-sold-3',
+    name: 'Becker-Karlsruhe / StudentenWG',
+    price: 5200,
+    status: 'sold',
+    bauart: 'kleinauftrag',
+    isNeubau: false,
+    vorabPlan: false,
+    vorabAb: false,
+    aufmass: true,
+    installationsplan: false,
+    abVerschickt: false,
+    bestellt: false,
+    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    lastContactAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    resolvedAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+    note: 'Lieferung und Montage im August geplant.',
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid'
+  },
+  {
+    id: 'demo-sold-4',
+    name: 'Klein-Rastatt / Loft Küche',
+    price: 21900,
+    status: 'sold',
+    bauart: 'bestand',
+    isNeubau: false,
+    vorabPlan: true,
+    vorabAb: true,
+    aufmass: true,
+    installationsplan: true,
+    abVerschickt: true,
+    bestellt: false,
+    createdAt: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000).toISOString(),
+    lastContactAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    resolvedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+    note: 'Inkl. Sideboard im Esszimmer. Elektrogeräte komplett von Bosch.',
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid'
+  },
+  {
+    id: 'demo-sold-5',
+    name: 'Schulz-Linkenheim / Hausumbau',
+    price: 17800,
+    status: 'sold',
+    bauart: 'neubau',
+    isNeubau: true,
+    vorabPlan: true,
+    vorabAb: false,
+    aufmass: false,
+    installationsplan: true,
+    abVerschickt: false,
+    bestellt: false,
+    createdAt: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(),
+    lastContactAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    resolvedAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
+    note: 'Wanddurchbruch geplant. Installationspläne freigegeben.',
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid'
+  },
+
+  // 10 bestellte Kommissionen (status: 'sold', bestellt: true)
+  {
+    id: 'demo-archived-1',
+    name: 'Hartmann-Ettlingen / Küche + HWR',
+    price: 24500,
+    status: 'sold',
+    bauart: 'bestand',
+    isNeubau: false,
+    vorabPlan: true,
+    vorabAb: true,
+    aufmass: true,
+    installationsplan: true,
+    abVerschickt: true,
+    bestellt: true,
+    bestelltAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    deliveryKw: '38',
+    deliveryYear: '2026',
+    createdAt: new Date(Date.now() - 50 * 24 * 60 * 60 * 1000).toISOString(),
+    lastContactAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    resolvedAt: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString(),
+    note: 'Bestellt bei Schüller. HWR-Möbel ebenfalls enthalten.',
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid'
+  },
+  {
+    id: 'demo-archived-2',
+    name: 'Lang-Stuttgart / Penthouse',
+    price: 38200,
+    status: 'sold',
+    bauart: 'neubau',
+    isNeubau: true,
+    vorabPlan: true,
+    vorabAb: true,
+    aufmass: true,
+    installationsplan: true,
+    abVerschickt: true,
+    bestellt: true,
+    bestelltAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+    deliveryKw: '42',
+    deliveryYear: '2026',
+    createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+    lastContactAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+    resolvedAt: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(),
+    note: 'Nobilia XL Arbeitshöhe, Quooker Flex PRO3, Neff Backofen mit Slide&Hide.',
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid'
+  },
+  {
+    id: 'demo-archived-3',
+    name: 'Jung-Eggenstein / Zeilenküche',
+    price: 8900,
+    status: 'sold',
+    bauart: 'bestand',
+    isNeubau: false,
+    vorabPlan: true,
+    vorabAb: true,
+    aufmass: true,
+    installationsplan: true,
+    abVerschickt: true,
+    bestellt: true,
+    bestelltAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    deliveryKw: '34',
+    deliveryYear: '2026',
+    createdAt: new Date(Date.now() - 22 * 24 * 60 * 60 * 1000).toISOString(),
+    lastContactAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    resolvedAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+    note: 'Inkl. Blanco Spüle und Mülltrennsystem.',
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid'
+  },
+  {
+    id: 'demo-archived-4',
+    name: 'Vogel-Wörth / Neubau DHH',
+    price: 19105,
+    status: 'sold',
+    bauart: 'neubau',
+    isNeubau: true,
+    vorabPlan: true,
+    vorabAb: true,
+    aufmass: true,
+    installationsplan: true,
+    abVerschickt: true,
+    bestellt: true,
+    bestelltAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+    deliveryKw: '40',
+    deliveryYear: '2026',
+    createdAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+    lastContactAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+    resolvedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    note: 'Bora GP4 Kochfeld, Arbeitsplatte Schichtstoff Eiche Sierra.',
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid'
+  },
+  {
+    id: 'demo-archived-5',
+    name: 'Kranz-Karlsruhe / Austausch Geräte',
+    price: 4300,
+    status: 'sold',
+    bauart: 'kleinauftrag',
+    isNeubau: false,
+    vorabPlan: false,
+    vorabAb: false,
+    aufmass: true,
+    installationsplan: false,
+    abVerschickt: true,
+    bestellt: true,
+    bestelltAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    deliveryKw: '31',
+    deliveryYear: '2026',
+    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    lastContactAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    resolvedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+    note: 'Ausbau Altgeräte und Montage Miele Dampfgarer & Geschirrspüler.',
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid'
+  },
+  {
+    id: 'demo-archived-6',
+    name: 'Huber-Landau / L-Form grifflos',
+    price: 16500,
+    status: 'sold',
+    bauart: 'bestand',
+    isNeubau: false,
+    vorabPlan: true,
+    vorabAb: true,
+    aufmass: true,
+    installationsplan: true,
+    abVerschickt: true,
+    bestellt: true,
+    bestelltAt: new Date(Date.now() - 22 * 24 * 60 * 60 * 1000).toISOString(),
+    deliveryKw: '36',
+    deliveryYear: '2026',
+    createdAt: new Date(Date.now() - 55 * 24 * 60 * 60 * 1000).toISOString(),
+    lastContactAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+    resolvedAt: new Date(Date.now() - 42 * 24 * 60 * 60 * 1000).toISOString(),
+    note: 'Schüller Fenix Anti-Fingerprint Fronten in Onyxschwarz.',
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid'
+  },
+  {
+    id: 'demo-archived-7',
+    name: 'Zimmermann-Durlach / EFH Neubau',
+    price: 27900,
+    status: 'sold',
+    bauart: 'neubau',
+    isNeubau: true,
+    vorabPlan: true,
+    vorabAb: true,
+    aufmass: true,
+    installationsplan: true,
+    abVerschickt: true,
+    bestellt: true,
+    bestelltAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+    deliveryKw: '44',
+    deliveryYear: '2026',
+    createdAt: new Date(Date.now() - 70 * 24 * 60 * 60 * 1000).toISOString(),
+    lastContactAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+    resolvedAt: new Date(Date.now() - 50 * 24 * 60 * 60 * 1000).toISOString(),
+    note: 'Insel-Esse, Keramik-Arbeitsplatte, Miele Komplettausstattung.',
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid'
+  },
+  {
+    id: 'demo-archived-8',
+    name: 'Neu-Karlsruhe / Single Küche',
+    price: 7500,
+    status: 'sold',
+    bauart: 'bestand',
+    isNeubau: false,
+    vorabPlan: true,
+    vorabAb: true,
+    aufmass: true,
+    installationsplan: true,
+    abVerschickt: true,
+    bestellt: true,
+    bestelltAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+    deliveryKw: '33',
+    deliveryYear: '2026',
+    createdAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
+    lastContactAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+    resolvedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+    note: 'Nobilia Speed in Sand. Küchenzeile 3,20 Meter breit.',
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid'
+  },
+  {
+    id: 'demo-archived-9',
+    name: 'Graf-Rheinstetten / Massivholzküche',
+    price: 34000,
+    status: 'sold',
+    bauart: 'bestand',
+    isNeubau: false,
+    vorabPlan: true,
+    vorabAb: true,
+    aufmass: true,
+    installationsplan: true,
+    abVerschickt: true,
+    bestellt: true,
+    bestelltAt: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000).toISOString(),
+    deliveryKw: '41',
+    deliveryYear: '2026',
+    createdAt: new Date(Date.now() - 80 * 24 * 60 * 60 * 1000).toISOString(),
+    lastContactAt: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000).toISOString(),
+    resolvedAt: new Date(Date.now() - 55 * 24 * 60 * 60 * 1000).toISOString(),
+    note: 'Team7 Küche in Erle massiv. Bora Classic Flex Induktion.',
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid'
+  },
+  {
+    id: 'demo-archived-10',
+    name: 'Werner-Malsch / Modernisierung',
+    price: 11400,
+    status: 'sold',
+    bauart: 'bestand',
+    isNeubau: false,
+    vorabPlan: true,
+    vorabAb: true,
+    aufmass: true,
+    installationsplan: true,
+    abVerschickt: true,
+    bestellt: true,
+    bestelltAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    deliveryKw: '35',
+    deliveryYear: '2026',
+    createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+    lastContactAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    resolvedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    note: 'Arbeitsplattenaustausch in Naturstein + neue Blanco Einbauspüle.',
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid'
+  }
+];
+
+const INITIAL_DEMO_AUSARBEITUNGEN: Ausarbeitung[] = [
+  {
+    id: 'demo-aus-1',
+    customerName: 'Klaus-Philipp / Neubau',
+    colleagueName: 'Frau Müller',
+    orderNumber: 'AB-2026-987',
+    price: 13500,
+    orderedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid',
+    note: 'Arbeitsplattenmaß ist noch unsicher.',
+    deliveryKw: '36',
+    deliveryYear: '2026'
+  },
+  {
+    id: 'demo-aus-2',
+    customerName: 'Maier-Kandel / Musterhaus',
+    colleagueName: 'Herr Weber',
+    orderNumber: 'AB-2026-1024',
+    price: 21000,
+    orderedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    createdByEmail: 'gast@fs-kuechen.de',
+    createdByUid: 'demo-guest-uid',
+    note: 'Inklusive Glasrückwand.',
+    deliveryKw: '40',
+    deliveryYear: '2026'
+  }
+];
+
 export default function App() {
   // Auth & General States
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    if (sessionStorage.getItem('kk_is_demo_mode') === 'true') {
+      return {
+        uid: 'demo-guest-uid',
+        email: 'gast@fs-kuechen.de',
+        displayName: 'Gast-Tester',
+        isAnonymous: false,
+        emailVerified: true
+      } as any;
+    }
+    return null;
+  });
   const [authChecked, setAuthChecked] = useState(false);
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [annualTarget, setAnnualTarget] = useState(1500000);
@@ -120,8 +595,18 @@ export default function App() {
         }
         setCurrentUser(user);
       } else {
-        setCurrentUser(null);
-        setCommissions([]);
+        if (sessionStorage.getItem('kk_is_demo_mode') !== 'true') {
+          setCurrentUser(null);
+          setCommissions([]);
+        } else {
+          setCurrentUser({
+            uid: 'demo-guest-uid',
+            email: 'gast@fs-kuechen.de',
+            displayName: 'Gast-Tester',
+            isAnonymous: false,
+            emailVerified: true
+          } as any);
+        }
       }
       setAuthChecked(true);
     });
@@ -131,6 +616,39 @@ export default function App() {
   // Real-Time Data Listeners (Triggers once authenticated)
   useEffect(() => {
     if (!currentUser) return;
+
+    if (sessionStorage.getItem('kk_is_demo_mode') === 'true') {
+      // Seed & load demo commissions instead of firestore
+      const stored = sessionStorage.getItem('kk_demo_commissions');
+      if (stored) {
+        try {
+          setCommissions(JSON.parse(stored));
+        } catch (e) {
+          setCommissions(INITIAL_DEMO_COMMISSIONS);
+          sessionStorage.setItem('kk_demo_commissions', JSON.stringify(INITIAL_DEMO_COMMISSIONS));
+        }
+      } else {
+        setCommissions(INITIAL_DEMO_COMMISSIONS);
+        sessionStorage.setItem('kk_demo_commissions', JSON.stringify(INITIAL_DEMO_COMMISSIONS));
+      }
+
+      // Seed & load demo ausarbeitungen
+      const storedAus = sessionStorage.getItem('kk_demo_ausarbeitungen');
+      if (storedAus) {
+        try {
+          setAusarbeitungen(JSON.parse(storedAus));
+        } catch (e) {
+          setAusarbeitungen(INITIAL_DEMO_AUSARBEITUNGEN);
+          sessionStorage.setItem('kk_demo_ausarbeitungen', JSON.stringify(INITIAL_DEMO_AUSARBEITUNGEN));
+        }
+      } else {
+        setAusarbeitungen(INITIAL_DEMO_AUSARBEITUNGEN);
+        sessionStorage.setItem('kk_demo_ausarbeitungen', JSON.stringify(INITIAL_DEMO_AUSARBEITUNGEN));
+      }
+
+      setSyncStatus('synced');
+      return;
+    }
 
     setSyncStatus('connecting');
     const colRef = getDbCollectionRef();
@@ -347,6 +865,36 @@ export default function App() {
     price: number,
     bauart: 'bestand' | 'neubau' | 'kleinauftrag'
   ) => {
+    if (sessionStorage.getItem('kk_is_demo_mode') === 'true') {
+      const newComm: Commission = {
+        id: 'demo-new-' + Date.now(),
+        name,
+        price,
+        status: 'open',
+        bauart,
+        isNeubau: bauart === 'neubau',
+        vorabPlan: false,
+        vorabAb: false,
+        installationsplan: false,
+        abVerschickt: false,
+        aufmass: false,
+        bestellt: false,
+        bestelltAt: null,
+        createdAt: new Date().toISOString(),
+        lastContactAt: new Date().toISOString(),
+        needsVorab: false,
+        note: '',
+        createdByEmail: 'gast@fs-kuechen.de',
+        createdByUid: 'demo-guest-uid',
+      };
+      setCommissions((prev) => {
+        const next = [newComm, ...prev];
+        sessionStorage.setItem('kk_demo_commissions', JSON.stringify(next));
+        return next;
+      });
+      return;
+    }
+
     if (!currentUser) return;
     const colRef = getDbCollectionRef();
     const newComm = {
@@ -385,6 +933,28 @@ export default function App() {
 
   // Update field generic handler
   const handleUpdateField = async (id: string, field: string, value: any) => {
+    if (sessionStorage.getItem('kk_is_demo_mode') === 'true') {
+      setCommissions((prev) => {
+        const next = prev.map((c) => {
+          if (c.id === id) {
+            const updates: any = {
+              ...c,
+              [field]: value,
+              lastContactAt: new Date().toISOString(),
+            };
+            if (field === 'bestellt') {
+              updates.bestelltAt = value ? new Date().toISOString() : null;
+            }
+            return updates;
+          }
+          return c;
+        });
+        sessionStorage.setItem('kk_demo_commissions', JSON.stringify(next));
+        return next;
+      });
+      return;
+    }
+
     if (!currentUser) return;
     const colRef = getDbCollectionRef();
     const docRef = doc(colRef, id);
@@ -408,6 +978,25 @@ export default function App() {
 
   // Update both name and price generic handler
   const handleUpdateNameAndPrice = async (id: string, newName: string, newPrice: number) => {
+    if (sessionStorage.getItem('kk_is_demo_mode') === 'true') {
+      setCommissions((prev) => {
+        const next = prev.map((c) => {
+          if (c.id === id) {
+            return {
+              ...c,
+              name: newName,
+              price: newPrice,
+              lastContactAt: new Date().toISOString(),
+            };
+          }
+          return c;
+        });
+        sessionStorage.setItem('kk_demo_commissions', JSON.stringify(next));
+        return next;
+      });
+      return;
+    }
+
     if (!currentUser) return;
     const colRef = getDbCollectionRef();
     const docRef = doc(colRef, id);
@@ -439,6 +1028,25 @@ export default function App() {
 
   // Mark commission as sold or lost
   const handleResolveCommission = async (id: string, status: 'sold' | 'lost') => {
+    if (sessionStorage.getItem('kk_is_demo_mode') === 'true') {
+      setCommissions((prev) => {
+        const next = prev.map((c) => {
+          if (c.id === id) {
+            return {
+              ...c,
+              status,
+              resolvedAt: new Date().toISOString(),
+              lastContactAt: new Date().toISOString(),
+            };
+          }
+          return c;
+        });
+        sessionStorage.setItem('kk_demo_commissions', JSON.stringify(next));
+        return next;
+      });
+      return;
+    }
+
     if (!currentUser) return;
     const colRef = getDbCollectionRef();
     const docRef = doc(colRef, id);
@@ -459,6 +1067,25 @@ export default function App() {
 
   // Re-open a solved commission
   const handleReopenCommission = async (id: string) => {
+    if (sessionStorage.getItem('kk_is_demo_mode') === 'true') {
+      setCommissions((prev) => {
+        const next = prev.map((c) => {
+          if (c.id === id) {
+            return {
+              ...c,
+              status: 'open',
+              resolvedAt: null,
+              lastContactAt: new Date().toISOString(),
+            };
+          }
+          return c;
+        });
+        sessionStorage.setItem('kk_demo_commissions', JSON.stringify(next));
+        return next;
+      });
+      return;
+    }
+
     if (!currentUser) return;
     const colRef = getDbCollectionRef();
     const docRef = doc(colRef, id);
@@ -479,6 +1106,15 @@ export default function App() {
 
   // Delete commission entry
   const handleDeleteCommission = async (id: string) => {
+    if (sessionStorage.getItem('kk_is_demo_mode') === 'true') {
+      setCommissions((prev) => {
+        const next = prev.filter((c) => c.id !== id);
+        sessionStorage.setItem('kk_demo_commissions', JSON.stringify(next));
+        return next;
+      });
+      return;
+    }
+
     if (!currentUser) return;
     const colRef = getDbCollectionRef();
     const docRef = doc(colRef, id);
@@ -506,6 +1142,22 @@ export default function App() {
     deliveryKw?: string;
     deliveryYear?: string;
   }) => {
+    if (sessionStorage.getItem('kk_is_demo_mode') === 'true') {
+      const newAus = {
+        id: 'demo-aus-new-' + Date.now(),
+        ...data,
+        createdAt: new Date().toISOString(),
+        createdByEmail: 'gast@fs-kuechen.de',
+        createdByUid: 'demo-guest-uid',
+      };
+      setAusarbeitungen((prev) => {
+        const next = [newAus, ...prev];
+        sessionStorage.setItem('kk_demo_ausarbeitungen', JSON.stringify(next));
+        return next;
+      });
+      return;
+    }
+
     if (!currentUser) return;
     const colRef = getAusarbeitungenCollectionRef();
     const newAus = {
@@ -526,6 +1178,23 @@ export default function App() {
 
   // Update fields of an Ausarbeitung entry
   const handleUpdateAusarbeitung = async (id: string, fields: Partial<Ausarbeitung>) => {
+    if (sessionStorage.getItem('kk_is_demo_mode') === 'true') {
+      setAusarbeitungen((prev) => {
+        const next = prev.map((a) => {
+          if (a.id === id) {
+            return {
+              ...a,
+              ...fields,
+            };
+          }
+          return a;
+        });
+        sessionStorage.setItem('kk_demo_ausarbeitungen', JSON.stringify(next));
+        return next;
+      });
+      return;
+    }
+
     if (!currentUser) return;
     const colRef = getAusarbeitungenCollectionRef();
     const docRef = doc(colRef, id);
@@ -541,6 +1210,15 @@ export default function App() {
 
   // Delete an Ausarbeitung entry
   const handleDeleteAusarbeitung = async (id: string) => {
+    if (sessionStorage.getItem('kk_is_demo_mode') === 'true') {
+      setAusarbeitungen((prev) => {
+        const next = prev.filter((a) => a.id !== id);
+        sessionStorage.setItem('kk_demo_ausarbeitungen', JSON.stringify(next));
+        return next;
+      });
+      return;
+    }
+
     if (!currentUser) return;
     const colRef = getAusarbeitungenCollectionRef();
     const docRef = doc(colRef, id);
@@ -556,6 +1234,17 @@ export default function App() {
 
   // Sign out
   const handleLogout = async () => {
+    if (sessionStorage.getItem('kk_is_demo_mode') === 'true') {
+      sessionStorage.removeItem('kk_is_demo_mode');
+      sessionStorage.removeItem('kk_demo_commissions');
+      sessionStorage.removeItem('kk_demo_ausarbeitungen');
+      setCurrentUser(null);
+      setCommissions([]);
+      setAusarbeitungen([]);
+      setActiveTab('open');
+      return;
+    }
+
     try {
       await signOut(auth);
       setActiveTab('open');
@@ -794,8 +1483,23 @@ export default function App() {
     );
   }
 
+  const handleTriggerDemoMode = () => {
+    sessionStorage.setItem('kk_is_demo_mode', 'true');
+    sessionStorage.setItem('kk_demo_commissions', JSON.stringify(INITIAL_DEMO_COMMISSIONS));
+    sessionStorage.setItem('kk_demo_ausarbeitungen', JSON.stringify(INITIAL_DEMO_AUSARBEITUNGEN));
+    setCurrentUser({
+      uid: 'demo-guest-uid',
+      email: 'gast@fs-kuechen.de',
+      displayName: 'Gast-Tester',
+      isAnonymous: false,
+      emailVerified: true
+    } as any);
+    setCommissions(INITIAL_DEMO_COMMISSIONS);
+    setAusarbeitungen(INITIAL_DEMO_AUSARBEITUNGEN);
+  };
+
   if (!currentUser) {
-    return <LoginOverlay />;
+    return <LoginOverlay onDemoLogin={handleTriggerDemoMode} />;
   }
 
   return (
@@ -814,6 +1518,12 @@ export default function App() {
           >
             <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
             <span className="text-slate-700 dark:text-zinc-300 font-sans text-[10px] font-bold">{currentUserDisplayName}</span>
+            {sessionStorage.getItem('kk_is_demo_mode') === 'true' && (
+              <span className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[8px] px-1.5 py-0.5 rounded font-black tracking-wider uppercase ml-0.5 flex items-center gap-0.5">
+                <Sparkles className="w-2.5 h-2.5 text-blue-500 shrink-0" />
+                Demo
+              </span>
+            )}
             {isAdmin && (
               <span className="bg-amber-500/10 text-amber-550 border border-amber-500/20 text-[8px] px-1 py-0 rounded font-black tracking-wider uppercase ml-0.5 animate-pulse">
                 Admin
@@ -898,6 +1608,12 @@ export default function App() {
                 <span className="text-slate-705 dark:text-zinc-300 font-sans text-[9px] font-bold max-w-[130px] truncate">
                   {currentUserDisplayName}
                 </span>
+                {sessionStorage.getItem('kk_is_demo_mode') === 'true' && (
+                  <span className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[7px] px-1 font-bold rounded uppercase tracking-wider ml-0.5 flex items-center gap-0.5">
+                    <Sparkles className="w-2 h-2 text-blue-500 shrink-0 animate-pulse" />
+                    Demo
+                  </span>
+                )}
                 {isAdmin && (
                   <span className="bg-amber-500/10 text-amber-600 dark:text-amber-450 text-[7px] px-1 font-bold rounded uppercase tracking-wider ml-0.5">
                     Admin
@@ -1103,7 +1819,7 @@ export default function App() {
             </div>
 
             {/* High-quality tabs row - ALWAYS visible on both Mobile and Desktop, styled beautifully */}
-            <div id="app-navigation-tabs" className={`grid ${isEnrico ? 'grid-cols-4' : 'grid-cols-3'} sm:flex sm:flex-wrap gap-1 bg-slate-100/80 dark:bg-zinc-950 p-1 rounded-xl`}>
+            <div id="app-navigation-tabs" className={`grid ${isEnrico ? 'grid-cols-4' : 'grid-cols-3'} gap-1 bg-slate-100/80 dark:bg-zinc-950 p-1 rounded-xl`}>
               <button
                 onClick={() => setActiveTab('open')}
                 className={`py-2 px-2 rounded-lg text-center text-[11px] sm:text-xs font-sans font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${

@@ -64,7 +64,7 @@ export const AddCommissionModal: React.FC<AddCommissionModalProps> = ({
             onChange={(e) => setName(e.target.value)}
             placeholder="Kunde / Kommissions-Nr."
             required
-            className="input-field text-sm bg-transparent dark:text-white"
+            className="input-field text-sm font-bold bg-white/50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 border border-slate-200 dark:border-zinc-800/80 rounded-xl focus:ring-2 focus:ring-blue-500/30 transition-all"
           />
           <div className="relative">
             <input
@@ -74,7 +74,7 @@ export const AddCommissionModal: React.FC<AddCommissionModalProps> = ({
               placeholder="Kaufpreis"
               required
               inputMode="decimal"
-              className="input-field text-sm font-mono text-left pl-3 pr-8 bg-transparent dark:text-white"
+              className="input-field text-sm font-mono font-bold text-left pl-3 pr-8 bg-white/50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 border border-slate-200 dark:border-zinc-800/80 rounded-xl focus:ring-2 focus:ring-blue-500/30 transition-all"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">
               €

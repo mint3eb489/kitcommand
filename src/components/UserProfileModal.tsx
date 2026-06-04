@@ -256,7 +256,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 value={editedName}
                 onChange={(e) => setEditedName(e.target.value)}
                 placeholder={currentUserDisplayName}
-                className="input-field text-sm bg-slate-50 dark:bg-zinc-950 dark:text-white"
+                className="input-field text-sm font-bold bg-white/50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 border border-slate-200 dark:border-zinc-850/80 rounded-xl focus:ring-2 focus:ring-blue-500/30 transition-all"
               />
               <button
                 id="profile-save-displayname-btn"
@@ -333,7 +333,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     onClick={() => onChangeTheme(t.id)}
                     className={`flex items-center justify-between p-3 rounded-2xl border active:scale-98 transition-all cursor-pointer ${
                       isSelected 
-                        ? 'border-blue-500 bg-blue-50/25 dark:border-blue-400 dark:bg-blue-950/20' 
+                        ? 'border-blue-500 bg-blue-500/10 dark:border-blue-400 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 font-bold' 
                         : 'border-slate-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60 hover:bg-slate-50 dark:hover:bg-zinc-850'
                     }`}
                   >
@@ -377,7 +377,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               onLogout();
               onClose();
             }}
-            className="w-full py-3 px-4 bg-red-650 hover:bg-red-700 text-white rounded-2xl font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-md shadow-red-650/15 active:scale-95 transition-all text-center cursor-pointer"
+            className="w-full py-3 px-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-md shadow-red-600/15 active:scale-95 transition-all text-center cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             Abmelden (Logout)

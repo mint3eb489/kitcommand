@@ -711,7 +711,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
       <div className="border-t border-slate-200/60 dark:border-zinc-800 pt-6 mt-auto">
         <button
           onClick={onLogout}
-          className="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-red-500/10 text-red-650 hover:bg-red-500 hover:text-white transition-colors active:scale-95 shadow-sm cursor-pointer"
+          className="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white transition-colors active:scale-95 shadow-sm cursor-pointer"
         >
           Abmelden
         </button>
