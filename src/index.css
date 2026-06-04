@@ -13,9 +13,722 @@
   --shadow-md: 0 10px 18px -3px rgba(45, 36, 25, 0.08), 0 4px 6px -2px rgba(45, 36, 25, 0.04);
   --shadow-lg: 0 20px 32px -4px rgba(45, 36, 25, 0.10), 0 8px 16px -4px rgba(45, 36, 25, 0.06);
   --shadow-xl: 0 30px 48px -6px rgba(45, 36, 25, 0.12), 0 16px 24px -4px rgba(45, 36, 25, 0.08);
+
+  /* Dynamische, semantische Themen-Variablen */
+  --color-theme-bg: var(--app-bg);
+  --color-theme-card: var(--app-card);
+  --color-theme-border: var(--app-border);
+  --color-theme-text: var(--app-text);
+  --color-theme-accent: var(--app-accent);
+  --color-theme-accent-hover: var(--app-accent-hover);
 }
 
 @variant dark (&:where(.dark, .dark *));
+
+/* Standard Light Theme Variables */
+:root {
+  --app-bg: #faf8f5;
+  --app-card: #ffffff;
+  --app-border: #e7dfd1;
+  --app-text: #0f172a;
+  --app-accent: #2563eb;
+  --app-accent-hover: #1d4ed8;
+}
+
+/* Standard Dark Theme Variables */
+:where(.dark) {
+  --app-bg: #000000;
+  --app-card: #18181b; /* zinc-900 */
+  --app-border: #27272a; /* zinc-800 */
+  --app-text: #f4f4f5; /* zinc-100 */
+  --app-accent: #3b82f6; /* blue-500 */
+  --app-accent-hover: #2563eb; /* blue-600 */
+}
+
+/* Sage Botanical Theme Override */
+:where(.theme-sage) {
+  --app-bg: #F1F3F0;
+  --app-card: #F9FBF7;
+  --app-border: #8A9A86;
+  --app-text: #2C3531;
+  --app-accent: #2C3531;
+  --app-accent-hover: #1e2522;
+}
+
+/* Background overrides and light-mode force under Sage Botanical */
+:where(.theme-sage),
+:where(.theme-sage) body,
+:where(.theme-sage) html,
+:where(.theme-sage) .bg-slate-50,
+:where(.theme-sage) .dark\:bg-black,
+:where(.theme-sage) .dark\:bg-zinc-950,
+:where(.theme-sage) .dark\:bg-\[\#09090b\],
+:where(.theme-sage) .bg-[#faf8f5],
+:where(.theme-sage) .min-h-screen {
+  background-color: #F1F3F0 !important;
+  color: #2C3531 !important;
+}
+
+/* Cards, Boxen and Modals under Sage theme with premium outside glow shadow */
+:where(.theme-sage) .bg-white,
+:where(.theme-sage) .bg-white\/95,
+:where(.theme-sage) .bg-white\/98,
+:where(.theme-sage) .dark\:bg-zinc-900,
+:where(.theme-sage) .dark\:bg-zinc-900\/60,
+:where(.theme-sage) [id="profile-modal-card"],
+:where(.theme-sage) [id="add-commission-modal-card"],
+:where(.theme-sage) .bg-slate-50\/80,
+:where(.theme-sage) [id="app-logo-theme-toggle"],
+:where(.theme-sage) .input-field,
+:where(.theme-sage) .modal-fade {
+  background-color: #F9FBF7 !important;
+  box-shadow: 0 10px 30px -5px rgba(138, 154, 134, 0.25), 0 1px 3px rgba(138, 154, 134, 0.1) !important;
+}
+
+/* Specific component overlays */
+:where(.theme-sage) .bg-[#faf8f5] {
+  background-color: #F1F3F0 !important;
+}
+
+/* Text overrides and light-mode force under Sage Botanical */
+:where(.theme-sage) .text-slate-850,
+:where(.theme-sage) .text-slate-800,
+:where(.theme-sage) .text-slate-900,
+:where(.theme-sage) .text-slate-700,
+:where(.theme-sage) .text-slate-705,
+:where(.theme-sage) .dark\:text-zinc-100,
+:where(.theme-sage) .dark\:text-slate-100,
+:where(.theme-sage) .dark\:text-white,
+:where(.theme-sage) .text-slate-900,
+:where(.theme-sage) h1,
+:where(.theme-sage) h2,
+:where(.theme-sage) h3,
+:where(.theme-sage) h4 {
+  color: #2C3531 !important;
+}
+
+:where(.theme-sage) .text-slate-400,
+:where(.theme-sage) .text-slate-500,
+:where(.theme-sage) .text-slate-600,
+:where(.theme-sage) .text-zinc-500,
+:where(.theme-sage) .text-zinc-400 {
+  color: #626F67 !important;
+}
+
+/* Border overrides */
+:where(.theme-sage) .border,
+:where(.theme-sage) .border-slate-200,
+:where(.theme-sage) .border-slate-200\/50,
+:where(.theme-sage) .border-slate-200\/60,
+:where(.theme-sage) .border-slate-205,
+:where(.theme-sage) .border-slate-350,
+:where(.theme-sage) .input-field {
+  border-color: #8A9A86 !important;
+}
+
+/* "Verkauft" Button override inside cards or buttons */
+:where(.theme-sage) .bg-emerald-500\/10.text-emerald-600 {
+  background-color: #2C3531 !important;
+  color: #F9FBF7 !important;
+}
+:where(.theme-sage) .bg-emerald-500\/10.text-emerald-600:hover {
+  background-color: #404f4a !important;
+  color: #FFFFFF !important;
+}
+
+/* "Absagen" Button override inside cards */
+:where(.theme-sage) .bg-red-500\/10.text-red-600 {
+  background-color: #626F67 !important;
+  color: #F9FBF7 !important;
+}
+:where(.theme-sage) .bg-red-500\/10.text-red-600:hover {
+  background-color: #79897e !important;
+  color: #FFFFFF !important;
+}
+
+/* Universal glow overrides for Sage Botanical */
+:where(.theme-sage) .blur-3xl {
+  background-color: rgba(138, 154, 134, 0.35) !important;
+  background-image: none !important;
+}
+
+/* Active tabs / active indicators under Sage, map blue indicators to Sage theme primary green */
+:where(.theme-sage) .text-blue-500,
+:where(.theme-sage) .text-emerald-500,
+:where(.theme-sage) .text-blue-600 {
+  color: #2C3531 !important;
+}
+
+:where(.theme-sage) .hover\:text-blue-600:hover,
+:where(.theme-sage) .hover\:text-blue-700:hover {
+  color: #1e2522 !important;
+}
+
+:where(.theme-sage) .bg-blue-500,
+:where(.theme-sage) .bg-emerald-500,
+:where(.theme-sage) .bg-blue-600 {
+  background-color: #2C3531 !important;
+}
+
+/* Theme picker selected state border overrides */
+:where(.theme-sage) .border-blue-500 {
+  border-color: #2C3531 !important;
+}
+:where(.theme-sage) .bg-blue-50\/25 {
+  background-color: rgba(44, 53, 49, 0.08) !important;
+}
+
+/* Reiterkarten Active/Inactive overrides under Sage Botanical */
+:where(.theme-sage) #app-navigation-tabs {
+  background-color: rgba(138, 154, 134, 0.15) !important;
+  border: 1px solid rgba(138, 154, 134, 0.3) !important;
+}
+
+:where(.theme-sage) #app-navigation-tabs button {
+  color: #626F67 !important;
+  background-color: transparent !important;
+}
+
+:where(.theme-sage) #app-navigation-tabs button:hover {
+  color: #2C3531 !important;
+}
+
+:where(.theme-sage) #app-navigation-tabs button[class*="bg-white"],
+:where(.theme-sage) #app-navigation-tabs button[class*="bg-zinc-800"] {
+  background-color: #2C3531 !important;
+  color: #F9FBF7 !important;
+  font-weight: 900 !important;
+  box-shadow: 0 4px 12px rgba(44, 53, 49, 0.2) !important;
+}
+
+/* Standard Starttab overrides under Sage Botanical */
+:where(.theme-sage) #standard-starttab-container button {
+  border-color: #8A9A86 !important;
+  background-color: #F9FBF7 !important;
+  color: #626F67 !important;
+}
+
+:where(.theme-sage) #standard-starttab-container button:hover {
+  color: #2C3531 !important;
+}
+
+:where(.theme-sage) #standard-starttab-container button[class*="bg-blue-600"] {
+  background-color: #2C3531 !important;
+  color: #F9FBF7 !important;
+  border-color: #2C3531 !important;
+}
+
+/* Save Display name button override under Sage Botanical */
+:where(.theme-sage) #profile-save-displayname-btn {
+  background-color: #2C3531 !important;
+  color: #F9FBF7 !important;
+  border: 1px solid #8A9A86 !important;
+}
+
+:where(.theme-sage) #profile-save-displayname-btn:hover {
+  background-color: #1e2522 !important;
+}
+
+:where(.theme-sage) input[type="checkbox"],
+:where(.theme-sage) .custom-checkbox {
+  accent-color: #2C3531 !important;
+}
+
+/* Schnellerfassung in Ausarbeitung under Sage Botanical with strong #8A9A86 glow */
+:where(.theme-sage) #schnellerfassung-form {
+  background: #2C3531 !important;
+  color: #F9FBF7 !important;
+  border-color: #8A9A86 !important;
+  box-shadow: 0 15px 35px -5px rgba(138, 154, 134, 0.75), 0 0 25px 5px rgba(138, 154, 134, 0.6) !important;
+}
+
+:where(.theme-sage) #schnellerfassung-form h4 {
+  color: #F9FBF7 !important;
+}
+
+:where(.theme-sage) #schnellerfassung-form input {
+  background-color: rgba(249, 251, 247, 0.1) !important;
+  border-color: rgba(138, 154, 134, 0.4) !important;
+  color: #F9FBF7 !important;
+}
+
+:where(.theme-sage) #schnellerfassung-form input::placeholder {
+  color: rgba(249, 251, 247, 0.5) !important;
+}
+
+:where(.theme-sage) #schnellerfassung-form input:focus {
+  border-color: #8A9A86 !important;
+  background-color: rgba(249, 251, 247, 0.15) !important;
+  box-shadow: 0 0 0 2px rgba(138, 154, 134, 0.4) !important;
+}
+
+:where(.theme-sage) #schnellerfassung-form button[type="submit"] {
+  background-color: #F9FBF7 !important;
+  color: #2C3531 !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1) !important;
+}
+
+:where(.theme-sage) #schnellerfassung-form button[type="submit"]:hover {
+  background-color: #F1F3F0 !important;
+}
+
+:where(.theme-sage) #schnellerfassung-form .text-amber-300 {
+  color: #8A9A86 !important;
+}
+
+/* Deep Ocean Theme Override */
+:where(.theme-ocean) {
+  --app-bg: #0B132B;
+  --app-card: #1C2541;
+  --app-border: #8D99AE;
+  --app-text: #EDF2F4;
+  --app-accent: #EDF2F4;
+  --app-accent-hover: #ffffff;
+}
+
+/* Background overrides */
+:where(.theme-ocean),
+:where(.theme-ocean) body,
+:where(.theme-ocean) html {
+  background-color: #0B132B !important;
+  color: #EDF2F4 !important;
+}
+
+/* Cards, Boxen and Modals under Deep Ocean theme */
+:where(.theme-ocean) .bg-white,
+:where(.theme-ocean) .bg-white\/95,
+:where(.theme-ocean) .bg-white\/98,
+:where(.theme-ocean) [id="profile-modal-card"],
+:where(.theme-ocean) [id="add-commission-modal-card"],
+:where(.theme-ocean) .bg-slate-50\/80,
+:where(.theme-ocean) [id="app-logo-theme-toggle"],
+:where(.theme-ocean) .input-field,
+:where(.theme-ocean) .modal-fade {
+  background-color: #1C2541 !important;
+}
+
+/* Specific component overlays */
+:where(.theme-ocean) .bg-[#faf8f5] {
+  background-color: #0B132B !important;
+}
+
+/* Text overrides */
+:where(.theme-ocean) .text-slate-850,
+:where(.theme-ocean) .text-slate-800,
+:where(.theme-ocean) .text-slate-900,
+:where(.theme-ocean) .text-slate-700,
+:where(.theme-ocean) .text-slate-705,
+:where(.theme-ocean) h1,
+:where(.theme-ocean) h2,
+:where(.theme-ocean) h3,
+:where(.theme-ocean) h4 {
+  color: #EDF2F4 !important;
+}
+
+:where(.theme-ocean) .text-slate-400,
+:where(.theme-ocean) .text-slate-500,
+:where(.theme-ocean) .text-slate-600,
+:where(.theme-ocean) .text-zinc-500,
+:where(.theme-ocean) .text-zinc-400 {
+  color: #8D99AE !important;
+}
+
+/* Border overrides */
+:where(.theme-ocean) .border,
+:where(.theme-ocean) .border-slate-200,
+:where(.theme-ocean) .border-slate-200\/50,
+:where(.theme-ocean) .border-slate-200\/60,
+:where(.theme-ocean) .border-slate-205,
+:where(.theme-ocean) .border-slate-350,
+:where(.theme-ocean) .input-field {
+  border-color: #8D99AE !important;
+}
+
+/* "Verkauft" Button override inside cards or buttons */
+:where(.theme-ocean) .bg-emerald-500\/10.text-emerald-600 {
+  background-color: #EDF2F4 !important;
+  color: #1C2541 !important;
+}
+:where(.theme-ocean) .bg-emerald-500\/10.text-emerald-600:hover {
+  background-color: #ffffff !important;
+  color: #1C2541 !important;
+}
+
+/* "Absagen" Button override inside cards */
+:where(.theme-ocean) .bg-red-500\/10.text-red-600 {
+  background-color: #8D99AE !important;
+  color: #1C2541 !important;
+}
+:where(.theme-ocean) .bg-red-500\/10.text-red-600:hover {
+  background-color: #a3b0c5 !important;
+  color: #1C2541 !important;
+}
+
+/* Universal glow overrides for Deep Ocean */
+:where(.theme-ocean) .blur-3xl {
+  background-color: rgba(78, 168, 222, 0.25) !important;
+  background-image: none !important;
+}
+
+/* Active tabs / active indicators under Deep Ocean, map blue indicators to brand color */
+:where(.theme-ocean) .text-blue-500,
+:where(.theme-ocean) .text-emerald-500,
+:where(.theme-ocean) .text-blue-600 {
+  color: #EDF2F4 !important;
+}
+
+:where(.theme-ocean) .hover\:text-blue-600:hover,
+:where(.theme-ocean) .hover\:text-blue-700:hover {
+  color: #ffffff !important;
+}
+
+:where(.theme-ocean) .bg-blue-500,
+:where(.theme-ocean) .bg-emerald-500,
+:where(.theme-ocean) .bg-blue-600 {
+  background-color: #EDF2F4 !important;
+}
+
+/* Reiterkarten Active/Inactive overrides under Deep Ocean */
+:where(.theme-ocean) #app-navigation-tabs {
+  background-color: rgba(78, 168, 222, 0.15) !important;
+  border: 1px solid rgba(78, 168, 222, 0.3) !important;
+}
+
+:where(.theme-ocean) #app-navigation-tabs button {
+  color: #8D99AE !important;
+  background-color: transparent !important;
+}
+
+:where(.theme-ocean) #app-navigation-tabs button:hover {
+  color: #EDF2F4 !important;
+}
+
+:where(.theme-ocean) #app-navigation-tabs button[class*="bg-white"],
+:where(.theme-ocean) #app-navigation-tabs button[class*="bg-zinc-800"] {
+  background-color: #EDF2F4 !important;
+  color: #1C2541 !important;
+  font-weight: 900 !important;
+  box-shadow: 0 4px 12px rgba(78, 168, 222, 0.2) !important;
+}
+
+:where(.theme-ocean) input[type="checkbox"],
+:where(.theme-ocean) .custom-checkbox {
+  accent-color: #4EA8DE !important;
+}
+
+/* Schnellerfassung in Ausarbeitung under Deep Ocean with strong #4EA8DE glow */
+:where(.theme-ocean) #schnellerfassung-form {
+  background: #1C2541 !important;
+  color: #EDF2F4 !important;
+  border-color: #4EA8DE !important;
+  box-shadow: 0 15px 35px -5px rgba(78, 168, 222, 0.75), 0 0 25px 5px rgba(78, 168, 222, 0.6) !important;
+}
+
+:where(.theme-ocean) #schnellerfassung-form h4 {
+  color: #EDF2F4 !important;
+}
+
+:where(.theme-ocean) #schnellerfassung-form input {
+  background-color: rgba(237, 242, 244, 0.1) !important;
+  border-color: rgba(78, 168, 222, 0.4) !important;
+  color: #EDF2F4 !important;
+}
+
+:where(.theme-ocean) #schnellerfassung-form input::placeholder {
+  color: rgba(237, 242, 244, 0.5) !important;
+}
+
+:where(.theme-ocean) #schnellerfassung-form input:focus {
+  border-color: #4EA8DE !important;
+  background-color: rgba(237, 242, 244, 0.15) !important;
+  box-shadow: 0 0 0 2px rgba(78, 168, 222, 0.4) !important;
+}
+
+:where(.theme-ocean) #schnellerfassung-form button[type="submit"] {
+  background-color: #EDF2F4 !important;
+  color: #1C2541 !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1) !important;
+}
+
+:where(.theme-ocean) #schnellerfassung-form button[type="submit"]:hover {
+  background-color: #ffffff !important;
+}
+
+:where(.theme-ocean) #schnellerfassung-form .text-amber-300 {
+  color: #4EA8DE !important;
+}
+
+/* Theme picker selected state border overrides under Deep Ocean */
+:where(.theme-ocean) .border-blue-500,
+:where(.theme-ocean) .border-blue-400 {
+  border-color: #4EA8DE !important;
+}
+:where(.theme-ocean) .bg-blue-50\/25,
+:where(.theme-ocean) .dark\:bg-blue-950\/20 {
+  background-color: rgba(78, 168, 222, 0.12) !important;
+}
+
+/* Standard Starttab overrides under Deep Ocean */
+:where(.theme-ocean) #standard-starttab-container button {
+  border-color: #8D99AE !important;
+  background-color: #1C2541 !important;
+  color: #8D99AE !important;
+}
+
+:where(.theme-ocean) #standard-starttab-container button:hover {
+  color: #EDF2F4 !important;
+}
+
+:where(.theme-ocean) #standard-starttab-container button[class*="bg-blue-600"] {
+  background-color: #EDF2F4 !important;
+  color: #1C2541 !important;
+  border-color: #EDF2F4 !important;
+}
+
+/* Save Display name button override under Deep Ocean */
+:where(.theme-ocean) #profile-save-displayname-btn {
+  background-color: #EDF2F4 !important;
+  color: #1C2541 !important;
+  border: 1px solid #4EA8DE !important;
+}
+
+:where(.theme-ocean) #profile-save-displayname-btn:hover {
+  background-color: #ffffff !important;
+}
+
+/* Vintage Terracotta Theme Override */
+:where(.theme-wood) {
+  --app-bg: #FBF7F4;
+  --app-card: #FFFFFF;
+  --app-border: #795548;
+  --app-text: #3E2723;
+  --app-accent: #3E2723;
+  --app-accent-hover: #1e110f;
+}
+
+/* Background overrides and light-mode force under Vintage Terracotta */
+:where(.theme-wood),
+:where(.theme-wood) body,
+:where(.theme-wood) html,
+:where(.theme-wood) .bg-slate-50,
+:where(.theme-wood) .dark\:bg-black,
+:where(.theme-wood) .dark\:bg-zinc-105,
+:where(.theme-wood) .dark\:bg-zinc-950,
+:where(.theme-wood) .dark\:bg-\[\#09090b\],
+:where(.theme-wood) .bg-[#faf8f5],
+:where(.theme-wood) .min-h-screen {
+  background-color: #FBF7F4 !important;
+  color: #3E2723 !important;
+}
+
+/* Cards, Boxen and Modals under Vintage Terracotta theme */
+:where(.theme-wood) .bg-white,
+:where(.theme-wood) .bg-white\/95,
+:where(.theme-wood) .bg-white\/98,
+:where(.theme-wood) .dark\:bg-zinc-900,
+:where(.theme-wood) .dark\:bg-zinc-900\/60,
+:where(.theme-wood) [id="profile-modal-card"],
+:where(.theme-wood) [id="add-commission-modal-card"],
+:where(.theme-wood) .bg-slate-50\/80,
+:where(.theme-wood) [id="app-logo-theme-toggle"],
+:where(.theme-wood) .input-field,
+:where(.theme-wood) .modal-fade {
+  background-color: #FFFFFF !important;
+  box-shadow: 0 10px 30px -5px rgba(211, 84, 0, 0.25), 0 1px 3px rgba(211, 84, 0, 0.1) !important;
+}
+
+/* Specific component overlays */
+:where(.theme-wood) .bg-[#faf8f5] {
+  background-color: #FBF7F4 !important;
+}
+
+/* Text overrides and light-mode force under Vintage Terracotta */
+:where(.theme-wood) .text-slate-850,
+:where(.theme-wood) .text-slate-800,
+:where(.theme-wood) .text-slate-900,
+:where(.theme-wood) .text-slate-705,
+:where(.theme-wood) .text-slate-700,
+:where(.theme-wood) .dark\:text-zinc-100,
+:where(.theme-wood) .dark\:text-slate-100,
+:where(.theme-wood) .dark\:text-white,
+:where(.theme-wood) .text-slate-900,
+:where(.theme-wood) h1,
+:where(.theme-wood) h2,
+:where(.theme-wood) h3,
+:where(.theme-wood) h4 {
+  color: #3E2723 !important;
+}
+
+:where(.theme-wood) .text-slate-400,
+:where(.theme-wood) .text-slate-500,
+:where(.theme-wood) .text-slate-600,
+:where(.theme-wood) .text-zinc-500,
+:where(.theme-wood) .text-zinc-400 {
+  color: #795548 !important;
+}
+
+/* Border overrides */
+:where(.theme-wood) .border,
+:where(.theme-wood) .border-slate-200,
+:where(.theme-wood) .border-slate-200\/50,
+:where(.theme-wood) .border-slate-200\/60,
+:where(.theme-wood) .border-slate-205,
+:where(.theme-wood) .border-slate-350,
+:where(.theme-wood) .input-field {
+  border-color: #795548 !important;
+}
+
+/* "Verkauft" Button override inside cards or buttons */
+:where(.theme-wood) .bg-emerald-500\/10.text-emerald-600 {
+  background-color: #3E2723 !important;
+  color: #FBF7F4 !important;
+}
+:where(.theme-wood) .bg-emerald-500\/10.text-emerald-600:hover {
+  background-color: #1e110f !important;
+  color: #FBF7F4 !important;
+}
+
+/* "Absagen" Button override inside cards */
+:where(.theme-wood) .bg-red-500\/10.text-red-600 {
+  background-color: #795548 !important;
+  color: #FBF7F4 !important;
+}
+:where(.theme-wood) .bg-red-500\/10.text-red-600:hover {
+  background-color: #5d4037 !important;
+  color: #FBF7F4 !important;
+}
+
+/* Universal glow overrides for Vintage Terracotta with #D35400 */
+:where(.theme-wood) .blur-3xl {
+  background-color: rgba(211, 84, 0, 0.25) !important;
+  background-image: none !important;
+}
+
+/* Active tabs / active indicators under Vintage Terracotta, map blue indicators */
+:where(.theme-wood) .text-blue-500,
+:where(.theme-wood) .text-emerald-500,
+:where(.theme-wood) .text-blue-600 {
+  color: #3E2723 !important;
+}
+
+:where(.theme-wood) .hover\:text-blue-600:hover,
+:where(.theme-wood) .hover\:text-blue-700:hover {
+  color: #1e110f !important;
+}
+
+:where(.theme-wood) .bg-blue-500,
+:where(.theme-wood) .bg-emerald-500,
+:where(.theme-wood) .bg-blue-600 {
+  background-color: #3E2723 !important;
+}
+
+/* Theme picker selected state border overrides under Vintage Terracotta */
+:where(.theme-wood) .border-blue-500,
+:where(.theme-wood) .border-blue-400 {
+  border-color: #3E2723 !important;
+}
+:where(.theme-wood) .bg-blue-50\/25,
+:where(.theme-wood) .dark\:bg-blue-950\/20 {
+  background-color: rgba(211, 84, 0, 0.12) !important;
+}
+
+/* Reiterkarten Active/Inactive overrides under Vintage Terracotta */
+:where(.theme-wood) #app-navigation-tabs {
+  background-color: rgba(211, 84, 0, 0.15) !important;
+  border: 1px solid rgba(211, 84, 0, 0.3) !important;
+}
+
+:where(.theme-wood) #app-navigation-tabs button {
+  color: #795548 !important;
+  background-color: transparent !important;
+}
+
+:where(.theme-wood) #app-navigation-tabs button:hover {
+  color: #3E2723 !important;
+}
+
+:where(.theme-wood) #app-navigation-tabs button[class*="bg-white"],
+:where(.theme-wood) #app-navigation-tabs button[class*="bg-zinc-800"] {
+  background-color: #3E2723 !important;
+  color: #FBF7F4 !important;
+  font-weight: 900 !important;
+  box-shadow: 0 4px 12px rgba(211, 84, 0, 0.2) !important;
+}
+
+:where(.theme-wood) input[type="checkbox"],
+:where(.theme-wood) .custom-checkbox {
+  accent-color: #D35400 !important;
+}
+
+/* Standard Starttab overrides under Vintage Terracotta */
+:where(.theme-wood) #standard-starttab-container button {
+  border-color: #795548 !important;
+  background-color: #FFFFFF !important;
+  color: #795548 !important;
+}
+
+:where(.theme-wood) #standard-starttab-container button:hover {
+  color: #3E2723 !important;
+}
+
+:where(.theme-wood) #standard-starttab-container button[class*="bg-blue-600"] {
+  background-color: #3E2723 !important;
+  color: #FBF7F4 !important;
+  border-color: #3E2723 !important;
+}
+
+/* Save Display name button override under Vintage Terracotta */
+:where(.theme-wood) #profile-save-displayname-btn {
+  background-color: #3E2723 !important;
+  color: #FBF7F4 !important;
+  border: 1px solid #795548 !important;
+}
+
+:where(.theme-wood) #profile-save-displayname-btn:hover {
+  background-color: #1e110f !important;
+}
+
+/* Schnellerfassung in Ausarbeitung under Vintage Terracotta with strong #D35400 glow */
+:where(.theme-wood) #schnellerfassung-form {
+  background: #3E2723 !important;
+  color: #FBF7F4 !important;
+  border-color: #D35400 !important;
+  box-shadow: 0 15px 35px -5px rgba(211, 84, 0, 0.75), 0 0 25px 5px rgba(211, 84, 0, 0.6) !important;
+}
+
+:where(.theme-wood) #schnellerfassung-form h4 {
+  color: #FBF7F4 !important;
+}
+
+:where(.theme-wood) #schnellerfassung-form input {
+  background-color: rgba(251, 247, 244, 0.1) !important;
+  border-color: rgba(211, 84, 0, 0.4) !important;
+  color: #FBF7F4 !important;
+}
+
+:where(.theme-wood) #schnellerfassung-form input::placeholder {
+  color: rgba(251, 247, 244, 0.5) !important;
+}
+
+:where(.theme-wood) #schnellerfassung-form input:focus {
+  border-color: #D35400 !important;
+  background-color: rgba(251, 247, 244, 0.15) !important;
+  box-shadow: 0 0 0 2px rgba(211, 84, 0, 0.4) !important;
+}
+
+:where(.theme-wood) #schnellerfassung-form button[type="submit"] {
+  background-color: #FBF7F4 !important;
+  color: #3E2723 !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1) !important;
+}
+
+:where(.theme-wood) #schnellerfassung-form button[type="submit"]:hover {
+  background-color: #ffffff !important;
+}
+
+:where(.theme-wood) #schnellerfassung-form .text-amber-300 {
+  color: #D35400 !important;
+}
 
 @utility input-field {
   width: 100%;
@@ -25,8 +738,9 @@
   padding-right: 1rem;
   border-radius: 0.75rem;
   border-width: 1px;
-  border-color: var(--color-slate-200, #e7dfd1);
+  border-color: var(--app-border, #e7dfd1);
   background-color: rgba(243, 238, 229, 0.15); /* Light linen tint */
+  color: var(--app-text, #0f172a);
   outline: none;
   font-family: inherit;
   transition-property: all;
@@ -35,22 +749,23 @@
 }
 
 :where(.dark) .input-field {
-  border-color: #27272a; /* zinc-800 */
-  background-color: rgba(9, 9, 11, 0.2); /* zinc-950 tint */
+  border-color: var(--app-border, #27272a);
+  background-color: rgba(9, 9, 11, 0.2);
 }
 
 .input-field:focus {
-  border-color: #2563eb; /* blue-600 */
+  border-color: var(--app-accent, #2563eb);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-  background-color: rgba(255, 255, 255, 0.85);
+  background-color: var(--app-card, rgba(255, 255, 255, 0.85));
 }
 
 :where(.dark) .input-field:focus {
-  background-color: rgba(24, 24, 27, 0.9);
+  background-color: var(--app-card, rgba(24, 24, 27, 0.9));
 }
 @layer base {
   html, body {
-    background-color: #faf8f5; /* Warm off-white slate-50 */
+    background-color: var(--app-bg, #faf8f5);
+    color: var(--app-text, #0f172a);
     /* Verhindert Pull-to-refresh Zucken und sorgt für stabiles native-like Scrollen */
     overscroll-behavior-y: none;
     -webkit-overflow-scrolling: touch;
@@ -61,7 +776,7 @@
   }
 
   html.dark, html.dark body {
-    background-color: #000000;
+    background-color: var(--app-bg, #000000);
   }
 
   /* Deaktiviert blauen Auswahleffekt bei schnellen Touch-Gesten */
@@ -76,5 +791,16 @@
       font-size: 16px !important;
     }
   }
+}
+
+/* Protect preview icons in theme picker from being overridden by theme overrides */
+.theme-preview-box {
+  background-color: var(--preview-bg) !important;
+  border-color: var(--preview-border) !important;
+  border-width: 1.5px !important;
+}
+
+.theme-preview-dot {
+  background-color: var(--preview-accent) !important;
 }
 

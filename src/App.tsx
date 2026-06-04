@@ -14,6 +14,7 @@ import { StatsTab } from './components/StatsTab.tsx';
 import { AdminTab } from './components/AdminTab.tsx';
 import { AddCommissionModal } from './components/AddCommissionModal.tsx';
 import { AusarbeitungenTab } from './components/AusarbeitungenTab.tsx';
+import { UserProfileModal } from './components/UserProfileModal.tsx';
 import {
   EditPriceModal,
   EditDateModal,
@@ -38,8 +39,13 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'open' | 'sold' | 'ausarbeitung' | 'stats' | 'admin'>('open');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedColleague, setSelectedColleague] = useState<string>('all');
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [isNavExpanded, setIsNavExpanded] = useState(false);
+  
+  // Theme type definition and modern state setup 
+  type ThemeType = 'light' | 'dark' | 'sage' | 'ocean' | 'wood';
+  const [theme, setTheme] = useState<ThemeType>('light');
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [customLocalName, setCustomLocalName] = useState<string | null>(null);
 
   // General state for colleague-ordered kitchens (Ausarbeitungen)
   const [ausarbeitungen, setAusarbeitungen] = useState<Ausarbeitung[]>([]);
@@ -57,29 +63,50 @@ export default function App() {
   const [editNoteId, setEditNoteId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  // Support custom local name sync
+  useEffect(() => {
+    setCustomLocalName(localStorage.getItem('kk_custom_display_name'));
+    const handleNameSync = () => {
+      setCustomLocalName(localStorage.getItem('kk_custom_display_name'));
+    };
+    window.addEventListener('storage_custom_name_changed', handleNameSync);
+    return () => window.removeEventListener('storage_custom_name_changed', handleNameSync);
+  }, []);
+
+  const applyThemeClasses = (t: ThemeType) => {
+    document.documentElement.classList.remove('dark', 'theme-sage', 'theme-ocean', 'theme-wood');
+    if (t === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else if (t === 'sage') {
+      document.documentElement.classList.add('theme-sage');
+    } else if (t === 'ocean') {
+      document.documentElement.classList.add('theme-ocean', 'dark');
+    } else if (t === 'wood') {
+      document.documentElement.classList.add('theme-wood');
+    }
+  };
+
   // Sync Theme Choice initially
   useEffect(() => {
-    const cached = localStorage.getItem('kk_theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (cached === 'dark' || (!cached && prefersDark)) {
-      setTheme('dark');
-      document.documentElement.classList.add('dark');
-    } else {
-      setTheme('light');
-      document.documentElement.classList.remove('dark');
+    let cached = localStorage.getItem('kk_theme') as any;
+    if (cached === 'emerald') {
+      cached = 'sage';
+      localStorage.setItem('kk_theme', 'sage');
     }
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    let initialTheme: ThemeType = (cached || 'light') as ThemeType;
+    if (!localStorage.getItem('kk_theme')) {
+      initialTheme = prefersDark ? 'dark' : 'light';
+    }
+    setTheme(initialTheme);
+    applyThemeClasses(initialTheme);
   }, []);
 
   const toggleTheme = () => {
-    if (theme === 'light') {
-      setTheme('dark');
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('kk_theme', 'dark');
-    } else {
-      setTheme('light');
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('kk_theme', 'light');
-    }
+    const nextTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(nextTheme);
+    localStorage.setItem('kk_theme', nextTheme);
+    applyThemeClasses(nextTheme);
   };
 
   // Auth Listener
@@ -626,8 +653,11 @@ export default function App() {
     return rawEmail === 'belmonte.enrico@gmail.com' || rawEmail === 'belmonte@fs-kuechen.de';
   }, [currentUser]);
 
-  // Resolve user display name from configurations or email prefix fallback
+  // Resolve user display name from custom local modifications or database configs or email prefix fallback
   const currentUserDisplayName = useMemo(() => {
+    if (customLocalName && customLocalName.trim()) {
+      return customLocalName.trim();
+    }
     if (!currentUser?.email) return '';
     const emailLower = currentUser.email.toLowerCase().trim();
     const conf = teammateConfigs.find(t => t.email.toLowerCase().trim() === emailLower);
@@ -636,7 +666,7 @@ export default function App() {
     }
     const prefix = currentUser.email.split('@')[0];
     return prefix.charAt(0).toUpperCase() + prefix.slice(1);
-  }, [currentUser, teammateConfigs]);
+  }, [currentUser, teammateConfigs, customLocalName]);
 
   // Safety routing: Reset activeTab to 'open' if user is not Enrico but on 'ausarbeitung' tab
   useEffect(() => {
@@ -645,79 +675,24 @@ export default function App() {
     }
   }, [isEnrico, activeTab, currentUser, authChecked]);
 
-  // Swipe-up to open, swipe/scroll in app window to collapse the sticky bottom navigation on mobile
+  // Custom starting-tab route dispatcher based on user selections
   useEffect(() => {
-    let touchStartY = 0;
-    let touchStartX = 0;
-
-    const handleTouchStart = (e: TouchEvent) => {
-      touchStartY = e.touches[0].clientY;
-      touchStartX = e.touches[0].clientX;
-    };
-
-    const handleTouchEnd = (e: TouchEvent) => {
-      const touchEndY = e.changedTouches[0].clientY;
-      const touchEndX = e.changedTouches[0].clientX;
-      const diffY = touchStartY - touchEndY;
-      const diffX = Math.abs(touchStartX - touchEndX);
-
-      // DiffY > 30 represents a clear upward swipe movement
-      if (diffY > 30 && diffX < 60) {
-        // Confirm the swipe originated from inside our sticky nav area
-        let node = e.target as HTMLElement | null;
-        let isInsideNav = false;
-        while (node) {
-          if (node.id === 'sticky-nav-island' || node.classList?.contains('sticky-bottom-nav')) {
-            isInsideNav = true;
-            break;
-          }
-          node = node.parentElement;
-        }
-
-        if (isInsideNav) {
-          setIsNavExpanded(true);
+    if (authChecked && currentUser) {
+      const savedDefaultTab = localStorage.getItem('kk_default_tab');
+      if (savedDefaultTab && ['open', 'sold', 'ausarbeitung', 'stats', 'admin'].includes(savedDefaultTab)) {
+        // Enforce safety restrictions
+        if (savedDefaultTab === 'ausarbeitung' && !isEnrico && !isAdmin) {
+          setActiveTab('open');
+        } else if (savedDefaultTab === 'admin' && !isAdmin) {
+          setActiveTab('open');
+        } else {
+          setActiveTab(savedDefaultTab as any);
         }
       }
-    };
+    }
+  }, [currentUser, authChecked, isEnrico, isAdmin]);
 
-    const handleScrollCollapse = () => {
-      // Auto collapse navigation if expanded while scrolling
-      setIsNavExpanded(false);
-    };
 
-    const handleGlobalTouchMove = (e: TouchEvent) => {
-      const currentY = e.touches[0].clientY;
-      const diffY = touchStartY - currentY;
-      // If user is swiping down drastically or swiping around the page (diff > 15), collapse it
-      if (Math.abs(diffY) > 15) {
-        // Only trigger collapse if the touch action is outside the sticky nav island
-        let node = e.target as HTMLElement | null;
-        let isInsideNav = false;
-        while (node) {
-          if (node.id === 'sticky-nav-island' || node.classList?.contains('sticky-bottom-nav')) {
-            isInsideNav = true;
-            break;
-          }
-          node = node.parentElement;
-        }
-        if (!isInsideNav) {
-          setIsNavExpanded(false);
-        }
-      }
-    };
-
-    window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchend', handleTouchEnd, { passive: true });
-    window.addEventListener('scroll', handleScrollCollapse, { passive: true });
-    window.addEventListener('touchmove', handleGlobalTouchMove, { passive: true });
-
-    return () => {
-      window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('touchend', handleTouchEnd);
-      window.removeEventListener('scroll', handleScrollCollapse);
-      window.removeEventListener('touchmove', handleGlobalTouchMove);
-    };
-  }, []);
 
   // Filter Ausarbeitungen: only Enrico sees this data in general or in stats
   const filteredAusarbeitungen = useMemo(() => {
@@ -832,7 +807,11 @@ export default function App() {
         className="hidden md:flex fixed top-[calc(1rem+env(safe-area-inset-top))] right-4 text-[9px] font-bold uppercase tracking-widest z-50 flex-col sm:flex-row items-end sm:items-center gap-1.5 select-none"
       >
         {currentUser?.email && (
-          <div className="flex items-center gap-1.5 bg-white/95 dark:bg-zinc-900/95 p-1.5 pl-2.5 pr-2.5 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-slate-200/60 dark:border-zinc-800/80 backdrop-blur-md">
+          <button 
+            onClick={() => setIsProfileOpen(true)}
+            title="Mitarbeiterprofil ansehen"
+            className="flex items-center gap-1.5 bg-white/95 dark:bg-zinc-900/95 p-1.5 pl-2.5 pr-2.5 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-slate-200/60 dark:border-zinc-800/80 backdrop-blur-md cursor-pointer hover:bg-slate-50 dark:hover:bg-zinc-850 active:scale-95 transition-all text-left"
+          >
             <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
             <span className="text-slate-700 dark:text-zinc-300 font-sans text-[10px] font-bold">{currentUserDisplayName}</span>
             {isAdmin && (
@@ -840,7 +819,7 @@ export default function App() {
                 Admin
               </span>
             )}
-          </div>
+          </button>
         )}
         <div className="flex items-center gap-2 bg-white/95 dark:bg-zinc-900/95 p-2 px-3 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-slate-200/60 dark:border-zinc-800/80 backdrop-blur-md">
           <span id="status-text" className="text-slate-400">
@@ -910,9 +889,13 @@ export default function App() {
           {/* Symmetrical secondary information row on Mobile - Extremely clean, avoids collisions */}
           {currentUser?.email && (
             <div className="flex md:hidden items-center justify-center gap-1.5 select-none mt-1">
-              <div className="flex items-center gap-1 bg-white/95 dark:bg-zinc-900/95 p-1 pl-2.5 pr-2.5 rounded-full border border-slate-200/50 dark:border-zinc-800/80 shadow-sm leading-none">
+              <button 
+                onClick={() => setIsProfileOpen(true)}
+                title="Mitarbeiterprofil ansehen"
+                className="flex items-center gap-1 bg-white/95 dark:bg-zinc-900/95 p-1 pl-2.5 pr-2.5 rounded-full border border-slate-200/50 dark:border-zinc-805 shadow-sm leading-none hover:bg-slate-50 dark:hover:bg-zinc-855 cursor-pointer active:scale-95 transition-all text-left"
+              >
                 <span className="w-1 h-1 rounded-full bg-blue-500 shrink-0"></span>
-                <span className="text-slate-700 dark:text-zinc-300 font-sans text-[9px] font-bold max-w-[130px] truncate">
+                <span className="text-slate-705 dark:text-zinc-300 font-sans text-[9px] font-bold max-w-[130px] truncate">
                   {currentUserDisplayName}
                 </span>
                 {isAdmin && (
@@ -920,7 +903,7 @@ export default function App() {
                     Admin
                   </span>
                 )}
-              </div>
+              </button>
               
               <div className="flex items-center gap-1.5 bg-white/95 dark:bg-zinc-900/95 p-1 px-2.5 rounded-full border border-slate-200/50 dark:border-zinc-800/80 shadow-sm leading-none">
                 <div
@@ -941,25 +924,12 @@ export default function App() {
           id="sticky-nav-island"
           className="fixed left-0 right-0 bottom-0 z-50 md:sticky md:top-4 md:bottom-auto md:left-auto md:right-auto max-w-md mx-auto md:mb-6 select-none"
         >
-          <div className={`bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-t-3xl md:rounded-xl border-t md:border border-slate-200/50 dark:border-zinc-800/50 shadow-[0_-15px_30px_-5px_rgba(0,0,0,0.15)] dark:shadow-[0_-15px_30px_-5px_rgba(0,0,0,0.6)] md:shadow-lg flex flex-col gap-2 transition-all duration-300 ${
-            isNavExpanded 
-              ? 'p-4 pt-2.5 pb-[calc(1.5rem+env(safe-area-inset-bottom))]' 
-              : 'p-4 pt-2.5 pb-[calc(1rem+env(safe-area-inset-bottom))]'
-          } md:p-2.5 md:pb-2.5`}>
+          <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-t-3xl md:rounded-xl border-t md:border border-slate-200/50 dark:border-zinc-800/50 shadow-[0_-15px_30px_-5px_rgba(0,0,0,0.15)] dark:shadow-[0_-15px_30px_-5px_rgba(0,0,0,0.6)] md:shadow-lg flex flex-col gap-2 p-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] md:p-2.5 md:pb-2.5">
             
-            {/* Minimalist interactive Pill Drag Handle on Mobile - clean, avoids vertical clutter */}
-            <div 
-              onClick={() => setIsNavExpanded(!isNavExpanded)}
-              className="md:hidden flex flex-col items-center justify-center pt-0.5 pb-2 cursor-pointer select-none group"
-            >
-              <div className={`w-14 h-1.5 rounded-full bg-slate-300/80 dark:bg-zinc-800/85 transition-all duration-300 group-hover:bg-slate-400 dark:group-hover:bg-zinc-700 ${
-                isNavExpanded ? 'bg-slate-400 dark:bg-zinc-750 scale-x-90' : 'animate-pulse'
-              }`} />
-            </div>
-
-            {/* Content: Search and Add Button */}
+            {/* Desktop search & Mobile toggleable search */}
             <div className="flex gap-2 items-center">
-              <div className="relative flex-1">
+              {/* On Desktop: Always search field. On Mobile: only if isSearchActive is true */}
+              <div className={`relative flex-1 ${isSearchActive ? 'flex' : 'hidden md:flex'}`}>
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Search className="w-4 h-4 text-slate-400" />
                 </div>
@@ -967,24 +937,113 @@ export default function App() {
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-slate-100/50 dark:bg-zinc-950 pb-1.5 pt-2 pl-10 pr-4 text-sm font-bold text-slate-800 dark:text-slate-200 placeholder-slate-400 border-none outline-none focus:ring-2 focus:ring-blue-500 rounded-xl transition-all"
+                  className="w-full bg-slate-100/50 dark:bg-zinc-950 pb-1.5 pt-2 pl-10 pr-10 text-sm font-bold text-slate-800 dark:text-slate-200 placeholder-slate-400 border-none outline-none focus:ring-2 focus:ring-blue-500 rounded-xl transition-all"
                   placeholder="Kunde / Komm.-Nr. suchen..."
+                  autoFocus={isSearchActive}
                 />
+                {/* Mobile clear / close button inside input */}
+                {isSearchActive && (
+                  <button 
+                    onClick={() => { setSearchTerm(''); setIsSearchActive(false); }}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    title="Suche schließen"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
-              
-              {/* Svelte compact add button right in search bar on Mobile */}
-              <button
-                onClick={() => setIsAddOpen(true)}
-                className="md:hidden w-10 h-10 shrink-0 bg-blue-600 hover:bg-blue-750 text-white rounded-xl shadow-md shadow-blue-500/10 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
-                title="Auftrag hinzufügen"
-              >
-                <Plus className="w-5 h-5" />
-              </button>
+
+              {/* Mobile controls when search is NOT active */}
+              {!isSearchActive && (
+                <div className="flex md:hidden flex-1 items-center justify-between gap-2">
+                  {/* Left: Perspektive Selection permanently visible if admin */}
+                  {isAdmin ? (
+                    <div className="flex-1 min-w-0 flex items-center gap-1.5 px-2 py-1.5 bg-slate-100/50 dark:bg-zinc-950/60 rounded-xl border border-slate-200/40 dark:border-zinc-850">
+                      <span className="text-[9px] font-black uppercase text-slate-400 dark:text-zinc-500 pl-0.5 tracking-wider select-none shrink-0">Perspektive:</span>
+                      <select
+                        value={selectedColleague}
+                        onChange={(e) => setSelectedColleague(e.target.value)}
+                        className="bg-transparent text-[11px] font-bold text-slate-700 dark:text-zinc-200 border-none outline-none cursor-pointer flex-1 py-0.5 min-w-0"
+                      >
+                        <option value="all" className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-100 font-bold">Gesamtes Team</option>
+                        {allTeammates.map((email) => {
+                          const emailLower = email.toLowerCase().trim();
+                          const isAdminUser = adminEmails.includes(emailLower);
+                          const conf = teammateConfigs.find(t => t.email.toLowerCase().trim() === emailLower);
+                          
+                          let displayName = '';
+                          if (conf && conf.name.trim()) {
+                            displayName = conf.name;
+                          } else {
+                            const prefix = email.split('@')[0];
+                            displayName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+                          }
+
+                          if (conf && !conf.isActive) {
+                            displayName = `[Inaktiv] ${displayName}`;
+                          }
+
+                          return (
+                            <option 
+                              key={email} 
+                              value={email}
+                              className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-100"
+                            >
+                              {isAdminUser ? `★ ${displayName}` : displayName}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="flex-1 text-left text-[11px] text-slate-400 dark:text-zinc-500 font-black uppercase tracking-widest pl-2">
+                      Mein Verkaufsraum
+                    </div>
+                  )}
+
+                  {/* Buttons right-aligned: Search trigger & Add trigger & Admin Zahnrad */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {/* Search icon (Lupen-icon) */}
+                    <button
+                      onClick={() => setIsSearchActive(true)}
+                      className="w-9 h-9 bg-slate-100/50 dark:bg-zinc-950 rounded-xl flex items-center justify-center border border-slate-200/40 dark:border-zinc-850 hover:bg-slate-200 dark:hover:bg-zinc-855 text-slate-500 dark:text-zinc-400 active:scale-95 transition-all cursor-pointer"
+                      title="Suche öffnen"
+                    >
+                      <Search className="w-4 h-4" />
+                    </button>
+
+                    {/* Svelte compact add button right in mobile bar */}
+                    <button
+                      onClick={() => setIsAddOpen(true)}
+                      className="w-9 h-9 bg-blue-600 hover:bg-blue-750 text-white rounded-xl shadow-md shadow-blue-500/10 flex items-center justify-center active:scale-90 transition-all cursor-pointer"
+                      title="Auftrag hinzufügen"
+                    >
+                      <Plus className="w-5 h-5 animate-pulse" />
+                    </button>
+
+                    {/* Settings/Admin Zahnrad button if admin */}
+                    {isAdmin && (
+                      <button
+                        onClick={() => {
+                          setActiveTab(activeTab === 'admin' ? 'open' : 'admin');
+                        }}
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all duration-300 active:scale-95 cursor-pointer shadow-xs ${
+                          activeTab === 'admin'
+                            ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/45 ring-2 ring-amber-500/20'
+                            : 'bg-slate-100/50 dark:bg-zinc-950/60 text-slate-500 dark:text-zinc-400 border-slate-200/45 dark:border-zinc-850 hover:text-slate-800 dark:hover:text-zinc-200'
+                        }`}
+                        title="Admin-Bereich"
+                      >
+                        <Settings className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             
-            {/* Perspective & Tabs - displayed if expanded on mobile, or displayed as static on desktop */}
-            <div className={`${isNavExpanded ? 'flex' : 'hidden'} md:flex flex-col gap-2.5 transition-all duration-300`}>
-              
+            {/* Desktop Only / Perspective & Admin select row */}
+            <div className="hidden md:flex flex-col gap-2 transition-all duration-300">
               {isAdmin && (
                 <div className="flex items-center gap-2">
                   <div className="flex-1 min-w-0 flex items-center gap-2 px-2.5 py-1.5 bg-slate-100/50 dark:bg-zinc-950/60 rounded-xl border border-slate-200/40 dark:border-zinc-850">
@@ -1041,55 +1100,55 @@ export default function App() {
                   </button>
                 </div>
               )}
-              
-              {/* High-quality tabs, responsive layout */}
-              <div className={`grid ${isEnrico ? 'grid-cols-4' : 'grid-cols-3'} sm:flex sm:flex-wrap gap-1 bg-slate-100/80 dark:bg-zinc-950 p-1 rounded-lg`}>
-                <button
-                  onClick={() => { setActiveTab('open'); setIsNavExpanded(false); }}
-                  className={`sm:flex-1 py-1.5 px-2 rounded-md text-center text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all duration-250 cursor-pointer ${
-                    activeTab === 'open'
-                      ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black'
-                      : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
-                  }`}
-                >
-                  Offen
-                </button>
-                <button
-                  onClick={() => { setActiveTab('sold'); setIsNavExpanded(false); }}
-                  className={`sm:flex-1 py-1.5 px-2 rounded-md text-center text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all duration-250 cursor-pointer ${
-                    activeTab === 'sold'
-                      ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black'
-                      : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
-                  }`}
-                >
-                  Verkauft
-                </button>
-                {isEnrico && (
-                  <button
-                    onClick={() => { setActiveTab('ausarbeitung'); setIsNavExpanded(false); }}
-                    className={`sm:flex-1 py-1.5 px-2 rounded-md text-center text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all duration-250 cursor-pointer ${
-                      activeTab === 'ausarbeitung'
-                        ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black'
-                        : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
-                    }`}
-                    title="Ausarbeitungen dokumentieren"
-                  >
-                    Ausarbeit.
-                  </button>
-                )}
-                <button
-                  onClick={() => { setActiveTab('stats'); setIsNavExpanded(false); }}
-                  className={`sm:flex-1 py-1.5 px-2 rounded-md text-center text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all duration-250 cursor-pointer ${
-                    activeTab === 'stats'
-                      ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black'
-                      : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
-                  }`}
-                >
-                  Statistik
-                </button>
-              </div>
-
             </div>
+
+            {/* High-quality tabs row - ALWAYS visible on both Mobile and Desktop, styled beautifully */}
+            <div id="app-navigation-tabs" className={`grid ${isEnrico ? 'grid-cols-4' : 'grid-cols-3'} sm:flex sm:flex-wrap gap-1 bg-slate-100/80 dark:bg-zinc-950 p-1 rounded-xl`}>
+              <button
+                onClick={() => setActiveTab('open')}
+                className={`py-2 px-2 rounded-lg text-center text-[11px] sm:text-xs font-sans font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                  activeTab === 'open'
+                    ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black'
+                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 font-bold'
+                }`}
+              >
+                Offen
+              </button>
+              <button
+                onClick={() => setActiveTab('sold')}
+                className={`py-2 px-2 rounded-lg text-center text-[11px] sm:text-xs font-sans font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                  activeTab === 'sold'
+                    ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black'
+                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 font-bold'
+                }`}
+              >
+                Verkauft
+              </button>
+              {isEnrico && (
+                <button
+                  onClick={() => setActiveTab('ausarbeitung')}
+                  className={`py-2 px-2 rounded-lg text-center text-[11px] sm:text-xs font-sans font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                    activeTab === 'ausarbeitung'
+                      ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black'
+                      : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 font-bold'
+                  }`}
+                  title="Ausarbeitungen dokumentieren"
+                >
+                  Ausarbeit.
+                </button>
+              )}
+              <button
+                onClick={() => setActiveTab('stats')}
+                className={`py-2 px-2 rounded-lg text-center text-[11px] sm:text-xs font-sans font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                  activeTab === 'stats'
+                    ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black'
+                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 font-bold'
+                }`}
+              >
+                Statistik
+              </button>
+            </div>
+
           </div>
         </div>
 
@@ -1389,6 +1448,24 @@ export default function App() {
         onConfirm={async (id) => {
           await handleDeleteCommission(id);
         }}
+      />
+
+      <UserProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        currentUser={currentUser}
+        currentUserDisplayName={currentUserDisplayName || ''}
+        onLogout={handleLogout}
+        yearlyTargets={yearlyTargets}
+        annualTarget={annualTarget}
+        theme={theme}
+        onChangeTheme={(newTheme) => {
+          setTheme(newTheme);
+          localStorage.setItem('kk_theme', newTheme);
+          applyThemeClasses(newTheme);
+        }}
+        commissions={commissions}
+        isAdmin={isAdmin}
       />
 
       {/* Error Toast Dialog Overlay */}

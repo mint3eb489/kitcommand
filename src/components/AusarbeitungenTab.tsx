@@ -266,7 +266,7 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
         </div>
 
         {/* Permanent Quick Entry Box (Form Integrated directly) */}
-        <form onSubmit={handleSubmit} className="bg-gradient-to-br from-blue-750 to-indigo-700 dark:from-blue-800/90 dark:to-indigo-850/90 rounded-3xl p-5 text-white flex flex-col justify-between shadow-md relative overflow-hidden group">
+        <form id="schnellerfassung-form" onSubmit={handleSubmit} className="bg-gradient-to-br from-blue-750 to-indigo-700 dark:from-blue-800/90 dark:to-indigo-850/90 rounded-3xl p-5 text-white flex flex-col justify-between shadow-md relative overflow-hidden group">
           {/* Characteristic Accent Glow top-right */}
           <div className="absolute -right-12 -top-12 w-48 h-48 rounded-full blur-3xl pointer-events-none bg-white/10 dark:bg-white/8 transition-all duration-500 group-hover:bg-white/15" />
           
