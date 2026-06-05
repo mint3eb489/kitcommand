@@ -605,17 +605,17 @@ export const StatsTab: React.FC<StatsTabProps> = ({
 
   return (
     <div id="tab-stats" className="flex flex-col min-h-[500px]">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-slate-200/60 dark:border-zinc-800 pb-4">
-        <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+      <div className="flex flex-row justify-between items-center mb-6 gap-2 border-b border-slate-200/60 dark:border-zinc-800 pb-4">
+        <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 shrink-0">
           Umsatz & Abschluss
         </h2>
 
-        <div className="flex gap-2 w-full sm:w-auto">
+        <div className="flex gap-1.5 sm:gap-2 w-auto items-center shrink-0">
           <select
             id="filter-year"
             value={filterYear}
             onChange={(e) => setFilterYear(e.target.value)}
-            className="input-field text-xs py-2 px-3 !w-auto bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-800 dark:text-zinc-100 shadow-sm"
+            className="input-field text-[10px] sm:text-xs py-1.5 px-2 sm:py-2 sm:px-3 !w-auto bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-800 dark:text-zinc-100 shadow-sm"
           >
             <option value="all">Alle Jahre</option>
             {availableYears.map((y) => (
@@ -629,7 +629,7 @@ export const StatsTab: React.FC<StatsTabProps> = ({
             id="filter-month"
             value={filterMonth}
             onChange={(e) => setFilterMonth(e.target.value)}
-            className="input-field text-xs py-2 px-3 !w-auto bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-800 dark:text-zinc-100 shadow-sm"
+            className="input-field text-[10px] sm:text-xs py-1.5 px-2 sm:py-2 sm:px-3 !w-auto bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-800 dark:text-zinc-100 shadow-sm"
           >
             <option value="all">Ganzes Jahr</option>
             <option value="1">Januar</option>

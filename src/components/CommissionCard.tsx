@@ -268,7 +268,8 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className={`relative bg-white dark:bg-zinc-900 px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 transition-all duration-300 ease-out will-change-transform shadow-sm hover:shadow-md flex flex-col gap-2 group/card overflow-hidden isolate ${hoverBorder}`}
+          onClick={() => setIsLocallyExpanded(true)}
+          className={`relative bg-white dark:bg-zinc-900 px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 transition-all duration-300 ease-out will-change-transform shadow-sm hover:shadow-md flex flex-col gap-2 group/card overflow-hidden isolate cursor-pointer ${hoverBorder}`}
           style={{
             transform: `translateX(${translateX}px)`,
           }}
@@ -299,15 +300,6 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                 )}
               </div>
             </div>
-
-            {/* Compact Plus Button to expand detailed state */}
-            <button
-              onClick={() => setIsLocallyExpanded(true)}
-              className="w-8 h-8 rounded-xl border border-slate-200 dark:border-zinc-800 hover:border-slate-350 dark:hover:border-zinc-700 bg-slate-50 dark:bg-zinc-950 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-100 active:scale-90 transition-all cursor-pointer shadow-3xs"
-              title="Details und Prozess-Schritte öffnen"
-            >
-              <Plus className="w-4 h-4 text-slate-500 dark:text-zinc-400" />
-            </button>
           </div>
 
           {/* Progress bar at the bottom for sold open items */}
@@ -377,7 +369,16 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`relative bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-200 dark:border-zinc-800 transition-all duration-300 ease-out will-change-transform shadow-sm hover:shadow-md hover:-translate-y-0.5 flex flex-col gap-4 group/card overflow-hidden isolate ${hoverBorder}`}
+        onClick={(e) => {
+          if (viewMode === 'compact') {
+            const target = e.target as HTMLElement;
+            const isInteractive = target.closest('button, input, textarea, label, select, svg, [class*="note"], [class*="custom-checkbox"]') !== null;
+            if (!isInteractive) {
+              setIsLocallyExpanded(false);
+            }
+          }
+        }}
+        className={`relative bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-200 dark:border-zinc-800 transition-all duration-300 ease-out will-change-transform shadow-sm hover:shadow-md hover:-translate-y-0.5 flex flex-col gap-4 group/card overflow-hidden isolate ${viewMode === 'compact' ? 'cursor-pointer' : ''} ${hoverBorder}`}
         style={{
           transform: `translateX(${translateX}px)`,
         }}
@@ -401,15 +402,6 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
-                  {viewMode === 'compact' && (
-                    <button
-                      onClick={() => setIsLocallyExpanded(false)}
-                      className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-zinc-800 cursor-pointer ml-1 inline-flex items-center justify-center align-middle"
-                      title="Zuklappen (Kompakte Ansicht)"
-                    >
-                      <Minus className="w-3.5 h-3.5" />
-                    </button>
-                  )}
                 </div>
                 {commission.createdByEmail && (
                   <p className="text-[8px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500 mt-1 select-none">
@@ -590,15 +582,6 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
-                  {viewMode === 'compact' && (
-                    <button
-                      onClick={() => setIsLocallyExpanded(false)}
-                      className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-zinc-800 cursor-pointer ml-1 inline-flex items-center justify-center align-middle"
-                      title="Zuklappen (Kompakte Ansicht)"
-                    >
-                      <Minus className="w-3.5 h-3.5" />
-                    </button>
-                  )}
                 </div>
                 {commission.createdByEmail && (
                   <p className="text-[8px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500 mb-2 select-none">

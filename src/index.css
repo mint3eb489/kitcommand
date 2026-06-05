@@ -826,3 +826,19 @@ input:-webkit-autofill:active {
   --theme-in-bearbeitung-badge-bg: rgba(62, 39, 35, 0.15) !important;
 }
 
+/* WebKit & Safari rendering bug fix: forces correct rounded border-radius clipping for absolute positioned/blurred elements inside containers */
+.overflow-hidden[class*="rounded-"],
+#jahresziel-container,
+#seasonality-trend-container,
+#bestellungen-trend-container,
+#delivery-trend-container,
+#order-structure-sold-container,
+#order-structure-open-container {
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  mask-image: radial-gradient(white, black);
+  /* Force GPU rendering layers to clip properly */
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+}
+
+
