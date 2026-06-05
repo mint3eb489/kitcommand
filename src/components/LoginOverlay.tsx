@@ -85,7 +85,7 @@ export const LoginOverlay: React.FC<LoginOverlayProps> = ({ onDemoLogin }) => {
             id="login-email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="input-field text-sm w-full font-bold text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 bg-white/50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800/80 rounded-xl transition-all focus:ring-2 focus:ring-blue-500/30"
+            className="text-sm w-full font-bold text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 bg-slate-100/50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-805 rounded-xl transition-all focus:bg-white dark:focus:bg-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none p-3.5"
             placeholder="E-Mail Adresse"
             required
             autoFocus
@@ -97,7 +97,7 @@ export const LoginOverlay: React.FC<LoginOverlayProps> = ({ onDemoLogin }) => {
               id="login-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="input-field text-sm w-full font-bold text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 bg-white/50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800/80 pr-11 rounded-xl transition-all focus:ring-2 focus:ring-blue-500/30"
+              className="text-sm w-full font-bold text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 bg-slate-100/50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-805 pr-11 rounded-xl transition-all focus:bg-white dark:focus:bg-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none p-3.5"
               placeholder="Passwort"
               required
               disabled={loading}

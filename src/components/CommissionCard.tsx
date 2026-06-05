@@ -5,7 +5,7 @@
 
 import React, { useState, useRef } from 'react';
 import { Commission, TeammateConfig } from '../types.ts';
-import { Pencil, ClipboardList, RefreshCw, Trash2, Calendar, Check, X } from 'lucide-react';
+import { Pencil, ClipboardList, RefreshCw, Trash2, Calendar, Check, X, Plus, Minus } from 'lucide-react';
 
 interface CommissionCardProps {
   commission: Commission;
@@ -18,6 +18,7 @@ interface CommissionCardProps {
   onUpdateField: (id: string, field: string, value: any) => void;
   onCycleBauart: (id: string, currentType: 'bestand' | 'neubau' | 'kleinauftrag') => void;
   teammateConfigs?: TeammateConfig[];
+  viewMode?: 'detailed' | 'compact';
 }
 
 export const CommissionCard: React.FC<CommissionCardProps> = ({
@@ -31,12 +32,16 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
   onUpdateField,
   onCycleBauart,
   teammateConfigs = [],
+  viewMode = 'detailed',
 }) => {
   // Swipe State
   const [translateX, setTranslateX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
   const touchStart = useRef({ x: 0, y: 0 });
   const animating = useRef(false);
+
+  // Local expand state (for compact mode)
+  const [isLocallyExpanded, setIsLocallyExpanded] = useState(false);
 
   // Note inline editing state
   const [isEditingNote, setIsEditingNote] = useState(false);
@@ -123,16 +128,16 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
   
   const contactBadgeClass = isUrgent 
     ? "text-orange-600 dark:text-orange-400 bg-orange-500/10 hover:bg-orange-500/20" 
-    : "text-slate-500 bg-slate-200 dark:bg-zinc-800 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-zinc-700";
+    : "badge-neutral text-slate-505 dark:text-slate-300";
     
   const contactText = daysOld === 0 ? 'Heute Kontakt' : `Vor ${daysOld} Tag${daysOld !== 1 ? 'en' : ''}`;
 
   const type = commission.bauart || (commission.isNeubau ? 'neubau' : 'bestand');
   
   const typeBadgeConfig = {
-    'bestand': { text: 'Bestand', colorClass: 'text-slate-500 bg-slate-200 dark:bg-zinc-800 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-zinc-700' },
+    'bestand': { text: 'Bestand', colorClass: 'badge-neutral text-slate-505 dark:text-slate-300' },
     'neubau': { text: 'Neubau', colorClass: 'text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20' },
-    'kleinauftrag': { text: 'Kleinauftrag', colorClass: 'text-purple-600 dark:text-purple-400 bg-purple-500/10 hover:bg-purple-500/20' }
+    'kleinauftrag': { text: 'Kleinauftrag', colorClass: 'text-purple-600 dark:text-purple-400 bg-purple-500/10 hover:bg-purple-500/10' }
   };
   const badgeConf = typeBadgeConfig[type] || typeBadgeConfig['bestand'];
 
@@ -229,6 +234,118 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
       ? 'bg-red-500/15 dark:bg-red-500/10'
       : 'bg-slate-100 dark:bg-zinc-900/40';
 
+  if (viewMode === 'compact' && !isLocallyExpanded) {
+    const isSold = commission.status === 'sold';
+    const isLost = commission.status === 'lost';
+    
+    return (
+      <div className="relative overflow-hidden rounded-xl group touch-pan-y">
+        {/* Swipe background indicators */}
+        <div className={`absolute inset-0 flex justify-between items-center px-6 rounded-xl transition-all duration-300 ${swipeBg}`}>
+          <div
+            className={`font-black tracking-widest text-[10px] uppercase flex items-center gap-2 -ml-4 transition-all ${rightActionColor}`}
+            style={{
+              opacity: translateX > 20 ? Math.min(translateX / threshold, 1) : 0,
+              transform: `translateX(${translateX > 20 ? Math.min(translateX / 4, 10) : 0}px)`,
+            }}
+          >
+            <Check className="w-4 h-4" />
+            {rightActionText}
+          </div>
+          <div
+            className={`font-black tracking-widest text-[10px] uppercase flex items-center gap-2 -mr-4 transition-all ${leftActionColor}`}
+            style={{
+              opacity: translateX < -20 ? Math.min(Math.abs(translateX) / threshold, 1) : 0,
+              transform: `translateX(${translateX < -20 ? -Math.min(Math.abs(translateX) / 4, 10) : 0}px)`,
+            }}
+          >
+            {leftActionText}
+            <X className="w-4 h-4" />
+          </div>
+        </div>
+
+        <div
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          className={`relative bg-white dark:bg-zinc-900 px-4 py-3 rounded-xl border border-slate-200 dark:border-zinc-800 transition-all duration-300 ease-out will-change-transform shadow-sm hover:shadow-md flex flex-col gap-2 group/card overflow-hidden isolate ${hoverBorder}`}
+          style={{
+            transform: `translateX(${translateX}px)`,
+          }}
+        >
+          {/* Soft Ambient Background Glow under content */}
+          <div className={`absolute -right-16 -top-16 w-56 h-56 rounded-full blur-3xl pointer-events-none opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 ${glowColor}`} />
+
+          <div className="flex justify-between items-center gap-3">
+            <div className="flex-1 min-w-0 flex flex-col">
+              <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 truncate pr-2 select-text" title={commission.name}>
+                {commission.name}
+              </h3>
+              <div className="flex items-center gap-2.5 mt-1 flex-wrap">
+                <span className="font-sans text-blue-700 dark:text-blue-300 font-extrabold text-[13.5px] tracking-tight tabular-nums select-all">
+                  {formatter.format(commission.price)}
+                </span>
+                
+                {isSold && (commission.deliveryKw || commission.deliveryYear) && (
+                  <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold px-1.5 py-0.5 rounded">
+                    KW {commission.deliveryKw || '--'} / {commission.deliveryYear || '----'}
+                  </span>
+                )}
+                
+                {isLost && (
+                  <span className="text-[9px] bg-red-500/10 text-red-600 dark:text-red-400 font-black uppercase tracking-wider px-1.5 py-0.5 rounded">
+                    Abgesagt
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Compact Plus Button to expand detailed state */}
+            <button
+              onClick={() => setIsLocallyExpanded(true)}
+              className="w-8 h-8 rounded-xl border border-slate-200 dark:border-zinc-800 hover:border-slate-350 dark:hover:border-zinc-700 bg-slate-50 dark:bg-zinc-950 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-100 active:scale-90 transition-all cursor-pointer shadow-3xs"
+              title="Details und Prozess-Schritte öffnen"
+            >
+              <Plus className="w-4 h-4 text-slate-500 dark:text-zinc-400" />
+            </button>
+          </div>
+
+          {/* Progress bar at the bottom for sold open items */}
+          {isSold && type !== 'kleinauftrag' && (
+            <div className="mt-1">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">
+                  Fortschritt
+                </span>
+                <span
+                  className="text-[8.5px] font-mono font-bold commission-progress-percent"
+                  style={{
+                    color: percent === 100
+                      ? 'var(--theme-progress-text-complete)'
+                      : 'var(--theme-progress-text-active)'
+                  }}
+                >
+                  {percent}%
+                </span>
+              </div>
+              <div className="w-full bg-slate-150 dark:bg-zinc-950 h-1 rounded-full overflow-hidden">
+                <div
+                  className="h-full transition-all duration-500 ease-out commission-progress-bar"
+                  style={{
+                    width: `${percent}%`,
+                    backgroundColor: percent === 100
+                      ? 'var(--theme-progress-bar-complete)'
+                      : 'var(--theme-progress-bar-active)'
+                  }}
+                ></div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative overflow-hidden rounded-xl group touch-pan-y">
       {/* Swipe background indicators */}
@@ -284,6 +401,15 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
+                  {viewMode === 'compact' && (
+                    <button
+                      onClick={() => setIsLocallyExpanded(false)}
+                      className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-zinc-800 cursor-pointer ml-1 inline-flex items-center justify-center align-middle"
+                      title="Zuklappen (Kompakte Ansicht)"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
                 {commission.createdByEmail && (
                   <p className="text-[8px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500 mt-1 select-none">
@@ -464,6 +590,15 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
+                  {viewMode === 'compact' && (
+                    <button
+                      onClick={() => setIsLocallyExpanded(false)}
+                      className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-zinc-800 cursor-pointer ml-1 inline-flex items-center justify-center align-middle"
+                      title="Zuklappen (Kompakte Ansicht)"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
                 {commission.createdByEmail && (
                   <p className="text-[8px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500 mb-2 select-none">
@@ -677,7 +812,7 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                       {type === 'bestand' && (
                         <button
                           onClick={() => onUpdateField(commission.id, 'needsVorab', !commission.needsVorab)}
-                          className="text-[9px] font-bold text-blue-500 hover:text-blue-600 uppercase tracking-widest transition-colors flex items-center gap-1 cursor-pointer"
+                          className="text-[9px] font-bold uppercase tracking-widest transition-colors flex items-center gap-1 cursor-pointer commission-vorab-toggle"
                         >
                           {showVorab ? 'Standard-Ablauf' : '+ Vorab-Planung'}
                         </button>
@@ -710,19 +845,25 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                           Fortschritt
                         </span>
                         <span
-                          className={`text-[9px] font-black uppercase tracking-widest font-mono-tabular ${
-                            percent === 100 ? 'text-emerald-500' : 'text-blue-500'
-                          }`}
+                          className="text-[9px] font-black uppercase tracking-widest font-mono-tabular commission-progress-percent"
+                          style={{
+                            color: percent === 100
+                              ? 'var(--theme-progress-text-complete)'
+                              : 'var(--theme-progress-text-active)'
+                          }}
                         >
                           {percent}%
                         </span>
                       </div>
                       <div className="w-full bg-slate-100 dark:bg-zinc-950 h-1.5 rounded-full overflow-hidden">
                         <div
-                          className={`h-full transition-all duration-500 ease-out ${
-                            percent === 100 ? 'bg-emerald-500' : 'bg-blue-500'
-                          }`}
-                          style={{ width: `${percent}%` }}
+                          className="h-full transition-all duration-500 ease-out commission-progress-bar"
+                          style={{
+                            width: `${percent}%`,
+                            backgroundColor: percent === 100
+                              ? 'var(--theme-progress-bar-complete)'
+                              : 'var(--theme-progress-bar-active)'
+                          }}
                         ></div>
                       </div>
                     </div>

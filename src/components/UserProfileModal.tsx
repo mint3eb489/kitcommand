@@ -43,11 +43,13 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   
   // Starttab logic
   const [startTab, setStartTab] = useState<'open' | 'sold' | 'ausarbeitung' | 'stats' | 'admin'>('open');
+  const [perspectiveSetting, setPerspectiveSetting] = useState<'all' | 'own'>('all');
 
   useEffect(() => {
     if (isOpen) {
       setEditedName(localStorage.getItem('kk_custom_display_name') || '');
       setStartTab((localStorage.getItem('kk_default_tab') || 'open') as any);
+      setPerspectiveSetting((localStorage.getItem('kk_default_colleague_perspective') || 'all') as any);
       setSavedSuccess(false);
     }
   }, [isOpen]);
@@ -315,6 +317,51 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
             </div>
           </div>
 
+          {/* Section 4b: Standard-Perspektive (Admins only) */}
+          {isAdmin && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5 pl-1">
+                <Compass className="w-3.5 h-3.5 text-slate-400" />
+                <label className="text-[10px] font-bold text-slate-400 dark:text-zinc-400 uppercase tracking-widest block">
+                  Standard-Perspektive (Team / Eigen)
+                </label>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => {
+                    localStorage.setItem('kk_default_colleague_perspective', 'all');
+                    window.dispatchEvent(new Event('storage_perspective_changed'));
+                    setPerspectiveSetting('all');
+                  }}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold uppercase tracking-wider text-center active:scale-95 transition-all border cursor-pointer ${
+                    perspectiveSetting === 'all'
+                      ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
+                      : 'bg-slate-50 border-slate-200 dark:bg-zinc-950 dark:border-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-850'
+                  }`}
+                >
+                  Gesamtes Team
+                </button>
+                <button
+                  onClick={() => {
+                    localStorage.setItem('kk_default_colleague_perspective', 'own');
+                    window.dispatchEvent(new Event('storage_perspective_changed'));
+                    setPerspectiveSetting('own');
+                  }}
+                  className={`py-2 px-3 rounded-xl text-xs font-bold uppercase tracking-wider text-center active:scale-95 transition-all border cursor-pointer ${
+                    perspectiveSetting === 'own'
+                      ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
+                      : 'bg-slate-50 border-slate-200 dark:bg-zinc-950 dark:border-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-850'
+                  }`}
+                >
+                  Eigener Nutzer
+                </button>
+              </div>
+              <p className="text-[9.5px] text-slate-400 dark:text-zinc-500 pl-1 leading-relaxed">
+                Als Admin kannst du hier bestimmen, ob die Team-Perspektive standardmäßig auf das gesamte Team gestellt wird oder direkt auf deinen eigenen Account gefiltert ist.
+              </p>
+            </div>
+          )}
+
           {/* Section 5: Beautiful Theme Picker */}
           <div className="space-y-2">
             <div className="flex items-center gap-1.5 pl-1">
@@ -333,8 +380,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     onClick={() => onChangeTheme(t.id)}
                     className={`flex items-center justify-between p-3 rounded-2xl border active:scale-98 transition-all cursor-pointer ${
                       isSelected 
-                        ? 'border-blue-500 bg-blue-500/10 dark:border-blue-400 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 font-bold' 
-                        : 'border-slate-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/60 hover:bg-slate-50 dark:hover:bg-zinc-850'
+                        ? 'border-blue-500 bg-blue-500/10 dark:border-blue-400 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 font-bold shadow-xs' 
+                        : 'border-slate-200/80 bg-slate-50 dark:border-zinc-805 dark:bg-zinc-900/45 hover:bg-slate-100/70 dark:hover:bg-zinc-850'
                     }`}
                   >
                     <div className="flex items-center gap-3">
