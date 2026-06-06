@@ -101,7 +101,7 @@ export const EditPriceModal: React.FC<EditPriceModalProps> = ({
           <button
             onClick={handleSave}
             disabled={saving}
-            className="py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 active:scale-95 transition-transform cursor-pointer disabled:opacity-50"
+            className="theme-submit-btn py-3 rounded-xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform cursor-pointer disabled:opacity-50"
           >
             {saving ? 'Speichert...' : 'Speichern'}
           </button>
@@ -262,7 +262,7 @@ export const EditNoteModal: React.FC<EditNoteModalProps> = ({
           <button
             onClick={handleSave}
             disabled={saving}
-            className="py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 active:scale-95 transition-transform cursor-pointer disabled:opacity-50"
+            className="theme-submit-btn py-3 rounded-xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-transform cursor-pointer disabled:opacity-50"
           >
             {saving ? 'Speichert...' : 'Speichern'}
           </button>

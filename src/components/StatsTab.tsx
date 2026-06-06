@@ -5,9 +5,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { Commission, Ausarbeitung } from '../types.ts';
-import { DonutChart } from './DonutChart.tsx';
-import { motion, AnimatePresence } from 'motion/react';
-import { Target, TrendingUp, Sparkles, Trophy, Flame, Calendar, BookOpen, Truck } from 'lucide-react';
+import { motion } from 'motion/react';
+import { TrendingUp, Trophy, Calendar, Truck } from 'lucide-react';
 
 interface StatsTabProps {
   commissions: Commission[];
@@ -17,6 +16,7 @@ interface StatsTabProps {
   ausarbeitungen?: Ausarbeitung[];
   currentUserEmail?: string;
   selectedColleague?: string;
+  theme?: 'light' | 'dark' | 'sage' | 'ocean' | 'wood';
 }
 
 export const StatsTab: React.FC<StatsTabProps> = ({
@@ -27,34 +27,12 @@ export const StatsTab: React.FC<StatsTabProps> = ({
   ausarbeitungen = [],
   currentUserEmail,
   selectedColleague,
+  theme,
 }) => {
   const [filterYear, setFilterYear] = useState<string>(new Date().getFullYear().toString());
   const [filterMonth, setFilterMonth] = useState<string>('all');
   const [filterMonthBestellt, setFilterMonthBestellt] = useState<string>('all');
   const [filterMonthDelivery, setFilterMonthDelivery] = useState<string>('all');
-  const [showRemaining, setShowRemaining] = useState<boolean>(false);
-
-  // Get target value for the currently filtered year, falling back to legacy/global target
-  const currentYearTarget = useMemo(() => {
-    // Determine the subject email
-    const email = selectedColleague && selectedColleague !== 'all'
-      ? selectedColleague.toLowerCase().trim()
-      : (selectedColleague === 'all' ? 'all' : (currentUserEmail?.toLowerCase().trim() || ''));
-
-    if (email === 'all') {
-      if (filterYear === 'all') {
-        return annualTarget || 1500000;
-      }
-      return yearlyTargets?.[filterYear] ?? annualTarget ?? 1500000;
-    }
-
-    if (filterYear === 'all') {
-      return annualTarget || 1500000;
-    }
-
-    // Try colleague-specific target first: "email_year", then fall back to standard year fallback
-    return yearlyTargets?.[`${email}_${filterYear}`] ?? yearlyTargets?.[filterYear] ?? annualTarget ?? 1500000;
-  }, [filterYear, yearlyTargets, annualTarget, selectedColleague, currentUserEmail]);
 
   // Saisonalitäts-Daten berechnen (unabhängig von filterMonth, aber abhängig von filterYear)
   const monthlySeasonality = useMemo(() => {
@@ -99,6 +77,38 @@ export const StatsTab: React.FC<StatsTabProps> = ({
       maxSoldCount,
     };
   }, [commissions, filterYear]);
+
+  // Selected month items for Monats- & Saisonalitäts-Trend (Revenue / c.status === 'sold')
+  const monthlySeasonalityFocusItems = useMemo(() => {
+    if (filterMonth === 'all') return [];
+    
+    const items: Array<{
+      id: string;
+      name: string;
+      price: number;
+    }> = [];
+
+    commissions.forEach((c) => {
+      if (c.status !== 'sold') return;
+      const dateStr = c.resolvedAt || c.createdAt;
+      if (!dateStr) return;
+      const date = new Date(dateStr);
+      const yearStr = date.getFullYear().toString();
+      
+      if (filterYear !== 'all' && yearStr !== filterYear) return;
+
+      if ((date.getMonth() + 1).toString() === filterMonth) {
+        items.push({
+          id: c.id,
+          name: c.name,
+          price: c.price || 0,
+        });
+      }
+    });
+
+    items.sort((a, b) => b.price - a.price);
+    return items;
+  }, [commissions, filterYear, filterMonth]);
 
   // Bestellungen Saisonalitäts-Daten berechnen (abhängig von filterYear)
   // Alle Kommissionen mit status === 'sold' und bestellt === true, sowie alle Ausarbeitungen (gelten als bestellt)
@@ -184,6 +194,11 @@ export const StatsTab: React.FC<StatsTabProps> = ({
 
     let filteredSum = totalSum;
     let filteredCount = totalCount;
+    const filteredItems: Array<{
+      id: string;
+      name: string;
+      price: number;
+    }> = [];
 
     if (filterMonthBestellt !== 'all') {
       filteredSum = 0;
@@ -199,6 +214,11 @@ export const StatsTab: React.FC<StatsTabProps> = ({
         if ((date.getMonth() + 1).toString() === filterMonthBestellt) {
           filteredSum += c.price || 0;
           filteredCount += 1;
+          filteredItems.push({
+            id: c.id,
+            name: c.name,
+            price: c.price || 0,
+          });
         }
       });
 
@@ -212,13 +232,21 @@ export const StatsTab: React.FC<StatsTabProps> = ({
         if ((date.getMonth() + 1).toString() === filterMonthBestellt) {
           filteredSum += a.price || 0;
           filteredCount += 1;
+          filteredItems.push({
+            id: a.id,
+            name: a.customerName,
+            price: a.price || 0,
+          });
         }
       });
+
+      filteredItems.sort((a, b) => b.price - a.price);
     }
 
     return {
       filteredSum,
       filteredCount,
+      filteredItems,
     };
   }, [commissions, filterYear, filterMonthBestellt, ausarbeitungen]);
 
@@ -462,7 +490,23 @@ export const StatsTab: React.FC<StatsTabProps> = ({
         }
       });
 
-      filteredItems.sort((x, y) => y.price - x.price);
+      filteredItems.sort((x, y) => {
+        const xParsed = parseKwAndYear(x.deliveryKw || '', x.deliveryYear ? parseInt(x.deliveryYear, 10) : 2026);
+        const yParsed = parseKwAndYear(y.deliveryKw || '', y.deliveryYear ? parseInt(y.deliveryYear, 10) : 2026);
+        
+        const xYear = xParsed ? xParsed.year : 9999;
+        const xWeek = xParsed ? xParsed.week : 99;
+        const yYear = yParsed ? yParsed.year : 9999;
+        const yWeek = yParsed ? yParsed.week : 99;
+        
+        if (xYear !== yYear) {
+          return xYear - yYear;
+        }
+        if (xWeek !== yWeek) {
+          return xWeek - yWeek;
+        }
+        return y.price - x.price;
+      });
     }
 
     return {
@@ -599,10 +643,6 @@ export const StatsTab: React.FC<StatsTabProps> = ({
     maximumFractionDigits: 0,
   });
 
-  const rawTargetPercent = (stats.annualRevenue / (currentYearTarget || 1500000)) * 100;
-  const targetPercent = Math.min(rawTargetPercent, 100);
-  const remainingValue = Math.max(0, currentYearTarget - stats.annualRevenue);
-
   return (
     <div id="tab-stats" className="flex flex-col min-h-[500px]">
       <div className="flex flex-row justify-between items-center mb-6 gap-2 border-b border-slate-200/60 dark:border-zinc-800 pb-4">
@@ -648,201 +688,6 @@ export const StatsTab: React.FC<StatsTabProps> = ({
         </div>
       </div>
 
-      {/* GAMIFICATION: JAHRESZIEL REIMAGINED WITH A HIGH-FIDELITY INTERACTIVE PROGRESS CIRCLE */}
-      <div 
-        id="jahresziel-container"
-        className="mb-8 bg-zinc-50 dark:bg-zinc-900/40 rounded-3xl p-6 border border-slate-200/80 dark:border-zinc-800/80 relative overflow-hidden isolate shadow-xs hover:border-slate-300 dark:hover:border-zinc-700 transition-all duration-300 group"
-      >
-        {/* Subtle background gradient glow effect */}
-        <div className="absolute -right-20 -top-20 w-64 h-64 bg-blue-500/10 dark:bg-blue-400/10 rounded-full blur-3xl pointer-events-none group-hover:bg-blue-500/20 dark:group-hover:bg-blue-400/20 transition-colors duration-500" />
-        <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-amber-500/10 dark:bg-amber-400/10 rounded-full blur-3xl pointer-events-none group-hover:bg-amber-500/20 dark:group-hover:bg-amber-400/20 transition-colors duration-500" />
-
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-          
-          {/* Left Block: Content & Target Info */}
-          <div className="flex-1 w-full space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-blue-500/10 dark:bg-blue-400/10 text-blue-600 dark:text-blue-400">
-                <Target className="w-5 h-5 stroke-[2]" />
-              </div>
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500">
-                  Umsatzziel Tracker
-                </span>
-                <span className="block text-xs font-semibold text-slate-600 dark:text-zinc-400">
-                  {filterYear === 'all' ? 'Gesamtübersicht' : `Zieljahr ${filterYear}`}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 pt-1">
-              <div className="p-3.5 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-2xl shadow-2xs">
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 mb-0.5">
-                  Dein Umsatzziel
-                </p>
-                <p className="text-lg md:text-xl font-black text-slate-800 dark:text-slate-100 tracking-tight font-sans select-none break-all">
-                  {formatter.format(currentYearTarget)}
-                </p>
-              </div>
-
-              <div className="p-3.5 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-2xl shadow-2xs">
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 mb-0.5">
-                  Aktueller Umsatz
-                </p>
-                <p className="text-lg md:text-xl font-black text-blue-600 dark:text-blue-400 tracking-tight font-sans select-none break-all">
-                  {formatter.format(stats.annualRevenue)}
-                </p>
-              </div>
-            </div>
-
-            {/* Motivational message badge based on percentage */}
-            <div className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-zinc-300 py-1 px-1 bg-slate-100/50 dark:bg-zinc-900/60 rounded-xl border border-slate-150 dark:border-zinc-850 pr-3.5 select-none md:max-w-max">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-white dark:bg-zinc-800 shadow-3xs text-sm border border-slate-200/50 dark:border-zinc-700/50">
-                {rawTargetPercent >= 100 ? '🏆' : rawTargetPercent >= 75 ? '🎯' : rawTargetPercent >= 40 ? '⚡' : rawTargetPercent >= 10 ? '📈' : '🚀'}
-              </span>
-              <span className="truncate">
-                {rawTargetPercent >= 100 
-                  ? 'Hervorragende Leistung! Ziel übertroffen! 🎉' 
-                  : rawTargetPercent >= 75 
-                    ? 'Der Endspurt läuft. Das Ziel ist greifbar nah!' 
-                    : rawTargetPercent >= 40 
-                      ? 'Fast die Hälfte geschafft. Hervorragender Weg!' 
-                      : rawTargetPercent >= 10 
-                        ? 'Konstantes Wachstum führt zum Erfolg. Weiter so!' 
-                        : 'Aller Anfang ist gemacht! Packen wir\'s an!'}
-              </span>
-            </div>
-          </div>
-
-          {/* Right Block: Circular Interactive Progress Ring */}
-          <div className="flex flex-col items-center justify-center shrink-0 w-full md:w-auto">
-            <div 
-              id="progress-circle-interactive"
-              onClick={() => setShowRemaining(prev => !prev)}
-              className="relative w-36 h-36 flex items-center justify-center shrink-0 cursor-pointer select-none group/circle"
-              title="Klicken, um zwischen Erreicht und Verbleibend zu wechseln"
-            >
-              {/* Pulsing light rings around the circle depending on achievement */}
-              {rawTargetPercent >= 100 && (
-                <div className="absolute inset-0 bg-emerald-500/10 dark:bg-emerald-400/10 rounded-full animate-ping pointer-events-none duration-1000 opacity-30" />
-              )}
-              {/* Outer soft glow of the current hover highlight */}
-              <div className="absolute inset-0 bg-blue-500/10 dark:bg-blue-400/10 rounded-full blur-xl opacity-0 group-hover/circle:opacity-100 transition-opacity duration-300" />
-              
-              <svg className="w-full h-full transform -rotate-90 p-1 filter drop-shadow-xs">
-                {/* Background Ring Track */}
-                <circle
-                  cx="72"
-                  cy="72"
-                  r="58"
-                  className="stroke-slate-200 dark:stroke-zinc-800/95 fill-transparent"
-                  strokeWidth="8"
-                />
-                
-                {/* Foreground Active Ring Path with transition */}
-                <motion.circle
-                  cx="72"
-                  cy="72"
-                  r="58"
-                  className={`fill-transparent ${
-                    rawTargetPercent >= 100 
-                      ? 'stroke-emerald-500 dark:stroke-emerald-400' 
-                      : 'stroke-blue-600 dark:stroke-blue-500'
-                  }`}
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                  initial={{ strokeDasharray: 364.4, strokeDashoffset: 364.4 }}
-                  animate={{ strokeDashoffset: 364.4 - (targetPercent / 100) * 364.4 }}
-                  transition={{ duration: 1.5, ease: 'easeOut' }}
-                />
-              </svg>
-
-              {/* Central Text Panel inside SVG Circle */}
-              <div className="absolute flex flex-col items-center justify-center">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={showRemaining ? 'remaining' : 'achieved'}
-                    initial={{ opacity: 0, scale: 0.9, y: 3 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: -3 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex flex-col items-center justify-center text-center"
-                  >
-                    <span className="text-2xl font-black text-slate-800 dark:text-zinc-150 tracking-tight leading-none">
-                      {showRemaining 
-                        ? `${Math.max(0, 100 - rawTargetPercent).toFixed(1).replace('.', ',')}%`
-                        : `${rawTargetPercent.toFixed(1).replace('.', ',')}%`}
-                    </span>
-                    <span className="text-[9px] font-extrabold text-slate-400 dark:text-zinc-500 uppercase tracking-widest mt-1">
-                      {showRemaining ? 'Noch' : 'Erreicht'}
-                    </span>
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      {/* KPI Grid */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        {/* Card 1: Umsatz (Verkauft) */}
-        <div className="col-span-2 bg-zinc-50 dark:bg-zinc-900/40 rounded-3xl p-6 border border-slate-200/80 dark:border-zinc-800/80 hover:border-blue-500/30 dark:hover:border-blue-500/30 transition-all duration-300 relative overflow-hidden isolate group text-center shadow-xs">
-          <div className="absolute -right-20 -top-20 w-64 h-64 bg-blue-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-blue-500/20 dark:group-hover:bg-blue-500/20 transition-colors duration-500" />
-          <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-2 relative z-10">
-            Umsatz (Verkauft)
-          </p>
-          <p id="stat-revenue" className="text-3xl md:text-4xl font-black text-blue-500 tracking-tighter select-none relative z-10 leading-none py-1">
-            {formatter.format(stats.revenue)}
-          </p>
-        </div>
-
-        {/* Card 2: Abschlussquote */}
-        <div className="bg-zinc-50 dark:bg-zinc-900/40 rounded-3xl p-5 border border-slate-200/80 dark:border-zinc-800/80 hover:border-amber-500/30 dark:hover:border-amber-500/30 transition-all duration-300 relative overflow-hidden isolate group text-center shadow-xs">
-          <div className="absolute -right-16 -top-16 w-48 h-48 bg-amber-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-amber-500/20 dark:group-hover:bg-amber-500/20 transition-colors duration-500" />
-          <p className="text-[9px] font-black text-amber-500 dark:text-amber-450 uppercase tracking-widest mb-1 relative z-10">
-            Abschlussquote
-          </p>
-          <p id="stat-winrate" className="text-2xl font-black text-amber-500 dark:text-amber-450 tracking-tighter select-none relative z-10">
-            {stats.winRate.toFixed(1).replace('.', ',')} %
-          </p>
-        </div>
-
-        {/* Card 3: Verkauft */}
-        <div className="bg-zinc-50 dark:bg-zinc-900/40 rounded-3xl p-5 border border-slate-200/80 dark:border-zinc-800/80 hover:border-emerald-500/30 dark:hover:border-emerald-500/30 transition-all duration-300 relative overflow-hidden isolate group text-center shadow-xs">
-          <div className="absolute -right-16 -top-16 w-48 h-48 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-emerald-500/20 dark:group-hover:bg-emerald-500/20 transition-colors duration-500" />
-          <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1 relative z-10">
-            Verkauft
-          </p>
-          <p id="stat-sold-count" className="text-2xl font-black text-emerald-500 tracking-tighter select-none relative z-10">
-            {stats.qualifiedSoldCount}
-          </p>
-        </div>
-
-        {/* Card 4: Ø Auftrags-Wert */}
-        <div className="bg-zinc-50 dark:bg-zinc-900/40 rounded-3xl p-5 border border-slate-200/80 dark:border-zinc-800/80 hover:border-purple-500/30 dark:hover:border-purple-500/30 transition-all duration-300 relative overflow-hidden isolate group text-center shadow-xs">
-          <div className="absolute -right-16 -top-16 w-48 h-48 bg-purple-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-purple-500/20 dark:group-hover:bg-purple-500/20 transition-colors duration-500" />
-          <p className="text-[9px] font-black text-purple-500 uppercase tracking-widest mb-1 relative z-10">
-            Ø Auftrags-Wert
-          </p>
-          <p id="stat-avg-value" className="text-2xl font-black text-purple-500 tracking-tighter select-none relative z-10">
-            {formatter.format(stats.avgValue)}
-          </p>
-        </div>
-
-        {/* Card 5: Nicht Verkauft */}
-        <div className="bg-zinc-50 dark:bg-zinc-900/40 rounded-3xl p-5 border border-slate-200/80 dark:border-zinc-800/80 hover:border-red-500/30 dark:hover:border-red-500/30 transition-all duration-300 relative overflow-hidden isolate group text-center shadow-xs">
-          <div className="absolute -right-16 -top-16 w-48 h-48 bg-red-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-red-500/20 dark:group-hover:bg-red-500/20 transition-colors duration-500" />
-          <p className="text-[9px] font-black text-red-500 uppercase tracking-widest mb-1 relative z-10">
-            Nicht Verkauft
-          </p>
-          <p id="stat-lost-count" className="text-2xl font-black text-red-500 tracking-tighter select-none relative z-10">
-            {stats.qualifiedLostCount}
-          </p>
-        </div>
-      </div>
-
       {/* MONATS- & SAISONALITÄTS-TREND */}
       <div
         id="seasonality-trend-container"
@@ -855,12 +700,12 @@ export const StatsTab: React.FC<StatsTabProps> = ({
         <div className="relative z-10 space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-indigo-500/10 dark:bg-indigo-400/10 text-indigo-600 dark:text-indigo-400">
+              <div className="p-2 rounded-xl bg-indigo-500/10 dark:bg-indigo-400/10 text-indigo-600 dark:text-indigo-405">
                 <Calendar className="w-5 h-5 stroke-[2]" />
               </div>
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500">
-                  Monats- & Saisonalitäts-Trend
+                  Umsatz-Trend
                 </span>
                 <span className="block text-xs font-semibold text-slate-600 dark:text-zinc-400">
                   Verteilung über die Monate & Jahre
@@ -951,29 +796,50 @@ export const StatsTab: React.FC<StatsTabProps> = ({
           </div>
 
           {/* Saisonalität Summary / Active Focus Info */}
-          <div className="bg-white dark:bg-zinc-900/95 border border-slate-200/60 dark:border-zinc-800/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-3xs">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-indigo-500/10 dark:bg-indigo-400/10 flex items-center justify-center text-indigo-500">
+          <div className="bg-white dark:bg-zinc-900/95 border border-slate-200/60 dark:border-zinc-800/80 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-3xs">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-indigo-500/10 dark:bg-indigo-400/10 flex items-center justify-center text-indigo-500 shrink-0">
                 <TrendingUp className="w-4 h-4" />
               </div>
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">
                   {filterMonth === 'all' ? 'Aktive Auswertung' : `Fokus Monat: ${['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'][parseInt(filterMonth) - 1]}`}
                 </p>
-                <p className="text-xs font-bold text-slate-600 dark:text-zinc-300">
-                  {filterMonth === 'all' 
-                    ? 'Gesamtsaisonales Bild des selektierten Jahres.' 
-                    : `Gefiltert auf ${['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'][parseInt(filterMonth) - 1]} ${filterYear !== 'all' ? filterYear : ''}.`}
-                </p>
+                {filterMonth === 'all' ? (
+                  <p className="text-xs font-bold text-slate-600 dark:text-zinc-300">
+                    Gesamtsaisonales Bild des selektierten Jahres.
+                  </p>
+                ) : (
+                  <div className="space-y-1.5 mt-1.5 pr-2">
+                    <p className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-405 select-none">
+                      Geschlossene Kommissionen in diesem Monat:
+                    </p>
+                    <div className="flex flex-wrap gap-1 md:gap-1.5 max-h-[80px] sm:max-h-[105px] overflow-y-auto scrollbar-none pb-1">
+                      {monthlySeasonalityFocusItems && monthlySeasonalityFocusItems.length > 0 ? (
+                        monthlySeasonalityFocusItems.map((item) => (
+                          <div 
+                            key={item.id} 
+                            className="inline-flex items-center gap-1 bg-slate-50 hover:bg-slate-100 dark:bg-zinc-800/60 dark:hover:bg-zinc-800 border border-slate-200/50 dark:border-zinc-700/60 rounded-lg px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold sm:font-bold text-slate-700 dark:text-zinc-300 transition-colors shadow-3xs"
+                          >
+                            <span className="truncate max-w-[100px] sm:max-w-[140px] font-sans">{item.name}</span>
+                            <span className="text-[8.5px] font-normal text-slate-555 dark:text-zinc-400 font-mono">({formatter.format(item.price)})</span>
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-[10px] italic text-slate-455">Keine geschlossenen Kommissionen</span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="flex gap-4 items-center justify-end shrink-0">
-              <div className="text-left sm:text-right bg-slate-50 dark:bg-zinc-950/40 p-2 pl-3.5 pr-3.5 rounded-xl border border-slate-200/50 dark:border-zinc-800/60 shadow-3xs">
-                <span className="text-[9px] font-bold text-slate-450 dark:text-zinc-500 uppercase tracking-widest block leading-none mb-1.5">
+            <div className="flex gap-4 items-center md:justify-end shrink-0 w-full md:w-auto">
+              <div className="text-left md:text-right bg-slate-50 dark:bg-zinc-950/40 p-2 pl-3 pr-3 sm:pl-3.5 sm:pr-3.5 rounded-xl border border-slate-200/50 dark:border-zinc-800/60 shadow-3xs w-full md:w-auto">
+                <span className="text-[8.5px] sm:text-[9px] font-semibold sm:font-bold text-slate-450 dark:text-zinc-500 uppercase tracking-widest block leading-none mb-1 sm:mb-1.5">
                   {filterMonth === 'all' ? 'Gesamtumsatz' : 'Monatsumsatz'}
                 </span>
-                <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-350 text-base sm:text-lg md:text-xl block leading-none">
+                <span className="font-mono text-xs xs:text-sm sm:text-base md:text-lg lg:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-350 block leading-none">
                   {formatter.format(
                     filterMonth === 'all' 
                       ? stats.revenue 
@@ -1080,38 +946,58 @@ export const StatsTab: React.FC<StatsTabProps> = ({
           </div>
 
           {/* Trend Summary Panel */}
-          <div className="bg-white dark:bg-zinc-900/95 border border-slate-200/60 dark:border-zinc-800/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-3xs">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 dark:bg-emerald-400/10 flex items-center justify-center text-emerald-500 animate-pulse">
+          <div className="bg-white dark:bg-zinc-900/95 border border-slate-200/60 dark:border-zinc-800/80 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-3xs">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 dark:bg-emerald-400/10 flex items-center justify-center text-emerald-500 animate-pulse shrink-0">
                 <Trophy className="w-4 h-4" />
               </div>
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">
                   {filterMonthBestellt === 'all' ? 'Aktiver Trend' : `Fokus Monat: ${['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'][parseInt(filterMonthBestellt) - 1]}`}
                 </p>
-                <p className="text-xs font-bold text-slate-600 dark:text-zinc-300">
-                  {filterMonthBestellt === 'all' 
-                    ? 'Bestellte Umsätze über die Monate.' 
-                    : `Gefiltert auf ${['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'][parseInt(filterMonthBestellt) - 1]} ${filterYear !== 'all' ? filterYear : ''}.`}
-                </p>
+                {filterMonthBestellt === 'all' ? (
+                  <p className="text-xs font-bold text-slate-600 dark:text-zinc-300">
+                    Bestellte Umsätze über die Monate.
+                  </p>
+                ) : (
+                  <div className="space-y-1.5 mt-1.5 pr-2">
+                    <p className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-405 select-none">
+                      Bestellungen in diesem Monat:
+                    </p>
+                    <div className="flex flex-wrap gap-1 md:gap-1.5 max-h-[80px] sm:max-h-[105px] overflow-y-auto scrollbar-none pb-1">
+                      {bestelltStats.filteredItems && bestelltStats.filteredItems.length > 0 ? (
+                        bestelltStats.filteredItems.map((item) => (
+                          <div 
+                            key={item.id} 
+                            className="inline-flex items-center gap-1 bg-slate-50 hover:bg-slate-100 dark:bg-zinc-800/60 dark:hover:bg-zinc-800 border border-slate-200/50 dark:border-zinc-700/60 rounded-lg px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold sm:font-bold text-slate-700 dark:text-zinc-300 transition-colors shadow-3xs"
+                          >
+                            <span className="truncate max-w-[100px] sm:max-w-[140px] font-sans">{item.name}</span>
+                            <span className="text-[8.5px] font-normal text-slate-555 dark:text-zinc-400 font-mono">({formatter.format(item.price)})</span>
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-[10px] italic text-slate-455">Keine Bestellungen</span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="flex gap-4 items-center justify-end shrink-0">
-              <div className="text-left sm:text-right bg-slate-50 dark:bg-zinc-950/40 p-2 pl-3.5 pr-3.5 rounded-xl border border-slate-200/50 dark:border-zinc-800/60 shadow-3xs flex flex-col sm:items-end">
-                <span className="text-[9px] font-bold text-slate-450 dark:text-zinc-500 uppercase tracking-widest block leading-none mb-1.5">
+            <div className="flex gap-4 items-center md:justify-end shrink-0 w-full md:w-auto">
+              <div className="text-left md:text-right bg-slate-50 dark:bg-zinc-950/40 p-2 pl-3 pr-3 sm:pl-3.5 sm:pr-3.5 rounded-xl border border-slate-200/50 dark:border-zinc-800/60 shadow-3xs flex flex-col md:items-end w-full md:w-auto">
+                <span className="text-[8.5px] sm:text-[9px] font-semibold sm:font-bold text-slate-450 dark:text-zinc-500 uppercase tracking-widest block leading-none mb-1 sm:mb-1.5">
                   {filterMonthBestellt === 'all' ? 'Bestellt (Gesamt)' : 'Monatssumme Bestellt'}
                 </span>
-                <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-600 dark:from-emerald-400 dark:to-green-450 text-base sm:text-lg md:text-xl block leading-none">
+                <span className="font-mono text-xs xs:text-sm sm:text-base md:text-lg lg:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-600 dark:from-emerald-400 dark:to-green-450 block leading-none">
                   {formatter.format(bestelltStats.filteredSum)}
                 </span>
-                <span className="text-[9px] font-bold text-slate-400 dark:text-zinc-500 mt-1">
+                <span className="text-[8.5px] sm:text-[9px] font-medium text-slate-400 dark:text-zinc-500 mt-1 block leading-none">
                   Gesamtanzahl: {bestelltStats.filteredCount}x
                 </span>
               </div>
             </div>
           </div>
-
         </div>
       </div>
 
@@ -1227,17 +1113,19 @@ export const StatsTab: React.FC<StatsTabProps> = ({
                     <p className="text-[10px] font-extrabold text-amber-600 dark:text-amber-450 select-none">
                       Lieferungen in diesem Monat:
                     </p>
-                    <div className="flex flex-wrap gap-1.5 max-h-[105px] overflow-y-auto scrollbar-none pb-1">
+                    <div className="flex flex-wrap gap-1 md:gap-1.5 max-h-[80px] sm:max-h-[105px] overflow-y-auto scrollbar-none pb-1">
                       {deliveryStats.filteredItems && deliveryStats.filteredItems.length > 0 ? (
                         deliveryStats.filteredItems.map((item) => (
                           <div 
                             key={item.id} 
-                            className="inline-flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-zinc-800/60 dark:hover:bg-zinc-800 border border-slate-200/50 dark:border-zinc-700/60 rounded-lg px-2 py-0.5 text-[11px] font-bold text-slate-700 dark:text-zinc-300 transition-colors shadow-3xs"
+                            className="inline-flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-zinc-800/60 dark:hover:bg-zinc-800 border border-slate-200/50 dark:border-zinc-700/60 rounded-lg px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold sm:font-bold text-slate-700 dark:text-zinc-300 transition-colors shadow-3xs"
                             title={`${item.name} - KW ${item.deliveryKw || ''}${item.deliveryYear ? ` / ${item.deliveryYear}` : ''}`}
                           >
-                            <span className="text-amber-500">🏷️</span>
-                            <span className="truncate max-w-[120px] font-sans">{item.name}</span>
-                            <span className="text-[9px] font-normal text-slate-500 dark:text-zinc-400 font-mono">({formatter.format(item.price)})</span>
+                            <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[8.5px] font-mono font-black border leading-none shrink-0 theme-kw-badge shadow-3xs select-none">
+                              {item.deliveryKw ? `KW ${item.deliveryKw.toUpperCase().replace('KW', '').trim()}` : 'KW ?'}
+                            </span>
+                            <span className="truncate max-w-[100px] sm:max-w-[120px] font-sans">{item.name}</span>
+                            <span className="text-[8.5px] font-normal text-slate-555 dark:text-zinc-400 font-mono">({formatter.format(item.price)})</span>
                           </div>
                         ))
                       ) : (
@@ -1249,175 +1137,25 @@ export const StatsTab: React.FC<StatsTabProps> = ({
               </div>
             </div>
 
-            <div className="flex gap-4 items-center justify-end shrink-0">
-              <div className="text-left sm:text-right bg-slate-50 dark:bg-zinc-950/40 p-2 pl-3.5 pr-3.5 rounded-xl border border-slate-200/50 dark:border-zinc-800/60 shadow-3xs flex flex-col sm:items-end">
-                <span className="text-[9px] font-bold text-slate-455 dark:text-zinc-500 uppercase tracking-widest block leading-none mb-1.5">
+            <div className="flex gap-4 items-center md:justify-end shrink-0 w-full md:w-auto">
+              <div className="text-left md:text-right bg-slate-50 dark:bg-zinc-950/40 p-2 pl-3 pr-3 sm:pl-3.5 sm:pr-3.5 rounded-xl border border-slate-200/50 dark:border-zinc-800/60 shadow-3xs flex flex-col md:items-end w-full md:w-auto">
+                <span className="text-[8.5px] sm:text-[9px] font-semibold sm:font-bold text-slate-455 dark:text-zinc-500 uppercase tracking-widest block leading-none mb-1 sm:mb-1.5">
                   {filterMonthDelivery === 'all' ? 'Ausgeliefert (Gesamt)' : 'Monatssumme Ausgeliefert'}
                 </span>
-                <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-orange-600 dark:from-amber-400 dark:to-orange-450 text-base sm:text-lg md:text-xl block leading-none">
+                <span className="font-mono text-xs xs:text-sm sm:text-base md:text-lg lg:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-orange-600 dark:from-amber-400 dark:to-orange-450 block leading-none">
                   {formatter.format(deliveryStats.filteredSum)}
                 </span>
-                <span className="text-[9px] font-bold text-slate-400 dark:text-zinc-500 mt-1">
+                <span className="text-[8.5px] sm:text-[9px] font-medium text-slate-400 dark:text-zinc-500 mt-1 block leading-none">
                   Gesamtanzahl: {deliveryStats.filteredCount}x
                 </span>
               </div>
             </div>
           </div>
-
-        </div>
-      </div>
-
-      {/* GAMIFICATION: SOLD ORDER STRUCTURE */}
-      <div 
-        id="order-structure-sold-container"
-        className="mb-6 bg-zinc-50 dark:bg-zinc-900/40 rounded-3xl p-6 border border-slate-200/80 dark:border-zinc-800/80 flex flex-col sm:flex-row items-center gap-8 justify-between relative overflow-hidden isolate shadow-xs hover:border-slate-300 dark:hover:border-zinc-700 transition-all duration-300 group"
-      >
-        <div className="absolute -right-20 -top-20 w-64 h-64 bg-emerald-500/8 dark:bg-emerald-400/8 rounded-full blur-3xl pointer-events-none group-hover:bg-emerald-500/15 dark:group-hover:bg-emerald-400/15 transition-colors duration-500" />
-        
-        <div className="w-full sm:w-1/2 flex flex-col relative z-10">
-          <h3 className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500 mb-4 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            Auftrags-Struktur (Verkauft)
-          </h3>
-          <div className="space-y-3">
-            {/* Neubau */}
-            <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 shadow-3xs hover:bg-slate-50 dark:hover:bg-zinc-850 transition-colors duration-200">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-xs"></div>
-                <span className="text-xs font-bold text-slate-700 dark:text-zinc-300">Neubau</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span id="legend-neubau-count" className="text-xs font-medium text-slate-400">
-                  {stats.donutSold.neubau}x
-                </span>
-                <span id="legend-neubau-pct" className="text-xs font-bold text-slate-800 dark:text-slate-150 w-9 text-right tabular-nums">
-                  {Math.round(stats.donutSold.pctNeubau)}%
-                </span>
-              </div>
-            </div>
-            {/* Bestand */}
-            <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 shadow-3xs hover:bg-slate-50 dark:hover:bg-zinc-850 transition-colors duration-200">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-slate-400 shadow-xs"></div>
-                <span className="text-xs font-bold text-slate-700 dark:text-zinc-300">Bestand</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span id="legend-bestand-count" className="text-xs font-medium text-slate-400">
-                  {stats.donutSold.bestand}x
-                </span>
-                <span id="legend-bestand-pct" className="text-xs font-bold text-slate-800 dark:text-slate-150 w-9 text-right tabular-nums">
-                  {Math.round(stats.donutSold.pctBestand)}%
-                </span>
-              </div>
-            </div>
-            {/* Kleinauftrag */}
-            <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 shadow-3xs hover:bg-slate-50 dark:hover:bg-zinc-850 transition-colors duration-200">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-xs"></div>
-                <span className="text-xs font-bold text-slate-700 dark:text-zinc-300">Kleinauftrag</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span id="legend-klein-count" className="text-xs font-medium text-slate-400">
-                  {stats.donutSold.klein}x
-                </span>
-                <span id="legend-klein-pct" className="text-xs font-bold text-slate-800 dark:text-slate-150 w-9 text-right tabular-nums">
-                  {Math.round(stats.donutSold.pctKlein)}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="relative flex justify-center w-full sm:w-1/2 relative z-10">
-          <DonutChart
-            total={stats.donutSold.total}
-            segments={[
-              { value: stats.donutSold.pctNeubau, color: '#3b82f6' },
-              { value: stats.donutSold.pctBestand, color: '#94a3b8' },
-              { value: stats.donutSold.pctKlein, color: '#a855f7' },
-            ]}
-          />
-        </div>
-      </div>
-
-      {/* PIPELINE: OPEN ORDER STRUCTURE */}
-      <div 
-        id="order-structure-open-container"
-        className="mb-8 bg-zinc-50 dark:bg-zinc-900/40 rounded-3xl p-6 border border-slate-200/80 dark:border-zinc-800/80 flex flex-col sm:flex-row items-center gap-8 justify-between relative overflow-hidden isolate shadow-xs hover:border-slate-300 dark:hover:border-zinc-700 transition-all duration-300 group"
-      >
-        <div className="absolute -right-20 -top-20 w-64 h-64 bg-blue-500/8 dark:bg-blue-400/8 rounded-full blur-3xl pointer-events-none group-hover:bg-blue-500/15 dark:group-hover:bg-blue-400/15 transition-colors duration-500" />
-        
-        <div className="w-full sm:w-1/2 flex flex-col relative z-10">
-          <h3 className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500 mb-4 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-            Auftrags-Struktur (Offen)
-          </h3>
-          <div className="space-y-3">
-            {/* Neubau */}
-            <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 shadow-3xs hover:bg-slate-50 dark:hover:bg-zinc-850 transition-colors duration-200">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-xs"></div>
-                <span className="text-xs font-bold text-slate-700 dark:text-zinc-300">Neubau</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span id="legend-open-neubau-count" className="text-xs font-medium text-slate-400">
-                  {stats.donutOpen.neubau}x
-                </span>
-                <span id="legend-open-neubau-pct" className="text-xs font-bold text-slate-800 dark:text-slate-150 w-9 text-right tabular-nums">
-                  {Math.round(stats.donutOpen.pctNeubau)}%
-                </span>
-              </div>
-            </div>
-            {/* Bestand */}
-            <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 shadow-3xs hover:bg-slate-50 dark:hover:bg-zinc-850 transition-colors duration-200">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-slate-400 shadow-xs"></div>
-                <span className="text-xs font-bold text-slate-700 dark:text-zinc-300">Bestand</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span id="legend-open-bestand-count" className="text-xs font-medium text-slate-400">
-                  {stats.donutOpen.bestand}x
-                </span>
-                <span id="legend-open-bestand-pct" className="text-xs font-bold text-slate-800 dark:text-slate-150 w-9 text-right tabular-nums">
-                  {Math.round(stats.donutOpen.pctBestand)}%
-                </span>
-              </div>
-            </div>
-            {/* Kleinauftrag */}
-            <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 shadow-3xs hover:bg-slate-50 dark:hover:bg-zinc-850 transition-colors duration-200">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-xs"></div>
-                <span className="text-xs font-bold text-slate-700 dark:text-zinc-300">Kleinauftrag</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span id="legend-open-klein-count" className="text-xs font-medium text-slate-400">
-                  {stats.donutOpen.klein}x
-                </span>
-                <span id="legend-open-klein-pct" className="text-xs font-bold text-slate-800 dark:text-slate-150 w-9 text-right tabular-nums">
-                  {Math.round(stats.donutOpen.pctKlein)}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="relative flex justify-center w-full sm:w-1/2 relative z-10">
-          <DonutChart
-            total={stats.donutOpen.total}
-            segments={[
-              { value: stats.donutOpen.pctNeubau, color: '#3b82f6' },
-              { value: stats.donutOpen.pctBestand, color: '#94a3b8' },
-              { value: stats.donutOpen.pctKlein, color: '#a855f7' },
-            ]}
-          />
         </div>
       </div>
 
       <p className="text-xs text-slate-400 text-center italic mt-auto pt-4 border-t border-slate-200 dark:border-zinc-800">
-        Die Abschlussquote berechnet sich aus allen endgültig abgeschlossenen Angeboten (Verkauft vs. Nicht Verkauft) im gewählten Zeitraum.
-        <br />
-        <br />
-        <strong>Kleinaufträge</strong> sind von Quote, Stückzahl und Durchschnittswert ausgeschlossen, zählen aber regulär zum Gesamtumsatz.
+        In den Monats-Trends sind alle regulären Verkäufe, offenen Angebote und Auslieferungen enthalten. Kleinaufträge zählen zum Gesamtumsatz.
       </p>
     </div>
   );

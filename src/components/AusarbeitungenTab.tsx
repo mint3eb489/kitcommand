@@ -8,6 +8,7 @@ interface AusarbeitungenTabProps {
   onUpdate: (id: string, fields: Partial<Ausarbeitung>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   currentUserEmail?: string;
+  theme?: 'light' | 'dark' | 'sage' | 'ocean' | 'wood';
 }
 
 export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
@@ -16,6 +17,7 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
   onUpdate,
   onDelete,
   currentUserEmail,
+  theme,
 }) => {
   // Local active filters
   const [filterMonth, setFilterMonth] = useState<string>(() => {
@@ -47,6 +49,34 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
 
   // Report copying states
   const [reportCopied, setReportCopied] = useState(false);
+
+  // Determine glow classes based on the active theme
+  const getGlowClasses = () => {
+    switch (theme) {
+      case 'wood': // Vintage Terracotta
+        return {
+          statsGlow: 'bg-[rgba(121,85,72,0.14)] dark:bg-[rgba(121,85,72,0.18)] group-hover:bg-[rgba(121,85,72,0.28)]',
+          itemGlow: 'bg-[#795548]/8 dark:bg-[#795548]/10 group-hover:bg-[#795548]/18 dark:group-hover:bg-[#795548]/20',
+        };
+      case 'sage': // Sage Botanical
+        return {
+          statsGlow: 'bg-emerald-600/12 dark:bg-emerald-500/14 group-hover:bg-emerald-600/22',
+          itemGlow: 'bg-emerald-600/8 dark:bg-emerald-500/10 group-hover:bg-emerald-600/18 dark:group-hover:bg-emerald-500/20',
+        };
+      case 'ocean': // Deep Ocean
+        return {
+          statsGlow: 'bg-blue-500/14 dark:bg-blue-400/16 group-hover:bg-blue-500/24',
+          itemGlow: 'bg-blue-500/8 dark:bg-blue-400/10 group-hover:bg-blue-500/18 dark:group-hover:bg-blue-400/20',
+        };
+      default: // light / dark (default blue/indigo styles)
+        return {
+          statsGlow: 'bg-indigo-500/12 dark:bg-indigo-400/15 group-hover:bg-indigo-500/22',
+          itemGlow: 'bg-blue-500/8 dark:bg-blue-450/8 group-hover:bg-blue-500/15 dark:group-hover:bg-blue-450/15',
+        };
+    }
+  };
+
+  const glowStyles = getGlowClasses();
 
   // Month names translation helper
   const months = [
@@ -190,7 +220,7 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
         {/* Streamlined Stats Card */}
         <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/50 dark:border-zinc-800/85 p-5 shadow-3xs flex flex-col justify-between relative overflow-hidden group">
           {/* Subtle Dynamic Background Glow - Characteristic for the App */}
-          <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full blur-3xl pointer-events-none bg-indigo-500/12 dark:bg-indigo-400/15 group-hover:bg-indigo-500/22 transition-all duration-500" />
+          <div className={`absolute -right-16 -top-16 w-56 h-56 rounded-full blur-3xl pointer-events-none transition-all duration-500 ${glowStyles.statsGlow}`} />
           
           <div className="flex justify-between items-start gap-4">
             <div>
@@ -242,13 +272,7 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
             <button
               onClick={handleCopyReport}
               disabled={filteredItems.length === 0}
-              className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 active:scale-95 cursor-pointer select-none min-w-[210px] ${
-                filteredItems.length === 0 
-                  ? 'bg-slate-100 dark:bg-zinc-850 text-slate-400 dark:text-zinc-650 border border-transparent cursor-not-allowed'
-                  : reportCopied
-                    ? 'bg-green-500 text-white shadow-md'
-                    : 'bg-blue-600 hover:bg-blue-750 text-white shadow-sm'
-              }`}
+              className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 active:scale-95 cursor-pointer select-none min-w-[210px] theme-copy-report-btn ${reportCopied ? 'copied' : ''}`}
             >
               {reportCopied ? (
                 <>
@@ -449,10 +473,10 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
               return (
                 <div
                   key={item.id}
-                  className="relative overflow-hidden group bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 hover:border-slate-350 dark:hover:border-zinc-700 p-3.5 rounded-2xl flex flex-col justify-between shadow-3xs hover:shadow-xs transition-all duration-300 hover:-translate-y-0.5 aspect-square"
+                  className="relative overflow-hidden group bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-805 hover:border-slate-350 dark:hover:border-zinc-700 p-3.5 rounded-2xl flex flex-col justify-between shadow-3xs hover:shadow-xs transition-all duration-300 hover:-translate-y-0.5 aspect-square"
                 >
                   {/* Absolute Signature Ambient Glow Effect top right, matching the rest of the application */}
-                  <div className="absolute -right-8 -top-8 w-28 h-28 rounded-full bg-blue-500/8 dark:bg-blue-450/8 blur-xl pointer-events-none group-hover:bg-blue-500/15 dark:group-hover:bg-blue-450/15 transition-all duration-500" />
+                  <div className={`absolute -right-8 -top-8 w-28 h-28 rounded-full blur-xl pointer-events-none transition-all duration-500 ${glowStyles.itemGlow}`} />
 
                   {/* Header: Date and Order number */}
                   <div className="flex justify-between items-start gap-1 select-none z-10">

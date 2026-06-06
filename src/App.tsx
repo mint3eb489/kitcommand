@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { onSnapshot, addDoc, updateDoc, doc, deleteDoc, setDoc } from 'firebase/firestore';
+import { onSnapshot, addDoc, updateDoc, doc, deleteDoc, setDoc, deleteField } from 'firebase/firestore';
 import { auth, getDbCollectionRef, getAusarbeitungenCollectionRef, handleFirestoreError, isUserAdmin, ADMIN_EMAILS } from './firebase.ts';
 import { Commission, OperationType, Ausarbeitung, TeammateConfig } from './types.ts';
 import { LoginOverlay } from './components/LoginOverlay.tsx';
@@ -21,7 +21,7 @@ import {
   EditNoteModal,
   ConfirmDeleteModal,
 } from './components/EditModals.tsx';
-import { Search, Plus, Clipboard, ChevronDown, CheckCircle, Flame, X, TrendingUp, Sparkles, Settings, LayoutGrid, LayoutList } from 'lucide-react';
+import { Search, Plus, Clipboard, ChevronDown, CheckCircle, Flame, X, TrendingUp, Sparkles, Settings, LayoutGrid, LayoutList, User as UserIcon } from 'lucide-react';
 
 const INITIAL_DEMO_COMMISSIONS: Commission[] = [
   // 5 running offers (status: 'open', bestellt: false)
@@ -532,6 +532,7 @@ export default function App() {
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [targetProfileEmail, setTargetProfileEmail] = useState<string | null>(null);
   const [customLocalName, setCustomLocalName] = useState<string | null>(null);
 
   // General state for colleague-ordered kitchens (Ausarbeitungen)
@@ -658,6 +659,41 @@ export default function App() {
         sessionStorage.setItem('kk_demo_ausarbeitungen', JSON.stringify(INITIAL_DEMO_AUSARBEITUNGEN));
       }
 
+      // Load demo targets and teammates
+      const storedTeammates = sessionStorage.getItem('kk_demo_teammates');
+      if (storedTeammates) {
+        try {
+          setTeammateConfigs(JSON.parse(storedTeammates));
+        } catch (e) {}
+      } else {
+        const defaultTeammates = [
+          { email: 'gast@fs-kuechen.de', name: 'Gast-Tester', isActive: true }
+        ];
+        setTeammateConfigs(defaultTeammates);
+        sessionStorage.setItem('kk_demo_teammates', JSON.stringify(defaultTeammates));
+      }
+
+      const storedYearlyTargets = sessionStorage.getItem('kk_demo_yearly_targets');
+      if (storedYearlyTargets) {
+        try {
+          setYearlyTargets(JSON.parse(storedYearlyTargets));
+        } catch (e) {}
+      }
+
+      const storedAdminEmails = sessionStorage.getItem('kk_demo_admin_emails');
+      if (storedAdminEmails) {
+        try {
+          setAdminEmails(JSON.parse(storedAdminEmails));
+        } catch (e) {}
+      } else {
+        setAdminEmails(['gast@fs-kuechen.de', 'belmonte@fs-kuechen.de', 'belmonte.enrico@gmail.com']);
+      }
+
+      const storedAnnualTarget = sessionStorage.getItem('kk_demo_annual_target');
+      if (storedAnnualTarget) {
+        setAnnualTarget(parseInt(storedAnnualTarget) || 1500000);
+      }
+
       setSyncStatus('synced');
       return;
     }
@@ -773,11 +809,17 @@ export default function App() {
 
   // Save annual Umsatzziel to Firestore settings document
   const handleSaveAnnualTarget = async (newTarget: number) => {
+    if (sessionStorage.getItem('kk_is_demo_mode') === 'true') {
+      setAnnualTarget(newTarget);
+      sessionStorage.setItem('kk_demo_annual_target', newTarget.toString());
+      return;
+    }
     if (!currentUser) return;
     const colRef = getDbCollectionRef();
     const settingsDocRef = doc(colRef, '_system_settings_');
     try {
       setSyncStatus('connecting');
+      setAnnualTarget(newTarget);
       await setDoc(settingsDocRef, { annualTarget: newTarget }, { merge: true });
       setSyncStatus('synced');
     } catch (error) {
@@ -791,6 +833,15 @@ export default function App() {
 
   // Save yearly target mapping to Firestore settings document
   const handleSaveYearlyTarget = async (year: string, newTarget: number) => {
+    if (sessionStorage.getItem('kk_is_demo_mode') === 'true') {
+      const updatedTargets = {
+        ...yearlyTargets,
+        [year]: newTarget,
+      };
+      setYearlyTargets(updatedTargets);
+      sessionStorage.setItem('kk_demo_yearly_targets', JSON.stringify(updatedTargets));
+      return;
+    }
     if (!currentUser) return;
     const colRef = getDbCollectionRef();
     const settingsDocRef = doc(colRef, '_system_settings_');
@@ -800,6 +851,7 @@ export default function App() {
         ...yearlyTargets,
         [year]: newTarget,
       };
+      setYearlyTargets(updatedTargets);
       await setDoc(settingsDocRef, { yearlyTargets: updatedTargets }, { merge: true });
       setSyncStatus('synced');
     } catch (error) {
@@ -813,6 +865,13 @@ export default function App() {
 
   // Remove yearly target from Firestore settings document
   const handleDeleteYearlyTarget = async (year: string) => {
+    if (sessionStorage.getItem('kk_is_demo_mode') === 'true') {
+      const updatedTargets = { ...yearlyTargets };
+      delete updatedTargets[year];
+      setYearlyTargets(updatedTargets);
+      sessionStorage.setItem('kk_demo_yearly_targets', JSON.stringify(updatedTargets));
+      return;
+    }
     if (!currentUser) return;
     const colRef = getDbCollectionRef();
     const settingsDocRef = doc(colRef, '_system_settings_');
@@ -820,8 +879,11 @@ export default function App() {
       setSyncStatus('connecting');
       const updatedTargets = { ...yearlyTargets };
       delete updatedTargets[year];
-      // Save entire settings to remove the deleted key completely
-      await setDoc(settingsDocRef, { annualTarget, yearlyTargets: updatedTargets });
+      setYearlyTargets(updatedTargets);
+      // Use updateDoc with deleteField to precisely delete only the target key without affecting teammates or adminEmails
+      await updateDoc(settingsDocRef, {
+        [`yearlyTargets.${year}`]: deleteField()
+      });
       setSyncStatus('synced');
     } catch (error) {
       console.error(error);
@@ -831,17 +893,22 @@ export default function App() {
 
   // Update dynamic admin emails list in Firestore
   const handleSaveAdminEmails = async (emails: string[]) => {
+    const cleaned = Array.from(new Set(
+      emails
+        .map(e => e.trim().toLowerCase())
+        .filter(e => e.length > 5) // simple validation
+    ));
+    if (sessionStorage.getItem('kk_is_demo_mode') === 'true') {
+      setAdminEmails(cleaned);
+      sessionStorage.setItem('kk_demo_admin_emails', JSON.stringify(cleaned));
+      return;
+    }
     if (!currentUser) return;
     const colRef = getDbCollectionRef();
     const settingsDocRef = doc(colRef, '_system_settings_');
     try {
       setSyncStatus('connecting');
-      // Sanitize and clean emails
-      const cleaned = Array.from(new Set(
-        emails
-          .map(e => e.trim().toLowerCase())
-          .filter(e => e.length > 5) // simple validation
-      ));
+      setAdminEmails(cleaned);
       await setDoc(settingsDocRef, { adminEmails: cleaned }, { merge: true });
       setSyncStatus('synced');
     } catch (error) {
@@ -855,11 +922,17 @@ export default function App() {
 
   // Update dynamic managed teammates list in Firestore settings
   const handleSaveTeammates = async (updatedTeammates: TeammateConfig[]) => {
+    if (sessionStorage.getItem('kk_is_demo_mode') === 'true') {
+      setTeammateConfigs(updatedTeammates);
+      sessionStorage.setItem('kk_demo_teammates', JSON.stringify(updatedTeammates));
+      return;
+    }
     if (!currentUser) return;
     const colRef = getDbCollectionRef();
     const settingsDocRef = doc(colRef, '_system_settings_');
     try {
       setSyncStatus('connecting');
+      setTeammateConfigs(updatedTeammates);
       await setDoc(settingsDocRef, { teammates: updatedTeammates }, { merge: true });
       setSyncStatus('synced');
     } catch (error) {
@@ -1299,12 +1372,18 @@ export default function App() {
     return email ? adminEmails.includes(email) || email === 'belmonte.enrico@gmail.com' : false;
   }, [currentUser, adminEmails]);
 
-  // Extract all distinct teammate emails currently existing in database
+  // Extract all distinct teammate emails currently existing in database or registered as teammates in admin area
   const allTeammates = useMemo(() => {
     const emails = new Set<string>();
     commissions.forEach((c) => {
       if (c.createdByEmail) {
         emails.add(c.createdByEmail.toLowerCase().trim());
+      }
+    });
+    // Add all registered teammate emails from teammateConfigs so they show up even if they have no commissions booked yet
+    teammateConfigs.forEach((t) => {
+      if (t.email) {
+        emails.add(t.email.toLowerCase().trim());
       }
     });
     // Ensure admin emails or current user's email is present
@@ -1313,7 +1392,7 @@ export default function App() {
       emails.add(email);
     }
     return Array.from(emails).sort();
-  }, [commissions, currentUser]);
+  }, [commissions, currentUser, teammateConfigs]);
 
   // Filter commissions based on who entered them and selected filter perspective (for Admin)
   const filteredCommissions = useMemo(() => {
@@ -1611,39 +1690,63 @@ export default function App() {
 
             {/* Profile Row with names and badges under App Name */}
             {currentUser?.email && (
-              <div className="flex items-center gap-1.5 select-none mt-0.5">
+              <div className="flex items-center justify-center md:justify-start gap-1.5 md:gap-2 select-none mt-1 w-full max-w-full">
+                {/* Two-row Interactive Profile Button with Icon & Hover effect */}
                 <button 
                   onClick={() => setIsProfileOpen(true)}
                   title="Mitarbeiterprofil ansehen"
-                  className="flex items-center gap-1.5 bg-white/95 dark:bg-zinc-900/95 p-1 pl-2.5 pr-2.5 rounded-full border border-slate-200/50 dark:border-zinc-805 shadow-sm leading-none hover:bg-slate-50 dark:hover:bg-zinc-855 cursor-pointer active:scale-95 transition-all text-left text-[10px] font-bold"
+                  className="flex items-center gap-1.5 md:gap-2 bg-white/90 dark:bg-zinc-900/90 hover:bg-slate-50 dark:hover:bg-zinc-850 px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg md:rounded-xl border border-slate-200/60 dark:border-zinc-800/80 shadow-xs hover:border-slate-300 dark:hover:border-zinc-700 cursor-pointer active:scale-95 transition-all duration-200 text-left min-h-[34px] md:min-h-[41px]"
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
-                  <span className="text-slate-705 dark:text-zinc-300 font-sans max-w-[135px] truncate">
-                    {currentUserDisplayName}
-                  </span>
-                  {sessionStorage.getItem('kk_is_demo_mode') === 'true' && (
-                    <span className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[7px] px-1 font-bold rounded uppercase tracking-wider ml-0.5 flex items-center gap-0.5">
-                      <Sparkles className="w-1.5 h-1.5 text-blue-500 shrink-0" />
-                      Demo
+                  {/* Elegant circular user icon with background badge */}
+                  <div className="w-5 h-5 md:w-6.5 md:h-6.5 rounded-md md:rounded-lg bg-blue-500/10 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                    <UserIcon className="w-2.5 h-2.5 md:w-3.5 md:h-3.5 stroke-[2.5]" />
+                  </div>
+                  
+                  {/* Text Column with Label and Dynamic User Display Name */}
+                  <div className="flex flex-col min-w-0 leading-tight">
+                    <span className="text-[7px] md:text-[8px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest block leading-none mb-0.5 select-none">
+                      Benutzerprofil
                     </span>
-                  )}
-                  {isAdmin && (
-                    <span className="bg-amber-500/10 text-amber-600 dark:text-amber-450 text-[7px] px-1 font-bold rounded uppercase tracking-wider ml-0.5">
-                      Admin
-                    </span>
-                  )}
+                    <div className="flex items-center gap-1 md:gap-1.5">
+                      <span className="text-[10px] md:text-[11px] font-black text-slate-800 dark:text-zinc-200 truncate max-w-[70px] xs:max-w-[105px] md:max-w-[135px]">
+                        {currentUserDisplayName}
+                      </span>
+                      {sessionStorage.getItem('kk_is_demo_mode') === 'true' && (
+                        <span className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[6px] md:text-[7px] px-0.5 md:px-1 font-bold rounded uppercase tracking-wider shrink-0 flex items-center gap-0.5">
+                          <Sparkles className="w-1.5 h-1.5 text-blue-500 shrink-0" />
+                          Demo
+                        </span>
+                      )}
+                      {isEnrico ? (
+                        <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 text-[6px] md:text-[7px] px-1 font-bold rounded uppercase tracking-wider shrink-0">
+                          Sys-Admin
+                        </span>
+                      ) : (
+                        isAdmin && (
+                          <span className="bg-amber-500/10 text-amber-600 dark:text-amber-450 text-[6px] md:text-[7px] px-1 font-bold rounded uppercase tracking-wider shrink-0">
+                            Admin
+                          </span>
+                        )
+                      )}
+                    </div>
+                  </div>
                 </button>
                 
-                <div className="flex items-center gap-1.5 bg-white/95 dark:bg-zinc-900/95 p-1 px-2.5 rounded-full border border-slate-200/50 dark:border-zinc-800/80 shadow-sm leading-none">
-                  <span id="status-text" className="text-slate-400 font-extrabold uppercase tracking-wider text-[8px]">
-                    {syncStatus === 'connecting' ? 'Cloud Sync' : syncStatus === 'synced' ? 'Live' : 'Sync'}
-                  </span>
+                {/* Symmetrical Partner-Badge for Database Sync Status */}
+                <div 
+                  className="flex items-center justify-center gap-1.5 md:gap-2 bg-white/90 dark:bg-zinc-900/90 px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg md:rounded-xl border border-slate-200/60 dark:border-zinc-800/80 shadow-xs min-h-[34px] md:min-h-[41px] shrink-0"
+                  title={syncStatus === 'synced' ? 'Echtzeit-Verbindung mit der Cloud ist aktiv' : 'Verbinde mit Cloud-Datenbank...'}
+                >
                   <div
-                    id="status-icon"
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      syncStatus === 'synced' ? 'bg-green-500' : 'bg-blue-500 animate-pulse'
+                    className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ring-2 md:ring-4 shrink-0 transition-all ${
+                      syncStatus === 'synced' 
+                        ? 'bg-green-500 ring-green-500/20' 
+                        : 'bg-blue-500 ring-blue-500/20 animate-pulse'
                     }`}
                   ></div>
+                  <span className="text-[10px] md:text-[11px] font-black text-slate-700 dark:text-zinc-350 select-none">
+                    {syncStatus === 'connecting' ? 'Cloud Sync' : syncStatus === 'synced' ? 'Live' : 'Sync'}
+                  </span>
                 </div>
               </div>
             )}
@@ -2250,6 +2353,7 @@ export default function App() {
               onUpdate={handleUpdateAusarbeitung}
               onDelete={handleDeleteAusarbeitung}
               currentUserEmail={currentUser?.email || undefined}
+              theme={theme}
             />
           )}
 
@@ -2263,6 +2367,7 @@ export default function App() {
               ausarbeitungen={filteredAusarbeitungen}
               currentUserEmail={currentUser?.email || undefined}
               selectedColleague={selectedColleague}
+              theme={theme}
             />
           )}
 
@@ -2281,6 +2386,10 @@ export default function App() {
               onSaveAdminEmails={handleSaveAdminEmails}
               teammates={teammateConfigs}
               onSaveTeammates={handleSaveTeammates}
+              onOpenUserProfile={(email) => {
+                setTargetProfileEmail(email);
+                setIsProfileOpen(true);
+              }}
             />
           )}
 
@@ -2332,7 +2441,10 @@ export default function App() {
 
       <UserProfileModal
         isOpen={isProfileOpen}
-        onClose={() => setIsProfileOpen(false)}
+        onClose={() => {
+          setIsProfileOpen(false);
+          setTargetProfileEmail(null);
+        }}
         currentUser={currentUser}
         currentUserDisplayName={currentUserDisplayName || ''}
         onLogout={handleLogout}
@@ -2346,6 +2458,9 @@ export default function App() {
         }}
         commissions={commissions}
         isAdmin={isAdmin}
+        selectedColleague={selectedColleague}
+        teammates={teammateConfigs}
+        targetProfileEmail={targetProfileEmail}
       />
 
       {/* Error Toast Dialog Overlay */}

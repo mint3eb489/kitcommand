@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Users, Trash2, Calendar, Target, Edit, Shield, UserPlus, CheckCircle, Save, Check, X } from 'lucide-react';
+import { Users, Trash2, Calendar, Target, Edit, Shield, UserPlus, CheckCircle, Save, Check, X, User } from 'lucide-react';
 import { TeammateConfig } from '../types.ts';
 
 interface AdminTabProps {
@@ -20,6 +20,7 @@ interface AdminTabProps {
   onSaveAdminEmails?: (emails: string[]) => Promise<void>;
   teammates?: TeammateConfig[];
   onSaveTeammates?: (teammates: TeammateConfig[]) => Promise<void>;
+  onOpenUserProfile?: (email: string) => void;
 }
 
 export const AdminTab: React.FC<AdminTabProps> = ({
@@ -35,9 +36,9 @@ export const AdminTab: React.FC<AdminTabProps> = ({
   onSaveAdminEmails,
   teammates = [],
   onSaveTeammates,
+  onOpenUserProfile,
 }) => {
   const [targetInput, setTargetInput] = useState('');
-  const [newAdminEmail, setNewAdminEmail] = useState('');
   const [savingAdmins, setSavingAdmins] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -48,10 +49,10 @@ export const AdminTab: React.FC<AdminTabProps> = ({
   const [editingTeammateName, setEditingTeammateName] = useState('');
   const [savingTeammates, setSavingTeammates] = useState(false);
 
-  // States for yearly target administration
-  const [yearInput, setYearInput] = useState(new Date().getFullYear().toString());
-  const [yearlyTargetInput, setYearlyTargetInput] = useState('');
-  const [targetUser, setTargetUser] = useState('all');
+  // States for managing custom teammate targets inside the teammate list
+  const [activeTargetEmail, setActiveTargetEmail] = useState<string | null>(null);
+  const [memberYearInput, setMemberYearInput] = useState(new Date().getFullYear().toString());
+  const [memberTargetInput, setMemberTargetInput] = useState('');
 
   // Sync state initially with fallback target value
   useEffect(() => {
@@ -74,25 +75,6 @@ export const AdminTab: React.FC<AdminTabProps> = ({
       }
     }
     setSaving(false);
-  };
-
-  const handleSaveYearly = async () => {
-    const year = yearInput.trim();
-    if (!year || isNaN(parseInt(year))) return;
-
-    // Convert e.g., "1.200.000" -> number
-    const cleanVal = yearlyTargetInput.replace(/\./g, '').replace(',', '.');
-    const parsed = parseFloat(cleanVal);
-
-    if (!isNaN(parsed) && parsed > 0) {
-      try {
-        const key = targetUser === 'all' ? year : `${targetUser.trim().toLowerCase()}_${year}`;
-        await onSaveYearlyTarget(key, parsed);
-        setYearlyTargetInput('');
-      } catch (err) {
-        console.error('Failed to save yearly target:', err);
-      }
-    }
   };
 
   const formatter = new Intl.NumberFormat('de-DE', {
@@ -152,181 +134,6 @@ export const AdminTab: React.FC<AdminTabProps> = ({
           </div>
         </div>
 
-        {/* Block: Jährliche Ziele hinterlegen */}
-        <div className="relative overflow-hidden isolate bg-white dark:bg-zinc-900 rounded-xl p-5 border border-slate-200 dark:border-zinc-800 shadow-xs transition-all duration-300 group/admin-card hover:border-slate-350 dark:hover:border-zinc-700">
-          {/* Ambient Glow for Admin */}
-          <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full blur-3xl pointer-events-none opacity-0 group-hover/admin-card:opacity-100 transition-opacity duration-500 bg-indigo-500/12 dark:bg-indigo-400/8" />
-          
-          <div className="relative z-10 flex items-center gap-2 mb-3">
-            <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <Calendar className="w-4 h-4" />
-            </div>
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">
-              Jährliche Umsatzziele
-            </h3>
-          </div>
-          <p className="relative z-10 text-[10px] text-slate-400 mb-4">
-            Definiere deine Umsatzziele für einzelne Jahre und Benutzer individuell.
-          </p>
-          
-          <div className="relative z-10 grid grid-cols-1 sm:grid-cols-4 gap-3">
-            <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
-                Benutzer / Verkäufer
-              </label>
-              <select
-                value={targetUser}
-                onChange={(e) => setTargetUser(e.target.value)}
-                className="input-field text-xs bg-slate-50 dark:bg-zinc-950 dark:text-white border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 outline-none"
-              >
-                <option value="all" className="font-bold bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-100">Standard / Gesamtes Team</option>
-                {allTeammates.map((email) => {
-                  const emailLower = email.toLowerCase().trim();
-                  const isAdminUser = adminEmails.includes(emailLower);
-                  const conf = teammates.find(t => t.email.toLowerCase().trim() === emailLower);
-                  
-                  let displayName = '';
-                  if (conf && conf.name.trim()) {
-                    displayName = conf.name;
-                  } else {
-                    const prefix = email.split('@')[0];
-                    displayName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
-                  }
-
-                  return (
-                    <option 
-                      key={email} 
-                      value={email}
-                      className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-100"
-                    >
-                      {isAdminUser ? `★ ${displayName} (${email})` : `${displayName} (${email})`}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
-                Jahr
-              </label>
-              <input
-                type="number"
-                min="2020"
-                max="2100"
-                value={yearInput}
-                onChange={(e) => setYearInput(e.target.value)}
-                className="input-field text-sm font-mono text-left bg-slate-50 dark:bg-zinc-950 dark:text-white h-[38px]"
-                placeholder="z.B. 2026"
-              />
-            </div>
-            
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
-                Ziel (€)
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={yearlyTargetInput}
-                  onChange={(e) => setYearlyTargetInput(e.target.value)}
-                  inputMode="decimal"
-                  className="input-field text-sm font-mono text-left bg-slate-50 dark:bg-zinc-950 dark:text-white flex-1 h-[38px]"
-                  placeholder="z. B. 1.200.000"
-                />
-                <button
-                  onClick={handleSaveYearly}
-                  className="bg-emerald-600 hover:bg-emerald-750 text-white px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-md shadow-emerald-600/20 active:scale-95 transition-all whitespace-nowrap cursor-pointer h-[38px]"
-                >
-                  Speichern
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* List of custom annual budgets */}
-          {Object.keys(yearlyTargets || {}).length > 0 && (
-            <div className="relative z-10 space-y-2 mt-5 pt-5 border-t border-slate-100 dark:border-zinc-800">
-              <h4 className="text-[9px] font-black text-slate-400 dark:text-zinc-500 uppercase tracking-widest mb-3">
-                Eingetragene Jahres-Umsatzziele
-              </h4>
-              <div className="grid grid-cols-1 gap-2">
-                {Object.entries(yearlyTargets)
-                  .sort((a, b) => {
-                    const lastUnderscoreA = a[0].lastIndexOf('_');
-                    const yrA = lastUnderscoreA !== -1 ? a[0].substring(lastUnderscoreA + 1) : a[0];
-                    const lastUnderscoreB = b[0].lastIndexOf('_');
-                    const yrB = lastUnderscoreB !== -1 ? b[0].substring(lastUnderscoreB + 1) : b[0];
-                    
-                    if (yrB !== yrA) {
-                      return yrB.localeCompare(yrA);
-                    }
-                    return a[0].localeCompare(b[0]);
-                  })
-                  .map(([key, val]) => {
-                    const lastUnderscore = key.lastIndexOf('_');
-                    const hasUser = lastUnderscore !== -1;
-                    const yr = hasUser ? key.substring(lastUnderscore + 1) : key;
-                    const email = hasUser ? key.substring(0, lastUnderscore) : null;
-                    
-                    let userLabel = 'Standard (Alle)';
-                    if (email) {
-                      const emailLower = email.toLowerCase().trim();
-                      const conf = teammates.find(t => t.email.toLowerCase().trim() === emailLower);
-                      if (conf && conf.name.trim()) {
-                        userLabel = conf.name;
-                      } else {
-                        const prefix = email.split('@')[0];
-                        userLabel = prefix.charAt(0).toUpperCase() + prefix.slice(1);
-                      }
-                      userLabel = `${userLabel}`;
-                    }
-
-                    return (
-                      <div 
-                        key={key} 
-                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 dark:bg-zinc-950 p-2.5 px-4 rounded-xl border border-slate-100 dark:border-zinc-800/80 hover:border-slate-200 dark:hover:border-zinc-700 transition-colors"
-                      >
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-xs text-slate-800 dark:text-zinc-200">Jahr {yr}</span>
-                            <span className="text-[8px] font-black uppercase text-amber-600 bg-amber-500/10 border border-amber-500/15 px-1.5 py-0.5 rounded select-none">
-                              {userLabel}
-                            </span>
-                          </div>
-                          <span className="text-xs font-black font-mono text-blue-600 dark:text-blue-400">
-                            {formatter.format(val as number)}
-                          </span>
-                        </div>
-                        <div className="flex gap-2 self-end sm:self-auto">
-                          <button
-                            onClick={() => {
-                              setYearInput(yr);
-                              setTargetUser(email || 'all');
-                              setYearlyTargetInput(val.toString());
-                            }}
-                            className="p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-500 hover:text-slate-800 dark:hover:text-zinc-200 bg-white dark:bg-zinc-900 shadow-3xs cursor-pointer active:scale-95 transition-all flex items-center gap-1 text-[9px] uppercase font-bold tracking-wider"
-                            title="Umsatzziel bearbeiten"
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                            <span>Bearbeiten</span>
-                          </button>
-                          <button
-                            onClick={() => onDeleteYearlyTarget(key)}
-                            className="p-1.5 rounded-lg text-red-500 bg-red-500/10 hover:bg-red-500 hover:text-white cursor-pointer active:scale-95 transition-all flex items-center gap-1 text-[9px] uppercase font-bold tracking-wider"
-                            title="Umsatzziel löschen"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            <span>Löschen</span>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-          )}
-        </div>
 
         {/* Team block live members */}
         <div className="relative overflow-hidden isolate bg-white dark:bg-zinc-900 rounded-xl p-5 border border-slate-200 dark:border-zinc-800 shadow-xs transition-all duration-300 group/admin-card hover:border-slate-350 dark:hover:border-zinc-700">
@@ -413,7 +220,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
               Eingetragene Verkäufer & Teammitglieder
             </h4>
             {(() => {
-              // Surface all teammate configurations + auto-detected ones from allTeammates
+              // Surface all teammate configurations + auto-detected ones from allTeammates & adminEmails
               const configuredEmails = teammates.map(t => t.email.toLowerCase().trim());
               const displayList: { email: string; name: string; isActive: boolean; isConfigured: boolean }[] = [
                 ...teammates.map(t => ({ email: t.email, name: t.name, isActive: t.isActive, isConfigured: true }))
@@ -421,8 +228,24 @@ export const AdminTab: React.FC<AdminTabProps> = ({
 
               allTeammates.forEach(email => {
                 const emLower = email.toLowerCase().trim();
-                if (!configuredEmails.includes(emLower)) {
+                const alreadyAdded = displayList.some(d => d.email.toLowerCase().trim() === emLower);
+                if (!alreadyAdded) {
                   // Fallback name
+                  const prefix = emLower.split('@')[0];
+                  const fallbackName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+                  displayList.push({
+                    email: emLower,
+                    name: fallbackName,
+                    isActive: true,
+                    isConfigured: false
+                  });
+                }
+              });
+
+              adminEmails.forEach(email => {
+                const emLower = email.toLowerCase().trim();
+                const alreadyAdded = displayList.some(d => d.email.toLowerCase().trim() === emLower);
+                if (!alreadyAdded) {
                   const prefix = emLower.split('@')[0];
                   const fallbackName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
                   displayList.push({
@@ -440,269 +263,383 @@ export const AdminTab: React.FC<AdminTabProps> = ({
 
               return displayList.map((item) => {
                 const isEditing = editingTeammateEmail === item.email;
-                const isAdminUser = adminEmails.includes(item.email.toLowerCase());
+                const isAdminUser = adminEmails.map(e => e.toLowerCase().trim()).includes(item.email.toLowerCase().trim());
+                const isSystemAdmin = ['belmonte@fs-kuechen.de', 'belmonte.enrico@gmail.com'].includes(item.email.toLowerCase().trim());
+
+                // Unified save function for editing teammate details & target inline
+                const handleSaveEditing = async () => {
+                  const trimmedName = editingTeammateName.trim();
+                  if (!trimmedName || !onSaveTeammates) return;
+                  setSavingTeammates(true);
+                  try {
+                    // 1. Save display name preserving list order
+                    const isAlreadyConfigured = teammates.some(t => t.email.toLowerCase().trim() === item.email.toLowerCase().trim());
+                    let updated;
+                    if (isAlreadyConfigured) {
+                      updated = teammates.map(t => 
+                        t.email.toLowerCase().trim() === item.email.toLowerCase().trim()
+                          ? { ...t, name: trimmedName, isActive: t.isActive ?? true }
+                          : t
+                      );
+                    } else {
+                      updated = [...teammates, { email: item.email.toLowerCase().trim(), name: trimmedName, isActive: item.isActive ?? true }];
+                    }
+                    await onSaveTeammates(updated);
+
+                    // 2. Save yearly target if specified in sliding field
+                    if (activeTargetEmail === item.email) {
+                      const yr = memberYearInput.trim();
+                      if (yr && !isNaN(parseInt(yr))) {
+                        const cleanVal = memberTargetInput.replace(/\./g, '').replace(',', '.');
+                        const parsed = parseFloat(cleanVal);
+                        const key = `${item.email.toLowerCase().trim()}_${yr}`;
+
+                        const currentTargetExists = yearlyTargets && yearlyTargets[key] !== undefined;
+
+                        if (!isNaN(parsed) && parsed > 0) {
+                          await onSaveYearlyTarget(key, parsed);
+                        } else if ((memberTargetInput.trim() === '' || parsed === 0) && currentTargetExists) {
+                          await onDeleteYearlyTarget(key);
+                        }
+                      }
+                    }
+
+                    setEditingTeammateEmail(null);
+                    setActiveTargetEmail(null);
+                  } catch (err) {
+                    console.error('Unified save error:', err);
+                  } finally {
+                    setSavingTeammates(false);
+                  }
+                };
 
                 return (
                   <div 
                     key={item.email}
-                    className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-slate-50 dark:bg-zinc-950 p-3 px-4 rounded-xl border transition-all duration-300 ${
+                    className={`flex flex-col bg-slate-50 dark:bg-zinc-950 rounded-xl border transition-all duration-300 ${
                       item.isActive ? 'border-slate-100 dark:border-zinc-800/80 hover:border-slate-200 dark:hover:border-zinc-700' : 'border-slate-200/40 dark:border-zinc-900 opacity-60'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <div className="relative shrink-0 select-none">
-                        <div className="w-8 h-8 rounded-full bg-slate-250 dark:bg-zinc-850 flex items-center justify-center text-[10.5px] font-black text-slate-600 dark:text-zinc-400 uppercase">
-                          {item.name.charAt(0)}
+                    {/* Main Teammate row */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 px-4 min-h-[56px]">
+                      {/* Left: Avatar + Name / Edit Name input */}
+                      <div 
+                        onClick={() => {
+                          if (!isEditing && onOpenUserProfile) {
+                            onOpenUserProfile(item.email);
+                          }
+                        }}
+                        className={`flex items-center gap-2.5 min-w-0 flex-1 ${!isEditing && onOpenUserProfile ? 'cursor-pointer group/item select-none' : ''}`}
+                        title={!isEditing && onOpenUserProfile ? `Klicken, um das Mitarbeiterprofil von ${item.name} anzuzeigen` : undefined}
+                      >
+                        <div className="relative shrink-0 select-none">
+                          <div className="w-8 h-8 rounded-full bg-slate-250 dark:bg-zinc-850 flex items-center justify-center text-[10.5px] font-black text-slate-600 dark:text-zinc-400 uppercase transition-all group-hover/item:scale-105 group-hover/item:ring-2 group-hover/item:ring-indigo-500/35">
+                            {item.name.charAt(0)}
+                          </div>
+                          <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-zinc-950 ${item.isActive ? 'bg-green-500' : 'bg-slate-400'}`}></span>
                         </div>
-                        <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-zinc-950 ${item.isActive ? 'bg-green-500' : 'bg-slate-400'}`}></span>
+
+                        <div className="min-w-0 flex-1">
+                          {isEditing ? (
+                            <div className="flex gap-1 items-center mt-0.5" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="text"
+                                value={editingTeammateName}
+                                onChange={(e) => setEditingTeammateName(e.target.value)}
+                                onKeyDown={async (e) => {
+                                  if (e.key === 'Enter') {
+                                    await handleSaveEditing();
+                                  } else if (e.key === 'Escape') {
+                                    setEditingTeammateEmail(null);
+                                    setActiveTargetEmail(null);
+                                  }
+                                }}
+                                className="input-field text-xs bg-white dark:bg-zinc-900 border-slate-300 dark:border-zinc-800 px-2 py-1 h-7 border rounded text-left active:border-blue-500 focus:border-blue-500 w-full max-w-[160px]"
+                                placeholder="Anzeigename"
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-xs font-black text-slate-800 dark:text-zinc-200 group-hover/item:text-indigo-650 dark:group-hover/item:text-indigo-400 transition-colors">
+                                {item.name}
+                              </span>
+                              {!item.isConfigured ? (
+                                <span className="text-[7px] font-black uppercase text-slate-400 bg-slate-100 dark:bg-zinc-900 border border-slate-200/50 px-1 rounded select-none">
+                                  Auto-erfasst
+                                </span>
+                              ) : null}
+                              {isAdminUser && (
+                                <span className={`text-[7.5px] font-black uppercase px-1 rounded select-none ${isSystemAdmin ? 'text-indigo-600 bg-indigo-500/10 border border-indigo-500/20' : 'text-amber-600 bg-amber-500/10 border border-amber-500/20'}`}>
+                                  {isSystemAdmin ? 'Sys-Admin' : 'Admin'}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          <p className="text-[10px] font-mono text-slate-400 dark:text-zinc-500 truncate mt-0.5 select-all" onClick={(e) => e.stopPropagation()}>
+                            {item.email}
+                          </p>
+                        </div>
                       </div>
 
-                      <div className="min-w-0 flex-1">
+                      {/* Middle: Side-sliding targets panel */}
+                      <div className={`overflow-hidden transition-all duration-300 flex items-center shrink-0 ${
+                        activeTargetEmail === item.email 
+                          ? 'max-w-[340px] opacity-100 mx-1 md:mx-3' 
+                          : 'max-w-0 opacity-0 pointer-events-none'
+                      }`}>
                         {isEditing ? (
-                          <div className="flex gap-1 items-center mt-0.5">
+                          <div className="flex items-center gap-1.5 bg-blue-50/50 dark:bg-zinc-900/50 border border-blue-150 dark:border-zinc-800/85 p-1 px-1.5 rounded-lg">
+                            <span className="text-[9px] font-black uppercase text-blue-600 dark:text-blue-400 select-none">Ziel:</span>
+                            <input
+                              type="number"
+                              min="2020"
+                              max="2100"
+                              value={memberYearInput}
+                              onChange={(e) => setMemberYearInput(e.target.value)}
+                              onKeyDown={async (e) => {
+                                if (e.key === 'Enter') await handleSaveEditing();
+                                else if (e.key === 'Escape') {
+                                  setEditingTeammateEmail(null);
+                                  setActiveTargetEmail(null);
+                                }
+                              }}
+                              className="input-field text-xs font-mono w-[64px] bg-white dark:bg-zinc-950 border-slate-300 dark:border-zinc-800 h-7 text-center rounded px-1 focus:border-blue-500"
+                              placeholder="Jahr"
+                            />
                             <input
                               type="text"
-                              value={editingTeammateName}
-                              onChange={(e) => setEditingTeammateName(e.target.value)}
-                              className="input-field text-xs bg-white dark:bg-zinc-900 border-slate-300 dark:border-zinc-800 px-2 py-1 h-7 border rounded text-left"
-                              placeholder="Anzeigename"
+                              value={memberTargetInput}
+                              onChange={(e) => setMemberTargetInput(e.target.value)}
                               onKeyDown={async (e) => {
-                                if (e.key === 'Enter') {
-                                  const trimmedName = editingTeammateName.trim();
-                                  if (!trimmedName || !onSaveTeammates) return;
+                                if (e.key === 'Enter') await handleSaveEditing();
+                                else if (e.key === 'Escape') {
+                                  setEditingTeammateEmail(null);
+                                  setActiveTargetEmail(null);
+                                }
+                              }}
+                              inputMode="decimal"
+                              className="input-field text-xs font-mono w-[110px] bg-white dark:bg-zinc-950 border-slate-300 dark:border-zinc-800 h-7 text-right rounded px-1 focus:border-blue-500"
+                              placeholder="Umsatz in €"
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {(() => {
+                              const mEmail = item.email.toLowerCase().trim();
+                              const mTargets = Object.entries(yearlyTargets)
+                                .filter(([key]) => key.startsWith(`${mEmail}_`))
+                                .map(([key, val]) => {
+                                  const yr = key.substring(mEmail.length + 1);
+                                  return { key, year: yr, value: val as number };
+                                })
+                                .sort((a, b) => b.year.localeCompare(a.year));
+
+                              if (mTargets.length === 0) {
+                                return <span className="text-[10px] text-slate-400 dark:text-zinc-500 italic py-1 whitespace-nowrap">Standardziel gilt</span>;
+                              }
+
+                              return mTargets.map((tgt) => (
+                                <div 
+                                  key={tgt.key}
+                                  className="flex items-center gap-1 bg-blue-500/10 dark:bg-blue-500/5 text-blue-700 dark:text-blue-400 border border-blue-500/15 p-0.5 px-2 rounded-lg text-[9px] font-black whitespace-nowrap"
+                                >
+                                  <span>{tgt.year}: {formatter.format(tgt.value)}</span>
+                                  <button
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      await onDeleteYearlyTarget(tgt.key);
+                                    }}
+                                    className="p-0.5 text-blue-600 hover:text-red-500 rounded hover:bg-slate-200 dark:hover:bg-zinc-850 cursor-pointer ml-0.5"
+                                    title="Dieses Umsatzziel löschen"
+                                  >
+                                    <X className="w-2.5 h-2.5" />
+                                  </button>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right: Actions */}
+                      <div className="flex items-center gap-1.5 sm:self-center self-end shrink-0 flex-wrap">
+                        {isEditing ? (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={handleSaveEditing}
+                              className="p-1 px-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer active:scale-95 transition-all"
+                              title="Speichern"
+                            >
+                              <Check className="w-3 h-3" />
+                              <span>Speichern</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingTeammateEmail(null);
+                                setActiveTargetEmail(null);
+                              }}
+                              className="p-1 px-2.5 rounded-lg bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-300 text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer active:scale-95 transition-all"
+                              title="Abbrechen"
+                            >
+                              <X className="w-3 h-3" />
+                              <span>Abbrechen</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            {/* Profile View button */}
+                            {onOpenUserProfile && (
+                              <button
+                                onClick={() => onOpenUserProfile(item.email)}
+                                className="flex items-center gap-1 p-1 px-2.5 rounded-lg border border-indigo-200/50 dark:border-indigo-850/50 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100/80 dark:hover:bg-indigo-900/40 text-[9px] font-black uppercase tracking-wider transition-all duration-200 cursor-pointer active:scale-95"
+                                title={`Mitarbeiterprofil von ${item.name} anzeigen`}
+                              >
+                                <User className="w-3 h-3" />
+                                <span>Profil</span>
+                              </button>
+                            )}
+
+                            {/* Target management button */}
+                            <button
+                              onClick={() => {
+                                if (activeTargetEmail === item.email) {
+                                  setActiveTargetEmail(null);
+                                } else {
+                                  setActiveTargetEmail(item.email);
+                                  setMemberYearInput(new Date().getFullYear().toString());
+                                  // Prefill target value for the current year
+                                  const tKey = `${item.email.toLowerCase().trim()}_${new Date().getFullYear()}`;
+                                  const activeTVal = yearlyTargets[tKey];
+                                  setMemberTargetInput(activeTVal ? activeTVal.toString() : '');
+                                }
+                              }}
+                              className={`flex items-center gap-1 p-1 px-2.5 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                                activeTargetEmail === item.email
+                                  ? 'bg-blue-600 border-blue-650 text-white hover:bg-blue-700 font-bold shadow-xs'
+                                  : 'bg-slate-100/85 dark:bg-zinc-900 border-slate-200/60 dark:border-zinc-800/80 text-slate-500 hover:text-slate-700 dark:hover:text-zinc-200 dark:hover:bg-zinc-800'
+                              }`}
+                              title="Umsatz-Ziele einblenden / verwalten"
+                            >
+                              <Target className="w-3 h-3" />
+                              <span>Ziele</span>
+                            </button>
+
+                            {/* Admin/Role Toggle */}
+                            {onSaveAdminEmails && (
+                              <button
+                                onClick={async () => {
+                                  if (savingAdmins || isSystemAdmin) return;
+                                  setSavingAdmins(true);
+                                  try {
+                                    let updatedAdmins;
+                                    if (isAdminUser) {
+                                      updatedAdmins = adminEmails.filter(e => e.toLowerCase().trim() !== item.email.toLowerCase().trim());
+                                    } else {
+                                      updatedAdmins = Array.from(new Set([...adminEmails, item.email.toLowerCase().trim()]));
+                                    }
+                                    await onSaveAdminEmails(updatedAdmins);
+                                  } catch (err) {
+                                    console.error('Failed to change admin permissions:', err);
+                                  } finally {
+                                    setSavingAdmins(false);
+                                  }
+                                }}
+                                disabled={savingAdmins || isSystemAdmin}
+                                className={`flex items-center gap-1 p-1 px-2.5 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                                  isSystemAdmin
+                                    ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400 opacity-75'
+                                    : isAdminUser
+                                      ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/15'
+                                      : 'bg-slate-100/85 dark:bg-zinc-900 border-slate-200/60 dark:border-zinc-800/80 text-slate-500 hover:text-slate-705 dark:hover:text-zinc-200 dark:hover:bg-zinc-800'
+                                }`}
+                                title={
+                                  isSystemAdmin
+                                    ? 'System-Administrator (Rechte unentziehbar)'
+                                    : isAdminUser
+                                      ? 'Admin-Rechte entziehen'
+                                      : 'Admin-Rechte gewähren'
+                                }
+                              >
+                                <Shield className="w-3 h-3" />
+                                <span>{isAdminUser ? (isSystemAdmin ? 'Sys-Admin' : 'Admin') : 'Verkäufer'}</span>
+                              </button>
+                            )}
+
+                            {/* Active Toggle Button */}
+                            {item.isConfigured && (
+                              <button
+                                onClick={async () => {
+                                  if (!onSaveTeammates || savingTeammates) return;
                                   setSavingTeammates(true);
                                   try {
-                                    const existing = teammates.filter(t => t.email.toLowerCase().trim() !== item.email);
-                                    const updated = [...existing, { email: item.email, name: trimmedName, isActive: item.isActive }];
+                                    const existing = teammates.filter(t => t.email.toLowerCase().trim() !== item.email.toLowerCase().trim());
+                                    const updated = [...existing, { email: item.email.toLowerCase().trim(), name: item.name, isActive: !item.isActive }];
                                     await onSaveTeammates(updated);
-                                    setEditingTeammateEmail(null);
                                   } catch (err) {
                                     console.error(err);
                                   } finally {
                                     setSavingTeammates(false);
                                   }
-                                } else if (e.key === 'Escape') {
-                                  setEditingTeammateEmail(null);
-                                }
-                              }}
-                            />
-                            <button
-                              onClick={async () => {
-                                const trimmedName = editingTeammateName.trim();
-                                if (!trimmedName || !onSaveTeammates) return;
-                                setSavingTeammates(true);
-                                try {
-                                  const existing = teammates.filter(t => t.email.toLowerCase().trim() !== item.email);
-                                  const updated = [...existing, { email: item.email, name: trimmedName, isActive: item.isActive }];
-                                  await onSaveTeammates(updated);
-                                  setEditingTeammateEmail(null);
-                                } catch (err) {
-                                  console.error(err);
-                                } finally {
-                                  setSavingTeammates(false);
-                                }
-                              }}
-                              className="p-1 text-green-600 hover:bg-green-500/10 rounded cursor-pointer"
-                              title="Speichern"
-                            >
-                              <Check className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => setEditingTeammateEmail(null)}
-                              className="p-1 text-red-500 hover:bg-red-500/10 rounded cursor-pointer"
-                              title="Abbrechen"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-xs font-black text-slate-800 dark:text-zinc-200">
-                              {item.name}
-                            </span>
-                            {!item.isConfigured ? (
-                              <span className="text-[7px] font-black uppercase text-slate-400 bg-slate-100 dark:bg-zinc-900 border border-slate-200/50 px-1 rounded select-none">
-                                Auto-erfasst
-                              </span>
-                            ) : null}
-                            {isAdminUser && (
-                              <span className="text-[7.5px] font-black uppercase text-amber-600 bg-amber-500/10 border border-amber-500/20 px-1 rounded select-none">
-                                Admin
-                              </span>
+                                }}
+                                className={`p-1 px-2.5 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                                  item.isActive 
+                                    ? 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400 hover:bg-green-500/20' 
+                                    : 'bg-zinc-500/10 border-zinc-500/20 text-zinc-500 hover:bg-zinc-200'
+                                }`}
+                                title={item.isActive ? "Inaktiv schalten" : "Aktiv schalten"}
+                              >
+                                {item.isActive ? 'Aktiv' : 'Inaktiv'}
+                              </button>
                             )}
-                          </div>
+
+                            {/* Edit Button */}
+                            <button
+                              onClick={() => {
+                                setEditingTeammateEmail(item.email);
+                                setEditingTeammateName(item.name);
+                                // Also auto-open goals to edit both inline!
+                                setActiveTargetEmail(item.email);
+                                const defaultYr = new Date().getFullYear().toString();
+                                setMemberYearInput(defaultYr);
+                                const mKey = `${item.email.toLowerCase().trim()}_${defaultYr}`;
+                                const activeTVal = yearlyTargets[mKey];
+                                setMemberTargetInput(activeTVal ? activeTVal.toString() : '');
+                              }}
+                              className="p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-500 hover:text-slate-800 dark:hover:text-zinc-200 bg-white dark:bg-zinc-900 hover:border-slate-350 cursor-pointer active:scale-95 transition-all"
+                              title="Anzeigename & Umsatzziel bearbeiten"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Delete Button */}
+                            {item.isConfigured && (
+                              <button
+                                onClick={async () => {
+                                  if (!onSaveTeammates || savingTeammates) return;
+                                  setSavingTeammates(true);
+                                  try {
+                                    const updated = teammates.filter(t => t.email.toLowerCase().trim() !== item.email.toLowerCase().trim());
+                                    await onSaveTeammates(updated);
+                                  } catch (err) {
+                                    console.error(err);
+                                  } finally {
+                                    setSavingTeammates(false);
+                                  }
+                                }}
+                                className="p-1.5 rounded-lg text-red-500 bg-red-500/10 hover:bg-red-500 hover:text-white cursor-pointer active:scale-95 transition-all"
+                                title="Aus Verwaltung entfernen"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </>
                         )}
-                        <p className="text-[10px] font-mono text-slate-400 dark:text-zinc-500 truncate mt-0.5 select-all">
-                          {item.email}
-                        </p>
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 sm:self-center self-end shrink-0">
-                      {/* Active Toggle Button */}
-                      {item.isConfigured && (
-                        <button
-                          onClick={async () => {
-                            if (!onSaveTeammates || savingTeammates) return;
-                            setSavingTeammates(true);
-                            try {
-                              const existing = teammates.filter(t => t.email.toLowerCase().trim() !== item.email);
-                              const updated = [...existing, { email: item.email, name: item.name, isActive: !item.isActive }];
-                              await onSaveTeammates(updated);
-                            } catch (err) {
-                              console.error(err);
-                            } finally {
-                              setSavingTeammates(false);
-                            }
-                          }}
-                          className={`p-1 px-2.5 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                            item.isActive 
-                              ? 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400 hover:bg-green-500/20' 
-                              : 'bg-zinc-500/10 border-zinc-500/20 text-zinc-500 hover:bg-zinc-200'
-                          }`}
-                          title={item.isActive ? "Inaktiv schalten" : "Aktiv schalten"}
-                        >
-                          {item.isActive ? 'Aktiv' : 'Inaktiv'}
-                        </button>
-                      )}
-
-                      {/* Edit Button */}
-                      {!isEditing && (
-                        <button
-                          onClick={() => {
-                            setEditingTeammateEmail(item.email);
-                            setEditingTeammateName(item.name);
-                          }}
-                          className="p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-500 hover:text-slate-800 dark:hover:text-zinc-200 bg-white dark:bg-zinc-900 hover:border-slate-350 cursor-pointer active:scale-95 transition-all"
-                          title="Anzeigenamen anpassen"
-                        >
-                          <Edit className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-
-                      {/* Delete configured teammate button */}
-                      {item.isConfigured && (
-                        <button
-                          onClick={async () => {
-                            if (!onSaveTeammates || savingTeammates) return;
-                            setSavingTeammates(true);
-                            try {
-                              const updated = teammates.filter(t => t.email.toLowerCase().trim() !== item.email);
-                              await onSaveTeammates(updated);
-                            } catch (err) {
-                              console.error(err);
-                            } finally {
-                              setSavingTeammates(false);
-                            }
-                          }}
-                          className="p-1.5 rounded-lg text-red-500 bg-red-500/10 hover:bg-red-500 hover:text-white cursor-pointer active:scale-95 transition-all"
-                          title="Aus Verwaltung entfernen"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
                     </div>
                   </div>
                 );
               });
             })()}
-          </div>
-        </div>
-
-        {/* Block: Administrator-Rechte verwalten */}
-        <div className="relative overflow-hidden isolate bg-white dark:bg-zinc-900 rounded-xl p-5 border border-slate-200 dark:border-zinc-800 shadow-xs transition-all duration-300 group/admin-card hover:border-slate-350 dark:hover:border-zinc-700">
-          <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full blur-3xl pointer-events-none opacity-0 group-hover/admin-card:opacity-100 transition-opacity duration-500 bg-amber-500/10 dark:bg-amber-400/5" />
-          
-          <div className="relative z-10 flex items-center gap-2 mb-3">
-            <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
-              <Shield className="w-4 h-4" />
-            </div>
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">
-              Admin-Rechte verwalten
-            </h3>
-          </div>
-          
-          <p className="relative z-10 text-[10px] text-slate-500 dark:text-slate-400 mb-4 leading-relaxed">
-            Hinterlege hier die E-Mail-Adressen von Teammitgliedern, die vollen Administrator-Zugriff (alle Statistiken, alle Verkäufe und Einstellungen) erhalten sollen.
-          </p>
-
-          <div className="relative z-10 flex gap-2">
-            <input
-              type="email"
-              value={newAdminEmail}
-              onChange={(e) => setNewAdminEmail(e.target.value)}
-              className="input-field text-sm font-mono text-left bg-slate-50 dark:bg-zinc-950 dark:text-white flex-1"
-              placeholder="z. B. kollege@fs-kuechen.de"
-            />
-            <button
-              onClick={async () => {
-                const target = newAdminEmail.trim().toLowerCase();
-                if (!target || !target.includes('@') || savingAdmins) return;
-                setSavingAdmins(true);
-                try {
-                  const updatedAdmins = Array.from(new Set([...adminEmails, target]));
-                  if (onSaveAdminEmails) {
-                    await onSaveAdminEmails(updatedAdmins);
-                  }
-                  setNewAdminEmail('');
-                } catch (e) {
-                  console.error(e);
-                } finally {
-                  setSavingAdmins(false);
-                }
-              }}
-              disabled={savingAdmins}
-              className="bg-amber-500 hover:bg-amber-600 text-white px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-md shadow-amber-500/15 cursor-pointer disabled:opacity-50"
-            >
-              Hinzufügen
-            </button>
-          </div>
-
-          <div className="relative z-10 space-y-2 mt-5 pt-5 border-t border-slate-100 dark:border-zinc-800">
-            <h4 className="text-[9px] font-black text-slate-400 dark:text-zinc-500 uppercase tracking-widest mb-3">
-              Aktive Administratoren ({adminEmails.length})
-            </h4>
-            <div className="grid grid-cols-1 gap-2">
-              {adminEmails.map((email) => {
-                const isSystemAdmin = ['belmonte@fs-kuechen.de', 'belmonte.enrico@gmail.com'].includes(email.toLowerCase());
-                return (
-                  <div 
-                    key={email}
-                    className="flex justify-between items-center bg-slate-50 dark:bg-zinc-950 p-2.5 px-4 rounded-xl border border-slate-100 dark:border-zinc-800/80"
-                  >
-                    <span className="text-xs font-bold text-slate-800 dark:text-zinc-200 font-mono truncate mr-2">
-                      {email}
-                    </span>
-                    {isSystemAdmin ? (
-                      <span className="text-[8px] font-black uppercase text-slate-450 px-2 py-1 select-none">
-                        System / Inhaber
-                      </span>
-                    ) : (
-                      <button
-                        onClick={async () => {
-                          if (savingAdmins) return;
-                          setSavingAdmins(true);
-                          try {
-                            const updatedAdmins = adminEmails.filter(e => e.toLowerCase() !== email.toLowerCase());
-                            if (onSaveAdminEmails) {
-                              await onSaveAdminEmails(updatedAdmins);
-                            }
-                          } catch (e) {
-                            console.error(e);
-                          } finally {
-                            setSavingAdmins(false);
-                          }
-                        }}
-                        className="p-1.5 rounded-lg text-red-500 bg-red-500/10 hover:bg-red-500 hover:text-white cursor-pointer active:scale-95 transition-all text-[9px] uppercase font-bold tracking-wider"
-                        title="Entziehen"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
           </div>
         </div>
       </div>

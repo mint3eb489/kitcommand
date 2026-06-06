@@ -92,7 +92,7 @@ export const AddCommissionModal: React.FC<AddCommissionModalProps> = ({
                 onChange={() => setBauart('bestand')}
                 className="peer sr-only"
               />
-              <div className="px-2 py-2.5 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-widest text-slate-400 hover:bg-white dark:hover:bg-zinc-900 peer-checked:bg-blue-600 peer-checked:text-white transition-all text-center select-none">
+              <div className="px-2 py-2.5 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-widest text-slate-400 hover:bg-white dark:hover:bg-zinc-900 theme-radio-tab-label transition-all text-center select-none">
                 Bestand
               </div>
             </label>
@@ -105,7 +105,7 @@ export const AddCommissionModal: React.FC<AddCommissionModalProps> = ({
                 onChange={() => setBauart('neubau')}
                 className="peer sr-only"
               />
-              <div className="px-2 py-2.5 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-widest text-slate-400 hover:bg-white dark:hover:bg-zinc-900 peer-checked:bg-blue-600 peer-checked:text-white transition-all text-center select-none">
+              <div className="px-2 py-2.5 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-widest text-slate-400 hover:bg-white dark:hover:bg-zinc-900 theme-radio-tab-label transition-all text-center select-none">
                 Neubau
               </div>
             </label>
@@ -130,7 +130,7 @@ export const AddCommissionModal: React.FC<AddCommissionModalProps> = ({
           <button
             type="submit"
             disabled={saving}
-            className="bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-600/20 active:scale-95 transition-all w-full mt-4 cursor-pointer disabled:opacity-50"
+            className="theme-submit-btn text-white py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all w-full mt-4 cursor-pointer disabled:opacity-50"
           >
             {saving ? 'Speichert...' : 'Speichern'}
           </button>
