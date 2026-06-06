@@ -473,7 +473,7 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
               return (
                 <div
                   key={item.id}
-                  className="relative overflow-hidden group bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-805 hover:border-slate-350 dark:hover:border-zinc-700 p-3.5 rounded-2xl flex flex-col justify-between shadow-3xs hover:shadow-xs transition-all duration-300 hover:-translate-y-0.5 aspect-square"
+                  className="relative overflow-hidden group bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-805 hover:border-slate-350 dark:hover:border-zinc-700 p-3 rounded-xl flex flex-col justify-between shadow-3xs hover:shadow-xs transition-all duration-300 hover:-translate-y-0.5 min-h-[110px] md:min-h-[118px]"
                 >
                   {/* Absolute Signature Ambient Glow Effect top right, matching the rest of the application */}
                   <div className={`absolute -right-8 -top-8 w-28 h-28 rounded-full blur-xl pointer-events-none transition-all duration-500 ${glowStyles.itemGlow}`} />
@@ -489,14 +489,14 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
                   </div>
 
                   {/* Body Content / Kunde / Commission */}
-                  <div className="my-auto py-1 z-10 text-left">
-                    <h4 className="font-extrabold text-sm text-slate-900 dark:text-zinc-50 leading-snug tracking-tight line-clamp-2">
+                  <div className="my-1.5 z-10 text-left">
+                    <h4 className="font-extrabold text-xs md:text-sm text-slate-900 dark:text-zinc-50 leading-snug tracking-tight line-clamp-1">
                       {item.customerName}
                     </h4>
                   </div>
 
                   {/* Footer: Price & Quick Action controls (pencil, trash) */}
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-zinc-850 z-10">
+                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-zinc-850 z-10">
                     <div className="flex flex-col items-start leading-none">
                       <span className="text-xs font-black text-blue-600 dark:text-blue-400">
                         {formatter.format(item.price)}
@@ -511,14 +511,14 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
                     <div className="flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => startEditing(item)}
-                        className="w-6 h-6 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-zinc-950 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-400 transition cursor-pointer"
+                        className="w-5.5 h-5.5 flex items-center justify-center rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-zinc-950 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-400 transition cursor-pointer"
                         title="Bearbeiten"
                       >
                         <Pencil className="w-2.5 h-2.5" />
                       </button>
                       <button
                         onClick={() => onDelete(item.id)}
-                        className="w-6 h-6 flex items-center justify-center rounded-lg bg-red-550/10 hover:bg-red-550/20 text-red-600 dark:text-red-400 transition cursor-pointer"
+                        className="w-5.5 h-5.5 flex items-center justify-center rounded-md bg-red-550/10 hover:bg-red-550/20 text-red-600 dark:text-red-400 transition cursor-pointer"
                         title="Löschen"
                       >
                         <Trash2 className="w-2.5 h-2.5" />

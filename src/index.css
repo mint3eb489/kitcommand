@@ -204,12 +204,12 @@
 
   --theme-glow-bg: rgba(78, 168, 222, 0.25);
 
-  --theme-tabs-bg: rgba(78, 168, 222, 0.15);
-  --theme-tabs-border: rgba(78, 168, 222, 0.3);
-  --theme-tabs-color: #8D99AE;
-  --theme-tabs-color-hover: #EDF2F4;
+  --theme-tabs-bg: rgba(78, 168, 222, 0.2);
+  --theme-tabs-border: rgba(78, 168, 222, 0.45);
+  --theme-tabs-color: #4EA8DE;
+  --theme-tabs-color-hover: #ffffff;
   --theme-tabs-active-bg: #EDF2F4;
-  --theme-tabs-active-color: #1C2541;
+  --theme-tabs-active-color: #0B132B;
 
   --theme-checkbox-accent: #4EA8DE;
 
@@ -437,7 +437,8 @@
 }
 
 :where(.theme-sage, .theme-ocean, .theme-wood) #app-navigation-tabs button[class*="bg-white"],
-:where(.theme-sage, .theme-ocean, .theme-wood) #app-navigation-tabs button[class*="bg-zinc-800"] {
+:where(.theme-sage, .theme-ocean, .theme-wood) #app-navigation-tabs button[class*="bg-zinc-800"],
+:where(.theme-sage, .theme-ocean, .theme-wood) #app-navigation-tabs button.is-active-tab {
   background-color: var(--theme-tabs-active-bg) !important;
   color: var(--theme-tabs-active-color) !important;
   font-weight: 900 !important;
@@ -1006,6 +1007,76 @@ input:-webkit-autofill:active {
   background-color: rgba(211, 84, 0, 0.09) !important;
   color: #d35400 !important;
   border-color: rgba(211, 84, 0, 0.22) !important;
+}
+
+/* Custom Header Profile & Sync Status button theme overrides to match active tab style colors */
+:where(.theme-sage, .theme-ocean, .theme-wood) #header-user-profile-btn,
+:where(.theme-sage, .theme-ocean, .theme-wood) #header-sync-status-btn {
+  background-color: var(--theme-tabs-active-bg) !important;
+  border-color: var(--theme-tabs-border) !important;
+  color: var(--theme-tabs-active-color) !important;
+}
+
+:where(.theme-sage, .theme-ocean, .theme-wood) #header-user-profile-btn:hover,
+:where(.theme-sage, .theme-ocean, .theme-wood) #header-sync-status-btn:hover {
+  opacity: 0.9;
+}
+
+/* Base icon colors */
+:where(.theme-sage, .theme-ocean, .theme-wood) #header-user-profile-btn .user-icon-wrapper {
+  background-color: var(--theme-tabs-border) !important;
+  color: var(--theme-tabs-active-color) !important;
+}
+
+:where(.theme-sage, .theme-ocean, .theme-wood) #header-user-profile-btn .user-icon-wrapper svg {
+  color: var(--theme-tabs-active-color) !important;
+}
+
+:where(.theme-sage, .theme-ocean, .theme-wood) #header-user-profile-btn .profile-label {
+  color: var(--theme-tabs-active-color) !important;
+  opacity: 0.7;
+}
+
+:where(.theme-sage, .theme-ocean, .theme-wood) #header-user-profile-btn .profile-name {
+  color: var(--theme-tabs-active-color) !important;
+}
+
+:where(.theme-sage, .theme-ocean, .theme-wood) #header-sync-status-btn .status-text {
+  color: var(--theme-tabs-active-color) !important;
+}
+
+/* Dedicated original styled badges for header user profile across all themes */
+#header-user-profile-btn .profile-badge.profile-badge-purp {
+  background-color: rgba(139, 92, 246, 0.15) !important;
+  color: #8b5cf6 !important;
+  border-color: rgba(139, 92, 246, 0.25) !important;
+}
+.dark #header-user-profile-btn .profile-badge.profile-badge-purp {
+  background-color: rgba(167, 139, 250, 0.15) !important;
+  color: #c084fc !important;
+  border-color: rgba(167, 139, 250, 0.25) !important;
+}
+
+#header-user-profile-btn .profile-badge.profile-badge-amb {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+  color: #d97706 !important;
+  border-color: rgba(245, 158, 11, 0.25) !important;
+}
+.dark #header-user-profile-btn .profile-badge.profile-badge-amb {
+  background-color: rgba(251, 191, 36, 0.15) !important;
+  color: #fbbf24 !important;
+  border-color: rgba(251, 191, 36, 0.25) !important;
+}
+
+#header-user-profile-btn .profile-badge.profile-badge-blu {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+  color: #2563eb !important;
+  border-color: rgba(59, 130, 246, 0.25) !important;
+}
+.dark #header-user-profile-btn .profile-badge.profile-badge-blu {
+  background-color: rgba(96, 165, 250, 0.15) !important;
+  color: #60a5fa !important;
+  border-color: rgba(96, 165, 250, 0.25) !important;
 }
 
 
