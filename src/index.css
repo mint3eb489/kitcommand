@@ -445,32 +445,6 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
 }
 
-:where(.theme-sage, .theme-ocean, .theme-wood) #standard-starttab-container button {
-  border-color: var(--app-border) !important;
-  background-color: var(--app-card) !important;
-  color: var(--app-text-placeholder) !important;
-}
-
-:where(.theme-sage, .theme-ocean, .theme-wood) #standard-starttab-container button:hover {
-  color: var(--app-text) !important;
-}
-
-:where(.theme-sage, .theme-ocean, .theme-wood) #standard-starttab-container button[class*="bg-blue-600"] {
-  background-color: var(--app-accent) !important;
-  color: var(--theme-verkauft-color) !important;
-  border-color: var(--app-accent) !important;
-}
-
-:where(.theme-sage, .theme-ocean, .theme-wood) #profile-save-displayname-btn {
-  background-color: var(--app-accent) !important;
-  color: var(--app-card) !important;
-  border: 1px solid var(--app-border) !important;
-}
-
-:where(.theme-sage, .theme-ocean, .theme-wood) #profile-save-displayname-btn:hover {
-  background-color: var(--app-accent-hover) !important;
-}
-
 :where(.theme-sage, .theme-ocean, .theme-wood) input[type="checkbox"],
 :where(.theme-sage, .theme-ocean, .theme-wood) .custom-checkbox {
   accent-color: var(--theme-checkbox-accent) !important;
@@ -1077,6 +1051,247 @@ input:-webkit-autofill:active {
   background-color: rgba(96, 165, 250, 0.15) !important;
   color: #60a5fa !important;
   border-color: rgba(96, 165, 250, 0.25) !important;
+}
+
+/* Specify high specificity overrides for the user profile header button to guarantee readability */
+.theme-ocean #header-user-profile-btn {
+  background-color: var(--theme-tabs-active-bg) !important;
+  color: #0B132B !important; 
+}
+.theme-ocean #header-user-profile-btn .profile-name {
+  color: #0B132B !important; 
+}
+.theme-ocean #header-user-profile-btn .profile-label {
+  color: #0B132B !important; 
+  opacity: 0.75 !important;
+}
+.theme-ocean #header-user-profile-btn .user-icon-wrapper {
+  background-color: rgba(78, 168, 222, 0.25) !important;
+  color: #0B132B !important;
+}
+.theme-ocean #header-user-profile-btn .user-icon-wrapper svg {
+  color: #0B132B !important;
+}
+
+/* Note Tooltip container and interior text hover styling for theme-ocean */
+:where(.theme-ocean) .commission-note-tooltip {
+  background-color: #16223F !important; /* Rich Dark Ocean navy */
+  border-color: #4EA8DE !important; /* Beautiful Ocean border */
+  color: #EDF2F4 !important; /* Ultimate high contrast silver */
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+}
+:where(.theme-ocean) .commission-note-tooltip * {
+  color: #EDF2F4 !important; 
+}
+:where(.theme-ocean) .commission-note-tooltip textarea {
+  background-color: #0B132B !important;
+  border-color: #4EA8DE !important;
+  color: #EDF2F4 !important;
+}
+:where(.theme-ocean) .commission-note-tooltip button {
+  color: #EDF2F4 !important;
+}
+:where(.theme-ocean) .commission-note-tooltip button:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Sold Date Badge override in Deep Ocean theme */
+:where(.theme-ocean) .sold-date-badge {
+  background-color: #16223F !important;
+  color: #EDF2F4 !important;
+  border-color: rgba(78, 168, 222, 0.5) !important;
+}
+
+/* Admin tab buttons and badges overrides for perfect readability in all themes (especially Deep Ocean) */
+
+/* Profil button */
+.theme-ocean .admin-btn-profile {
+  background-color: rgba(139, 92, 246, 0.12) !important;
+  color: #90CDF4 !important;
+  border-color: rgba(139, 92, 246, 0.3) !important;
+}
+.theme-ocean .admin-btn-profile:hover {
+  background-color: rgba(139, 92, 246, 0.25) !important;
+}
+
+/* Ziele button */
+.theme-ocean .admin-btn-targets-inactive {
+  background-color: rgba(78, 168, 222, 0.1) !important;
+  color: #4EA8DE !important;
+  border-color: rgba(78, 168, 222, 0.25) !important;
+}
+.theme-ocean .admin-btn-targets-inactive:hover {
+  background-color: rgba(78, 168, 222, 0.25) !important;
+}
+.theme-ocean .admin-btn-targets-active {
+  background-color: #4EA8DE !important;
+  color: #0B132B !important;
+  border-color: #4EA8DE !important;
+}
+
+/* Admin/Role Toggle button */
+.theme-ocean .admin-btn-role-sys {
+  background-color: rgba(139, 92, 246, 0.15) !important;
+  color: #c084fc !important;
+  border-color: rgba(167, 139, 250, 0.3) !important;
+}
+.theme-ocean .admin-btn-role-admin {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+  color: #fbbf24 !important;
+  border-color: rgba(251, 191, 36, 0.3) !important;
+}
+.theme-ocean .admin-btn-role-user {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: #EDF2F4 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+.theme-ocean .admin-btn-role-user:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Inline badges inside Teammate list */
+.theme-ocean .admin-badge-inline.admin-badge-purp {
+  background-color: rgba(167, 139, 250, 0.15) !important;
+  color: #c084fc !important;
+  border-color: rgba(167, 139, 250, 0.35) !important;
+}
+.theme-ocean .admin-badge-inline.admin-badge-amb {
+  background-color: rgba(251, 191, 36, 0.15) !important;
+  color: #fbbf24 !important;
+  border-color: rgba(251, 191, 36, 0.35) !important;
+}
+
+/* Vintage Terracotta overrides */
+.theme-wood .admin-btn-profile {
+  background-color: #F0E5DE !important;
+  color: #5E3E34 !important;
+  border-color: #795548 !important;
+}
+.theme-wood .admin-btn-targets-inactive {
+  background-color: #F0E5DE !important;
+  color: #3E2723 !important;
+  border-color: #795548 !important;
+}
+.theme-wood .admin-btn-targets-active {
+  background-color: #3E2723 !important;
+  color: #FBF7F4 !important;
+  border-color: #3E2723 !important;
+}
+.theme-wood .admin-btn-role-sys {
+  background-color: rgba(139, 92, 246, 0.1) !important;
+  color: #8b5cf6 !important;
+  border-color: rgba(139, 92, 246, 0.25) !important;
+}
+.theme-wood .admin-btn-role-admin {
+  background-color: rgba(245, 158, 11, 0.1) !important;
+  color: #d97706 !important;
+  border-color: rgba(245, 158, 11, 0.25) !important;
+}
+.theme-wood .admin-btn-role-user {
+  background-color: #F0E5DE !important;
+  color: #795548 !important;
+  border-color: #DECBC1 !important;
+}
+
+/* Botanical Sage overrides */
+.theme-sage .admin-btn-profile {
+  background-color: rgba(44, 53, 49, 0.08) !important;
+  color: #2C3531 !important;
+  border-color: rgba(44, 53, 49, 0.2) !important;
+}
+.theme-sage .admin-btn-targets-inactive {
+  background-color: rgba(44, 53, 49, 0.08) !important;
+  color: #2C3531 !important;
+  border-color: rgba(44, 53, 49, 0.2) !important;
+}
+.theme-sage .admin-btn-targets-active {
+  background-color: #2C3531 !important;
+  color: #D1E8E2 !important;
+  border-color: #2C3531 !important;
+}
+.theme-sage .admin-btn-role-sys {
+  background-color: rgba(139, 92, 246, 0.08) !important;
+  color: #8b5cf6 !important;
+  border-color: rgba(139, 92, 246, 0.20) !important;
+}
+.theme-sage .admin-btn-role-admin {
+  background-color: rgba(245, 158, 11, 0.08) !important;
+  color: #d97706 !important;
+  border-color: rgba(245, 158, 11, 0.20) !important;
+}
+.theme-sage .admin-btn-role-user {
+  background-color: rgba(44, 53, 49, 0.04) !important;
+  color: rgba(44, 53, 49, 0.6) !important;
+  border-color: rgba(44, 53, 49, 0.10) !important;
+}
+
+/* Deep Ocean Theme: Stats Tab Light Overrides to render light cards and boxes */
+.theme-ocean #personal-stats-tab-content {
+  color: #1C2541 !important;
+}
+
+/* Ensure no text-shadow interfere with readability */
+.theme-ocean #personal-stats-tab-content h3,
+.theme-ocean #personal-stats-tab-content h4,
+.theme-ocean #personal-stats-tab-content span,
+.theme-ocean #personal-stats-tab-content p,
+.theme-ocean #personal-stats-tab-content div,
+.theme-ocean #personal-stats-tab-content select {
+  text-shadow: none !important;
+}
+
+/* Dropdowns in Filter Row */
+.theme-ocean #personal-stats-tab-content select.input-field {
+  background-color: #ffffff !important;
+  color: #1C2541 !important;
+  border-color: #E2E8F0 !important;
+}
+
+/* Inner metric cards and lists inside stats parent container */
+.theme-ocean #personal-stats-tab-content .bg-white\/80,
+.theme-ocean #personal-stats-tab-content .dark\:bg-zinc-900\/40,
+.theme-ocean #personal-stats-tab-content .bg-white,
+.theme-ocean #personal-stats-tab-content .dark\:bg-zinc-900 {
+  background-color: #ffffff !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 3px rgba(45, 36, 25, 0.05) !important;
+}
+
+/* Text colors inside white list items or cards */
+.theme-ocean #personal-stats-tab-content .text-slate-800,
+.theme-ocean #personal-stats-tab-content .dark\:text-zinc-200,
+.theme-ocean #personal-stats-tab-content .text-slate-600,
+.theme-ocean #personal-stats-tab-content .dark\:text-zinc-400,
+.theme-ocean #personal-stats-tab-content .dark\:text-zinc-150 {
+  color: #1C2541 !important;
+}
+
+.theme-ocean #personal-stats-tab-content .text-slate-400,
+.theme-ocean #personal-stats-tab-content .dark\:text-zinc-500,
+.theme-ocean #personal-stats-tab-content .dark\:text-zinc-550,
+.theme-ocean #personal-stats-tab-content .dark\:text-slate-400 {
+  color: #64748B !important; /* highly readable slate gray instead of light grey */
+}
+
+/* Donut central metric text and labels */
+.theme-ocean #personal-stats-tab-content .dark\:text-zinc-150 {
+  color: #1C2541 !important;
+}
+.theme-ocean #personal-stats-tab-content .dark\:text-zinc-550 {
+  color: #64748B !important;
+}
+
+/* SVGs Rings base fill track */
+.theme-ocean #personal-stats-tab-content circle[class*="stroke-zinc-800"],
+.theme-ocean #personal-stats-tab-content circle[class*="stroke-zinc-800/95"],
+.theme-ocean #personal-stats-tab-content circle[class*="stroke-zinc-800/60"] {
+  stroke: #E2E8F0 !important;
+}
+
+/* Custom text and background on target tracker circular container headings */
+.theme-ocean #personal-stats-tab-content .text-slate-705,
+.theme-ocean #personal-stats-tab-content .dark\:text-slate-200 {
+  color: #1C2541 !important;
 }
 
 

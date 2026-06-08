@@ -369,7 +369,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                                 </span>
                               ) : null}
                               {isAdminUser && (
-                                <span className={`text-[7.5px] font-black uppercase px-1 rounded select-none ${isSystemAdmin ? 'text-indigo-600 bg-indigo-500/10 border border-indigo-500/20' : 'text-amber-600 bg-amber-500/10 border border-amber-500/20'}`}>
+                                <span className={`admin-badge-inline text-[7.5px] font-black uppercase px-1 rounded select-none ${isSystemAdmin ? 'admin-badge-purp text-indigo-600 bg-indigo-500/10 border border-indigo-500/20' : 'admin-badge-amb text-amber-600 bg-amber-500/10 border border-amber-500/20'}`}>
                                   {isSystemAdmin ? 'Sys-Admin' : 'Admin'}
                                 </span>
                               )}
@@ -491,7 +491,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                             {onOpenUserProfile && (
                               <button
                                 onClick={() => onOpenUserProfile(item.email)}
-                                className="flex items-center gap-1 p-1 px-2.5 rounded-lg border border-indigo-200/50 dark:border-indigo-850/50 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100/80 dark:hover:bg-indigo-900/40 text-[9px] font-black uppercase tracking-wider transition-all duration-200 cursor-pointer active:scale-95"
+                                className="admin-btn-profile flex items-center gap-1 p-1 px-2.5 rounded-lg border border-indigo-200/50 dark:border-indigo-850/50 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100/80 dark:hover:bg-indigo-900/40 text-[9px] font-black uppercase tracking-wider transition-all duration-200 cursor-pointer active:scale-95"
                                 title={`Mitarbeiterprofil von ${item.name} anzeigen`}
                               >
                                 <User className="w-3 h-3" />
@@ -513,10 +513,10 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                                   setMemberTargetInput(activeTVal ? activeTVal.toString() : '');
                                 }
                               }}
-                              className={`flex items-center gap-1 p-1 px-2.5 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                              className={`admin-btn-targets flex items-center gap-1 p-1 px-2.5 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
                                 activeTargetEmail === item.email
-                                  ? 'bg-blue-600 border-blue-650 text-white hover:bg-blue-700 font-bold shadow-xs'
-                                  : 'bg-slate-100/85 dark:bg-zinc-900 border-slate-200/60 dark:border-zinc-800/80 text-slate-500 hover:text-slate-700 dark:hover:text-zinc-200 dark:hover:bg-zinc-800'
+                                  ? 'admin-btn-targets-active bg-blue-600 border-blue-650 text-white hover:bg-blue-700 font-bold shadow-xs'
+                                  : 'admin-btn-targets-inactive bg-slate-100/85 dark:bg-zinc-900 border-slate-200/60 dark:border-zinc-800/80 text-slate-500 hover:text-slate-705 dark:hover:text-zinc-200 dark:hover:bg-zinc-800'
                               }`}
                               title="Umsatz-Ziele einblenden / verwalten"
                             >
@@ -545,12 +545,12 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                                   }
                                 }}
                                 disabled={savingAdmins || isSystemAdmin}
-                                className={`flex items-center gap-1 p-1 px-2.5 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                                className={`admin-btn-role flex items-center gap-1 p-1 px-2.5 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
                                   isSystemAdmin
-                                    ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400 opacity-75'
+                                    ? 'admin-btn-role-sys bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400 opacity-75'
                                     : isAdminUser
-                                      ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/15'
-                                      : 'bg-slate-100/85 dark:bg-zinc-900 border-slate-200/60 dark:border-zinc-800/80 text-slate-500 hover:text-slate-705 dark:hover:text-zinc-200 dark:hover:bg-zinc-800'
+                                      ? 'admin-btn-role-admin bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/15'
+                                      : 'admin-btn-role-user bg-slate-100/85 dark:bg-zinc-900 border-slate-200/60 dark:border-zinc-800/80 text-slate-500 hover:text-slate-755 dark:hover:text-zinc-200 dark:hover:bg-zinc-800'
                                 }`}
                                 title={
                                   isSystemAdmin

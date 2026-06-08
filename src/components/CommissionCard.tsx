@@ -443,8 +443,8 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                       <div 
                         className={
                           isEditingNote 
-                            ? "absolute inset-2 p-3 bg-white dark:bg-zinc-950 rounded-xl border-2 border-blue-500 dark:border-blue-500 shadow-xl opacity-100 scale-100 pointer-events-auto z-50 text-left flex flex-col"
-                            : "absolute inset-2 p-3 bg-white/98 dark:bg-zinc-950/98 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-xl opacity-0 scale-95 pointer-events-none group-hover/note-tooltip:opacity-100 group-hover/note-tooltip:scale-100 group-hover/note-tooltip:pointer-events-auto transition-all duration-200 z-50 text-left flex flex-col backdrop-blur-md"
+                            ? "commission-note-tooltip absolute inset-2 p-3 bg-white dark:bg-zinc-950 rounded-xl border-2 border-blue-500 dark:border-blue-500 shadow-xl opacity-100 scale-100 pointer-events-auto z-50 text-left flex flex-col"
+                            : "commission-note-tooltip absolute inset-2 p-3 bg-white/98 dark:bg-zinc-950/98 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-xl opacity-0 scale-95 pointer-events-none group-hover/note-tooltip:opacity-100 group-hover/note-tooltip:scale-100 group-hover/note-tooltip:pointer-events-auto transition-all duration-200 z-50 text-left flex flex-col backdrop-blur-md"
                         }
                       >
                         <div className="text-[9px] font-black uppercase tracking-widest text-blue-500 dark:text-blue-400 mb-1.5 flex items-center justify-between border-b border-slate-100 dark:border-zinc-900 pb-1.5 shrink-0 select-none">
@@ -633,8 +633,8 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                         <div 
                           className={
                             isEditingNote 
-                              ? "absolute inset-2 p-3 bg-white dark:bg-zinc-950 rounded-xl border-2 border-blue-500 dark:border-blue-500 shadow-xl opacity-100 scale-100 pointer-events-auto z-50 text-left flex flex-col"
-                              : "absolute inset-2 p-3 bg-white/98 dark:bg-zinc-950/98 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-xl opacity-0 scale-95 pointer-events-none group-hover/note-tooltip:opacity-100 group-hover/note-tooltip:scale-100 group-hover/note-tooltip:pointer-events-auto transition-all duration-200 z-50 text-left flex flex-col backdrop-blur-md"
+                              ? "commission-note-tooltip absolute inset-2 p-3 bg-white dark:bg-zinc-950 rounded-xl border-2 border-blue-500 dark:border-blue-500 shadow-xl opacity-100 scale-100 pointer-events-auto z-50 text-left flex flex-col"
+                              : "commission-note-tooltip absolute inset-2 p-3 bg-white/98 dark:bg-zinc-950/98 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-xl opacity-0 scale-95 pointer-events-none group-hover/note-tooltip:opacity-100 group-hover/note-tooltip:scale-100 group-hover/note-tooltip:pointer-events-auto transition-all duration-200 z-50 text-left flex flex-col backdrop-blur-md"
                           }
                         >
                           <div className="text-[9px] font-black uppercase tracking-widest text-blue-500 dark:text-blue-400 mb-1.5 flex items-center justify-between border-b border-slate-100 dark:border-zinc-900 pb-1.5 shrink-0 select-none">
@@ -721,7 +721,7 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
 
                   {/* Row 2: Datum badge and Calendar button */}
                   <div className="flex items-center">
-                    <span className="text-xs font-bold text-slate-800 dark:text-zinc-200 bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 px-2.5 py-0.5 rounded-md tracking-normal inline-block tabular-nums font-sans min-w-[95px] text-center select-none">
+                    <span className="sold-date-badge text-xs font-bold text-slate-800 dark:text-zinc-200 bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 px-2.5 py-0.5 rounded-md tracking-normal inline-block tabular-nums font-sans min-w-[95px] text-center select-none">
                       {displayDate}
                     </span>
                   </div>
