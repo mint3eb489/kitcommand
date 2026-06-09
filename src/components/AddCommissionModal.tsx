@@ -5,21 +5,26 @@
 
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { processCityInput, getPlzSuggestions } from '../utils/geo.ts';
 
 interface AddCommissionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (name: string, price: number, bauart: 'bestand' | 'neubau' | 'kleinauftrag') => Promise<void>;
+  onSave: (name: string, price: number, bauart: 'bestand' | 'neubau' | 'kleinauftrag', city: string, orderNumber: string) => Promise<void>;
+  citySuggestions?: string[];
 }
 
 export const AddCommissionModal: React.FC<AddCommissionModalProps> = ({
   isOpen,
   onClose,
   onSave,
+  citySuggestions = [],
 }) => {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [bauart, setBauart] = useState<'bestand' | 'neubau' | 'kleinauftrag'>('bestand');
+  const [city, setCity] = useState('');
+  const [orderNumber, setOrderNumber] = useState('');
   const [saving, setSaving] = useState(false);
 
   if (!isOpen) return null;
@@ -32,10 +37,12 @@ export const AddCommissionModal: React.FC<AddCommissionModalProps> = ({
     const parsedPrice = parseFloat(price.replace(',', '.')) || 0;
 
     try {
-      await onSave(name.trim(), parsedPrice, bauart);
+      await onSave(name.trim(), parsedPrice, bauart, city.trim(), orderNumber.trim());
       setName('');
       setPrice('');
       setBauart('bestand');
+      setCity('');
+      setOrderNumber('');
       onClose();
     } catch (err) {
       console.error('Failed to create commission:', err);
@@ -66,6 +73,49 @@ export const AddCommissionModal: React.FC<AddCommissionModalProps> = ({
             required
             className="input-field text-sm font-bold bg-white/50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 border border-slate-200 dark:border-zinc-800/80 rounded-xl focus:ring-2 focus:ring-blue-500/30 transition-all"
           />
+
+          <input
+            type="text"
+            value={orderNumber}
+            onChange={(e) => setOrderNumber(e.target.value)}
+            placeholder="Auftrags-Nr. (Optional)"
+            className="input-field text-sm font-bold bg-white/50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 border border-slate-200 dark:border-zinc-800/80 rounded-xl focus:ring-2 focus:ring-blue-500/30 transition-all"
+          />
+
+          <div className="relative flex flex-col gap-1">
+            <input
+              type="text"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              onBlur={() => {
+                const res = processCityInput(city);
+                if (res.isValid && res.normalized) {
+                  setCity(res.normalized);
+                }
+              }}
+              placeholder="Stadt / Ort (PLZ)"
+              list="modal-city-suggestions"
+              className="input-field text-sm font-bold bg-white/50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 border border-slate-200 dark:border-zinc-800/80 rounded-xl focus:ring-2 focus:ring-blue-500/30 transition-all w-full"
+            />
+            <datalist id="modal-city-suggestions">
+              {getPlzSuggestions(city).map((sug, i) => (
+                <option key={i} value={sug} />
+              ))}
+            </datalist>
+            {city.trim() && (() => {
+              const res = processCityInput(city);
+              return (
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                  res.isWithinRange 
+                    ? 'text-emerald-600 bg-emerald-500/5 dark:text-emerald-400 dark:bg-emerald-500/10' 
+                    : 'text-amber-600 bg-amber-500/5 dark:text-amber-550 dark:bg-amber-500/10'
+                }`}>
+                  {res.message || (res.isWithinRange ? "✓ Lieferort im Einzugsgebiet (100km)" : "⚠ Lieferort außerhalb des Einzugsgebiets")}
+                </span>
+              );
+            })()}
+          </div>
+
           <div className="relative">
             <input
               type="text"

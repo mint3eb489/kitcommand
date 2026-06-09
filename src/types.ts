@@ -26,6 +26,8 @@ export interface Commission {
   needsVorab?: boolean;
   createdByEmail?: string;
   createdByUid?: string;
+  city?: string;
+  orderNumber?: string;
 }
 
 export interface SystemSettings {
@@ -73,6 +75,7 @@ export interface Ausarbeitung {
   note?: string;
   deliveryKw?: string;
   deliveryYear?: string;
+  city?: string;
 }
 
 export interface TeammateConfig {

@@ -6,7 +6,7 @@
 import React, { useState, useMemo } from 'react';
 import { Commission, Ausarbeitung } from '../types.ts';
 import { motion } from 'motion/react';
-import { TrendingUp, Trophy, Calendar, Truck } from 'lucide-react';
+import { TrendingUp, Trophy, Calendar, Truck, MapPin } from 'lucide-react';
 
 interface StatsTabProps {
   commissions: Commission[];
@@ -637,6 +637,71 @@ export const StatsTab: React.FC<StatsTabProps> = ({
     };
   }, [commissions, filterYear, filterMonth]);
 
+  // Städte-Statistik berechnen (abhängig von filterYear)
+  const cityStats = useMemo(() => {
+    const counts: Record<string, { count: number; totalValue: number; names: string[] }> = {};
+    
+    // Process sold commissions
+    commissions.forEach((c) => {
+      if (c.status === 'sold') {
+        const dateStr = c.resolvedAt || c.createdAt;
+        if (dateStr) {
+          const yearStr = new Date(dateStr).getFullYear().toString();
+          if (filterYear !== 'all' && yearStr !== filterYear) return;
+        } else {
+          if (filterYear !== 'all') return;
+        }
+
+        const cityKey = c.city ? c.city.trim() : '';
+        if (!cityKey) return;
+        
+        if (!counts[cityKey]) {
+          counts[cityKey] = { count: 0, totalValue: 0, names: [] };
+        }
+        counts[cityKey].count += 1;
+        counts[cityKey].totalValue += c.price || 0;
+        if (counts[cityKey].names.length < 5) {
+          counts[cityKey].names.push(c.name);
+        }
+      }
+    });
+
+    // Process ausarbeitungen
+    ausarbeitungen.forEach((a) => {
+      if (a.orderedAt) {
+        const yearStr = new Date(a.orderedAt).getFullYear().toString();
+        if (filterYear !== 'all' && yearStr !== filterYear) return;
+      } else {
+        if (filterYear !== 'all') return;
+      }
+
+      const cityKey = a.city ? a.city.trim() : '';
+      if (!cityKey) return;
+
+      if (!counts[cityKey]) {
+        counts[cityKey] = { count: 0, totalValue: 0, names: [] };
+      }
+      counts[cityKey].count += 1;
+      counts[cityKey].totalValue += a.price || 0;
+      if (counts[cityKey].names.length < 5) {
+        counts[cityKey].names.push(a.customerName);
+      }
+    });
+
+    const list = Object.entries(counts)
+      .map(([cityName, data]) => ({
+        cityName,
+        count: data.count,
+        totalValue: data.totalValue,
+        names: data.names,
+      }))
+      .sort((a, b) => b.count - a.count || b.totalValue - a.totalValue);
+
+    const maxCount = list.length > 0 ? Math.max(...list.map(l => l.count)) : 1;
+
+    return { list, maxCount };
+  }, [commissions, ausarbeitungen, filterYear]);
+
   const formatter = new Intl.NumberFormat('de-DE', {
     style: 'currency',
     currency: 'EUR',
@@ -1150,6 +1215,87 @@ export const StatsTab: React.FC<StatsTabProps> = ({
                 </span>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* TOWN / CITY STATISTICS */}
+      <div
+        id="city-statistics-container"
+        className="mb-8 bg-zinc-50 dark:bg-zinc-900/40 rounded-3xl p-6 border border-slate-200/80 dark:border-zinc-800/80 relative overflow-hidden isolate shadow-xs hover:border-slate-300 dark:hover:border-zinc-700 transition-all duration-300 group/city"
+      >
+        <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-emerald-500/5 dark:bg-emerald-400/5 rounded-full blur-3xl pointer-events-none group-hover/city:bg-emerald-500/10 dark:group-hover/city:bg-emerald-400/10 transition-colors duration-500" />
+        
+        <div className="relative z-10 space-y-5">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-400/10 text-emerald-600 dark:text-emerald-405">
+              <MapPin className="w-5 h-5 stroke-[2]" />
+            </div>
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-550">
+                Top-Lieferorte & Verkaufs-Städte
+              </span>
+              <span className="block text-xs font-semibold text-slate-600 dark:text-zinc-400">
+                In welchen Städten und Gemeinden wurden die meisten Küchen ausgeliefert?
+              </span>
+            </div>
+          </div>
+
+          <div className="pt-2">
+            {cityStats.list.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
+                {cityStats.list.slice(0, 8).map((city, index) => {
+                  const percentWidth = (city.count / cityStats.maxCount) * 100;
+                  return (
+                    <div key={city.cityName} className="space-y-1.5 group/city-row">
+                      <div className="flex justify-between items-center text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-[10px] text-slate-400 dark:text-zinc-550 font-bold w-4">
+                            #{index + 1}
+                          </span>
+                          <span className="font-semibold text-slate-800 dark:text-zinc-200">
+                            {city.cityName}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 font-semibold">
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono">
+                            {city.count} {city.count === 1 ? 'Küche' : 'Küchen'}
+                          </span>
+                          <span className="text-slate-400 dark:text-zinc-550 text-[10px] font-normal font-mono">
+                            ({formatter.format(city.totalValue)})
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Bar visualization */}
+                      <div className="h-2 w-full bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden relative border border-slate-200/40 dark:border-zinc-800/40">
+                        <motion.div
+                          className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${percentWidth}%` }}
+                          transition={{ duration: 0.8, ease: 'easeOut', delay: index * 0.05 }}
+                        />
+                      </div>
+
+                      {/* Tooltip detail element */}
+                      {city.names.length > 0 && (
+                        <div className="text-[9px] text-slate-400 dark:text-zinc-500 font-normal italic truncate mt-0.5">
+                          Kunden: {city.names.join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="bg-white dark:bg-zinc-950/40 p-8 rounded-2xl border border-dashed border-slate-205 dark:border-zinc-805 text-center flex flex-col items-center justify-center space-y-2">
+                <MapPin className="w-10 h-10 text-slate-300 dark:text-zinc-700 stroke-[1.5]" />
+                <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400">Keine Stadtdaten erfasst</p>
+                <p className="text-[10px] text-slate-400 dark:text-zinc-550 max-w-sm">
+                  Erfasse bei den Kommissionen oder Ausarbeitungen Postleitzahlen oder Stadtnamen. Diese werden hier automatisch ausgewertet.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

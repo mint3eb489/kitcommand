@@ -6,6 +6,7 @@
 import React, { useState, useRef } from 'react';
 import { Commission, TeammateConfig } from '../types.ts';
 import { Pencil, ClipboardList, RefreshCw, Trash2, Calendar, Check, X, Plus, Minus } from 'lucide-react';
+import { processCityInput, getPlzSuggestions } from '../utils/geo.ts';
 
 interface CommissionCardProps {
   commission: Commission;
@@ -19,6 +20,7 @@ interface CommissionCardProps {
   onCycleBauart: (id: string, currentType: 'bestand' | 'neubau' | 'kleinauftrag') => void;
   teammateConfigs?: TeammateConfig[];
   viewMode?: 'detailed' | 'compact';
+  citySuggestions?: string[];
 }
 
 export const CommissionCard: React.FC<CommissionCardProps> = ({
@@ -33,6 +35,7 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
   onCycleBauart,
   teammateConfigs = [],
   viewMode = 'detailed',
+  citySuggestions = [],
 }) => {
   // Swipe State
   const [translateX, setTranslateX] = useState(0);
@@ -46,6 +49,61 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
   // Note inline editing state
   const [isEditingNote, setIsEditingNote] = useState(false);
   const [tempNoteText, setTempNoteText] = useState(commission.note || '');
+
+  const renderMetaGrid = () => {
+    return (
+      <div className="grid grid-cols-2 gap-2 mt-2 p-2 bg-slate-50 dark:bg-zinc-950/40 rounded-xl border border-slate-100 dark:border-zinc-800/60 shadow-3xs text-left">
+        <div className="flex flex-col gap-1">
+          <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500 select-none">
+            Auftrags-Nr.
+          </span>
+          <input
+            type="text"
+            placeholder="Nr. eingeben"
+            value={commission.orderNumber || ''}
+            onChange={(e) => onUpdateField(commission.id, 'orderNumber', e.target.value)}
+            className="w-full px-2 py-1 text-xs font-bold text-slate-800 dark:text-zinc-200 bg-white dark:bg-zinc-90 w-full border border-slate-200 dark:border-zinc-800/80 rounded-lg focus:outline-hidden focus:border-blue-500 shadow-3xs"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <div className="flex justify-between items-center select-none">
+            <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+              Stadt / Ort
+            </span>
+            {(commission.city || '').trim() && (() => {
+              const res = processCityInput(commission.city || '');
+              return (
+                <span className={`text-[7px] font-extrabold max-w-[100px] truncate leading-none uppercase tracking-wider ${
+                  res.isWithinRange ? 'text-emerald-500 dark:text-emerald-400' : 'text-amber-500 dark:text-amber-500'
+                }`} title={res.message}>
+                  {res.isWithinRange ? "✓ <100km" : "⚠ >100km"}
+                </span>
+              );
+            })()}
+          </div>
+          <input
+            type="text"
+            placeholder="z.B. Stuttgart"
+            value={commission.city || ''}
+            list={`city-sug-${commission.id}`}
+            onChange={(e) => onUpdateField(commission.id, 'city', e.target.value)}
+            onBlur={() => {
+              const res = processCityInput(commission.city || '');
+              if (res.isValid && res.normalized) {
+                onUpdateField(commission.id, 'city', res.normalized);
+              }
+            }}
+            className="w-full px-2 py-1 text-xs font-bold text-slate-800 dark:text-zinc-200 bg-white dark:bg-zinc-90 w-full border border-slate-200 dark:border-zinc-800/80 rounded-lg focus:outline-hidden focus:border-blue-500 shadow-3xs"
+          />
+          <datalist id={`city-sug-${commission.id}`}>
+            {getPlzSuggestions(commission.city || '').map((sug, idx) => (
+              <option key={idx} value={sug} />
+            ))}
+          </datalist>
+        </div>
+      </div>
+    );
+  };
 
   const threshold = 80;
 
@@ -549,6 +607,8 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
               </button>
             </div>
 
+            {renderMetaGrid()}
+
             <div className="flex gap-2 mt-4 pt-3 border-t border-slate-200/60 dark:border-zinc-800">
               <button
                 onClick={() => onResolve(commission.id, 'sold')}
@@ -774,6 +834,8 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                 </button>
               )}
             </div>
+
+            {renderMetaGrid()}
 
             {commission.status === 'sold' && (
               <>

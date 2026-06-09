@@ -948,7 +948,9 @@ export default function App() {
   const handleAddCommission = async (
     name: string,
     price: number,
-    bauart: 'bestand' | 'neubau' | 'kleinauftrag'
+    bauart: 'bestand' | 'neubau' | 'kleinauftrag',
+    city?: string,
+    orderNumber?: string
   ) => {
     if (sessionStorage.getItem('kk_is_demo_mode') === 'true') {
       const newComm: Commission = {
@@ -971,6 +973,8 @@ export default function App() {
         note: '',
         createdByEmail: 'gast@fs-kuechen.de',
         createdByUid: 'demo-guest-uid',
+        city: city || '',
+        orderNumber: orderNumber || '',
       };
       setCommissions((prev) => {
         const next = [newComm, ...prev];
@@ -1001,6 +1005,8 @@ export default function App() {
       note: '',
       createdByEmail: (currentUser.email?.toLowerCase() === 'belmonte.enrico@gmail.com') ? 'belmonte@fs-kuechen.de' : (currentUser.email?.toLowerCase() || ''),
       createdByUid: currentUser.uid,
+      city: city || '',
+      orderNumber: orderNumber || '',
     };
 
     try {
@@ -1520,6 +1526,86 @@ export default function App() {
     }
     return ausarbeitungen;
   }, [ausarbeitungen, currentUser, selectedColleague]);
+
+  // Dynamic but robust city suggestions with local region postal codes defaults
+  const citySuggestions = useMemo(() => {
+    const existing = new Set<string>();
+    
+    // Default Baden-Württemberg cities & surrounding regions near FS Küchen (Stuttgart/Ludwigsburg/Waiblingen)
+    const defaults = [
+      '70173 Stuttgart',
+      '71638 Ludwigsburg',
+      '71332 Waiblingen',
+      '71522 Backnang',
+      '74072 Heilbronn',
+      '71364 Winnenden',
+      '73614 Schorndorf',
+      '73033 Göppingen',
+      '71229 Leonberg',
+      '73728 Esslingen am Neckar',
+      '71032 Böblingen',
+      '71063 Sindelfingen',
+      '72622 Nürtingen',
+      '70794 Filderstadt',
+      '71083 Herrenberg',
+      '73230 Kirchheim unter Teck',
+      '74321 Bietigheim-Bissingen',
+      '71384 Weinstadt',
+      '74172 Neckarsulm',
+      '72070 Tübingen',
+      '72764 Reutlingen',
+      '71691 Freiberg am Neckar',
+      '71679 Asperg',
+      '71696 Möglingen',
+      '71701 Grüglingen',
+      '71711 Murr',
+      '71723 Großbottwar',
+      '71540 Murrhardt',
+      '71546 Aspach',
+      '71554 Weissach im Tal',
+      '71116 Gärtringen',
+      '71263 Weil der Stadt',
+      '71272 Renningen',
+      '71277 Rutesheim',
+      '71287 Weissach',
+      '71563 Affalterbach',
+      '71573 Allmersbach',
+      '71706 Markgröningen',
+      '71717 Beilstein',
+      '71735 Eberdingen',
+      '71739 Oberriexingen',
+      '74348 Lauffen am Neckar',
+      '74354 Besigheim',
+      '74357 Bönnigheim',
+      '74360 Ilsfeld',
+      '74369 Löchgau',
+      '74379 Ingersheim',
+      '74385 Pleidelsheim',
+      '74388 Talheim',
+      '74395 Mundelsheim',
+      '74397 Pfaffenhofen',
+      '74405 Gaildorf',
+      '74417 Gschwend'
+    ];
+    
+    defaults.forEach(d => existing.add(d));
+
+    // Dynamic suggestions from current commissions
+    commissions.forEach(c => {
+      if (c.city && c.city.trim()) {
+        existing.add(c.city.trim());
+      }
+    });
+
+    // Dynamic suggestions from current ausarbeitungen
+    ausarbeitungen.forEach(a => {
+      if (a.city && a.city.trim()) {
+        existing.add(a.city.trim());
+      }
+    });
+
+    return Array.from(existing).sort();
+  }, [commissions, ausarbeitungen]);
 
   // Filter commissions based on Search term
   const sortedAndFilteredCommissions = useMemo(() => {
@@ -2058,6 +2144,7 @@ export default function App() {
                         onCycleBauart={handleCycleBauart}
                         teammateConfigs={teammateConfigs}
                         viewMode={viewMode}
+                        citySuggestions={citySuggestions}
                       />
                     ))
                   )}
@@ -2157,6 +2244,7 @@ export default function App() {
                         onCycleBauart={handleCycleBauart}
                         teammateConfigs={teammateConfigs}
                         viewMode={viewMode}
+                        citySuggestions={citySuggestions}
                       />
                     ))
                   )}
@@ -2249,6 +2337,7 @@ export default function App() {
                         onCycleBauart={handleCycleBauart}
                         teammateConfigs={teammateConfigs}
                         viewMode={viewMode}
+                        citySuggestions={citySuggestions}
                       />
                     ))
                   )}
@@ -2341,6 +2430,7 @@ export default function App() {
                         onCycleBauart={handleCycleBauart}
                         teammateConfigs={teammateConfigs}
                         viewMode={viewMode}
+                        citySuggestions={citySuggestions}
                       />
                     ))
                   )}
@@ -2358,6 +2448,7 @@ export default function App() {
               onDelete={handleDeleteAusarbeitung}
               currentUserEmail={currentUser?.email || undefined}
               theme={theme}
+              citySuggestions={citySuggestions}
             />
           )}
 
@@ -2405,6 +2496,7 @@ export default function App() {
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
         onSave={handleAddCommission}
+        citySuggestions={citySuggestions}
       />
 
       <EditPriceModal

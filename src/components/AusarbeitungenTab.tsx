@@ -1,14 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { Ausarbeitung } from '../types.ts';
 import { Plus, Trash2, Pencil, Calendar, Hash, Euro, Copy, Check, CheckCircle, Sparkles, X } from 'lucide-react';
+import { processCityInput, getPlzSuggestions } from '../utils/geo.ts';
 
 interface AusarbeitungenTabProps {
   items: Ausarbeitung[];
-  onAdd: (data: { customerName: string; colleagueName: string; orderNumber: string; price: number; orderedAt: string; note: string; deliveryKw?: string; deliveryYear?: string }) => Promise<void>;
+  onAdd: (data: { customerName: string; colleagueName: string; orderNumber: string; price: number; orderedAt: string; note: string; deliveryKw?: string; deliveryYear?: string; city?: string }) => Promise<void>;
   onUpdate: (id: string, fields: Partial<Ausarbeitung>) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   currentUserEmail?: string;
   theme?: 'light' | 'dark' | 'sage' | 'ocean' | 'wood';
+  citySuggestions?: string[];
 }
 
 export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
@@ -18,6 +20,7 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
   onDelete,
   currentUserEmail,
   theme,
+  citySuggestions = [],
 }) => {
   // Local active filters
   const [filterMonth, setFilterMonth] = useState<string>(() => {
@@ -33,6 +36,7 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
   const [newPrice, setNewPrice] = useState('');
   const [newDeliveryKw, setNewDeliveryKw] = useState('');
   const [newDeliveryYear, setNewDeliveryYear] = useState('');
+  const [newCity, setNewCity] = useState('');
   const [newOrderedAt, setNewOrderedAt] = useState(() => {
     return new Date().toISOString().split('T')[0];
   });
@@ -46,6 +50,7 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
   const [editDeliveryKw, setEditDeliveryKw] = useState('');
   const [editDeliveryYear, setEditDeliveryYear] = useState('');
   const [editOrderedAt, setEditOrderedAt] = useState('');
+  const [editCity, setEditCity] = useState('');
 
   // Report copying states
   const [reportCopied, setReportCopied] = useState(false);
@@ -125,6 +130,7 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
         note: '', // Omitted as requested
         deliveryKw: newDeliveryKw.trim(),
         deliveryYear: newDeliveryYear.trim(),
+        city: newCity.trim(),
       });
       // Reset input fields
       setNewCustomer('');
@@ -132,6 +138,7 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
       setNewPrice('');
       setNewDeliveryKw('');
       setNewDeliveryYear('');
+      setNewCity('');
     } catch (err) {
       console.error(err);
     } finally {
@@ -148,6 +155,7 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
     setEditOrderedAt(item.orderedAt || new Date().toISOString().split('T')[0]);
     setEditDeliveryKw(item.deliveryKw || '');
     setEditDeliveryYear(item.deliveryYear || '');
+    setEditCity(item.city || '');
   };
 
   // Save Inline Edit
@@ -163,6 +171,7 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
         orderedAt: editOrderedAt,
         deliveryKw: editDeliveryKw.trim(),
         deliveryYear: editDeliveryYear.trim(),
+        city: editCity.trim(),
       });
       setEditingId(null);
     } catch (err) {
@@ -322,6 +331,41 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
               className="bg-white/10 dark:bg-zinc-950/40 border border-white/15 dark:border-zinc-800 text-white placeholder-white/50 py-1.5 px-3 rounded-xl text-xs outline-none focus:border-white/50 focus:ring-1 focus:ring-white/10"
             />
 
+            {/* Stadt / Ort */}
+            <div className="flex flex-col gap-1">
+              <input
+                type="text"
+                value={newCity}
+                onChange={(e) => setNewCity(e.target.value)}
+                onBlur={() => {
+                  const res = processCityInput(newCity);
+                  if (res.isValid && res.normalized) {
+                    setNewCity(res.normalized);
+                  }
+                }}
+                placeholder="Stadt / Ort (PLZ)"
+                list="tab-city-suggestions"
+                className="bg-white/10 dark:bg-zinc-950/40 border border-white/15 dark:border-zinc-800 text-white placeholder-white/50 py-1.5 px-3 rounded-xl text-xs outline-none focus:border-white/50 focus:ring-1 focus:ring-white/10 w-full"
+              />
+              <datalist id="tab-city-suggestions">
+                {getPlzSuggestions(newCity).map((sug, i) => (
+                  <option key={i} value={sug} />
+                ))}
+              </datalist>
+              {newCity.trim() && (() => {
+                const res = processCityInput(newCity);
+                return (
+                  <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-md leading-none self-start ${
+                    res.isWithinRange 
+                      ? 'text-teal-300 bg-white/5' 
+                      : 'text-amber-300 bg-white/5'
+                  }`}>
+                    {res.message || (res.isWithinRange ? "✓ <100km" : "⚠ >100km")}
+                  </span>
+                );
+              })()}
+            </div>
+
             {/* Price & KW & Jahr (Side by side) */}
             <div className="flex gap-1.5">
               <input
@@ -416,6 +460,40 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
                       className="bg-white dark:bg-zinc-900 text-xs font-bold text-slate-850 dark:text-zinc-100 p-2 rounded-xl border border-slate-250 dark:border-zinc-800 outline-none focus:ring-1 focus:ring-blue-500"
                     />
 
+                    <div className="flex flex-col gap-1">
+                      <input
+                        type="text"
+                        value={editCity}
+                        onChange={(e) => setEditCity(e.target.value)}
+                        onBlur={() => {
+                          const res = processCityInput(editCity);
+                          if (res.isValid && res.normalized) {
+                            setEditCity(res.normalized);
+                          }
+                        }}
+                        placeholder="Stadt / Ort"
+                        list={`edit-city-sug-${item.id}`}
+                        className="bg-white dark:bg-zinc-900 text-xs font-bold text-slate-850 dark:text-zinc-100 p-2 rounded-xl border border-slate-250 dark:border-zinc-800 outline-none focus:ring-1 focus:ring-blue-500 w-full"
+                      />
+                      <datalist id={`edit-city-sug-${item.id}`}>
+                        {getPlzSuggestions(editCity).map((sug, i) => (
+                          <option key={i} value={sug} />
+                        ))}
+                      </datalist>
+                      {editCity.trim() && (() => {
+                        const res = processCityInput(editCity);
+                        return (
+                          <span className={`text-[9px] font-extrabold px-1 py-0.5 rounded-md leading-none self-start ${
+                            res.isWithinRange 
+                              ? 'text-emerald-600 bg-emerald-500/5 dark:text-emerald-400 dark:bg-emerald-500/10' 
+                              : 'text-amber-600 bg-amber-500/5 dark:text-amber-550 dark:bg-amber-500/10'
+                          }`}>
+                            {res.isWithinRange ? "✓ <100km" : "⚠ >100km"}
+                          </span>
+                        );
+                      })()}
+                    </div>
+
                     <div className="flex gap-1.5 font-sans">
                       <input
                         type="number"
@@ -493,6 +571,11 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
                     <h4 className="font-extrabold text-xs md:text-sm text-slate-900 dark:text-zinc-50 leading-snug tracking-tight line-clamp-1">
                       {item.customerName}
                     </h4>
+                    {item.city && (
+                      <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 mt-0.5 line-clamp-1">
+                        {item.city}
+                      </p>
+                    )}
                   </div>
 
                   {/* Footer: Price & Quick Action controls (pencil, trash) */}
