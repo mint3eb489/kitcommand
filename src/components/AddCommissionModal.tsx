@@ -102,18 +102,6 @@ export const AddCommissionModal: React.FC<AddCommissionModalProps> = ({
                 <option key={i} value={sug} />
               ))}
             </datalist>
-            {city.trim() && (() => {
-              const res = processCityInput(city);
-              return (
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                  res.isWithinRange 
-                    ? 'text-emerald-600 bg-emerald-500/5 dark:text-emerald-400 dark:bg-emerald-500/10' 
-                    : 'text-amber-600 bg-amber-500/5 dark:text-amber-550 dark:bg-amber-500/10'
-                }`}>
-                  {res.message || (res.isWithinRange ? "✓ Lieferort im Einzugsgebiet (100km)" : "⚠ Lieferort außerhalb des Einzugsgebiets")}
-                </span>
-              );
-            })()}
           </div>
 
           <div className="relative">

@@ -352,18 +352,6 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
                   <option key={i} value={sug} />
                 ))}
               </datalist>
-              {newCity.trim() && (() => {
-                const res = processCityInput(newCity);
-                return (
-                  <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-md leading-none self-start ${
-                    res.isWithinRange 
-                      ? 'text-teal-300 bg-white/5' 
-                      : 'text-amber-300 bg-white/5'
-                  }`}>
-                    {res.message || (res.isWithinRange ? "✓ <100km" : "⚠ >100km")}
-                  </span>
-                );
-              })()}
             </div>
 
             {/* Price & KW & Jahr (Side by side) */}
@@ -480,36 +468,25 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
                           <option key={i} value={sug} />
                         ))}
                       </datalist>
-                      {editCity.trim() && (() => {
-                        const res = processCityInput(editCity);
-                        return (
-                          <span className={`text-[9px] font-extrabold px-1 py-0.5 rounded-md leading-none self-start ${
-                            res.isWithinRange 
-                              ? 'text-emerald-600 bg-emerald-500/5 dark:text-emerald-400 dark:bg-emerald-500/10' 
-                              : 'text-amber-600 bg-amber-500/5 dark:text-amber-550 dark:bg-amber-500/10'
-                          }`}>
-                            {res.isWithinRange ? "✓ <100km" : "⚠ >100km"}
-                          </span>
-                        );
-                      })()}
                     </div>
 
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editPrice}
+                      onChange={(e) => setEditPrice(e.target.value)}
+                      placeholder="Preis (€)"
+                      className="bg-white dark:bg-zinc-900 text-xs font-bold text-slate-850 dark:text-zinc-100 p-2 rounded-xl border border-slate-250 dark:border-zinc-800 outline-none focus:ring-1 focus:ring-blue-500 w-full"
+                    />
+
                     <div className="flex gap-1.5 font-sans">
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={editPrice}
-                        onChange={(e) => setEditPrice(e.target.value)}
-                        placeholder="Preis (€)"
-                        className="bg-white dark:bg-zinc-900 text-xs font-bold text-slate-850 dark:text-zinc-100 p-2 rounded-xl border border-slate-250 dark:border-zinc-800 outline-none focus:ring-1 focus:ring-blue-500 flex-1 min-w-0"
-                      />
                       <input
                         type="text"
                         value={editDeliveryKw}
                         onChange={(e) => setEditDeliveryKw(e.target.value)}
                         placeholder="KW"
                         title="Liefer-Kalenderwoche"
-                        className="bg-white dark:bg-zinc-900 text-xs font-bold text-slate-850 dark:text-zinc-100 p-2 rounded-xl border border-slate-250 dark:border-zinc-800 outline-none focus:ring-1 focus:ring-blue-500 w-11 text-center font-bold"
+                        className="commission-kw-input bg-white dark:bg-zinc-900 text-xs font-bold text-slate-850 dark:text-zinc-100 p-2 rounded-xl border border-slate-250 dark:border-zinc-800 outline-none focus:ring-1 focus:ring-blue-500 w-1/2 text-center font-bold"
                       />
                       <input
                         type="text"
@@ -518,7 +495,7 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
                         onChange={(e) => setEditDeliveryYear(e.target.value)}
                         placeholder="Jahr"
                         title="Liefer-Jahr"
-                        className="bg-white dark:bg-zinc-900 text-xs font-bold text-slate-850 dark:text-zinc-100 p-2 rounded-xl border border-slate-250 dark:border-zinc-800 outline-none focus:ring-1 focus:ring-blue-500 w-14 text-center font-bold"
+                        className="commission-jahr-input bg-white dark:bg-zinc-900 text-xs font-bold text-slate-850 dark:text-zinc-100 p-2 rounded-xl border border-slate-250 dark:border-zinc-805 outline-none focus:ring-1 focus:ring-blue-500 w-1/2 text-center font-bold"
                       />
                     </div>
 

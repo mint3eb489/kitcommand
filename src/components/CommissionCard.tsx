@@ -70,16 +70,6 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
             <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500">
               Stadt / Ort
             </span>
-            {(commission.city || '').trim() && (() => {
-              const res = processCityInput(commission.city || '');
-              return (
-                <span className={`text-[7px] font-extrabold max-w-[100px] truncate leading-none uppercase tracking-wider ${
-                  res.isWithinRange ? 'text-emerald-500 dark:text-emerald-400' : 'text-amber-500 dark:text-amber-500'
-                }`} title={res.message}>
-                  {res.isWithinRange ? "✓ <100km" : "⚠ >100km"}
-                </span>
-              );
-            })()}
           </div>
           <input
             type="text"
@@ -805,7 +795,7 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                   <div className="flex gap-1.5">
                     <input
                       type="text"
-                      className="w-12 px-1 py-1 text-xs text-center font-bold text-slate-800 dark:text-zinc-200 bg-slate-100 dark:bg-zinc-800 border border-slate-250 dark:border-zinc-700 rounded-md focus:outline-hidden focus:border-emerald-500 focus:bg-white dark:focus:bg-zinc-950 font-sans leading-none placeholder-slate-400 dark:placeholder-zinc-650 transition-all cursor-text shadow-3xs"
+                      className="commission-kw-input w-12 px-1 py-1 text-xs text-center font-bold text-slate-800 dark:text-zinc-200 bg-slate-100 dark:bg-zinc-800 border border-slate-250 dark:border-zinc-700 rounded-md focus:outline-hidden focus:border-emerald-500 focus:bg-white dark:focus:bg-zinc-950 font-sans leading-none placeholder-slate-400 dark:placeholder-zinc-650 transition-all cursor-text shadow-3xs"
                       placeholder="KW"
                       value={commission.deliveryKw || ''}
                       onChange={(e) => onUpdateField(commission.id, 'deliveryKw', e.target.value)}
@@ -813,7 +803,7 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                     />
                     <input
                       type="text"
-                      className="w-14 px-1 py-1 text-xs text-center font-bold text-slate-800 dark:text-zinc-200 bg-slate-100 dark:bg-zinc-800 border border-slate-250 dark:border-zinc-700 rounded-md focus:outline-hidden focus:border-emerald-500 focus:bg-white dark:focus:bg-zinc-950 font-sans leading-none placeholder-slate-400 dark:placeholder-zinc-650 transition-all cursor-text shadow-3xs"
+                      className="commission-jahr-input w-14 px-1 py-1 text-xs text-center font-bold text-slate-800 dark:text-zinc-200 bg-slate-100 dark:bg-zinc-800 border border-slate-250 dark:border-zinc-700 rounded-md focus:outline-hidden focus:border-emerald-500 focus:bg-white dark:focus:bg-zinc-950 font-sans leading-none placeholder-slate-400 dark:placeholder-zinc-650 transition-all cursor-text shadow-3xs"
                       placeholder="Jahr"
                       maxLength={4}
                       value={commission.deliveryYear || ''}

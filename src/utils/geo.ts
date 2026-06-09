@@ -29,6 +29,8 @@ export const PLZ_DATA: Record<string, string> = {
   "72459": "Albstadt-Tailfingen",
   "72461": "Albstadt",
   "72469": "Meßstetten",
+  "72475": "Bitz",
+  "72479": "Straßberg",
 
   // --- Tübingen ---
   "72070": "Tübingen",
@@ -106,6 +108,8 @@ export const PLZ_DATA: Record<string, string> = {
   "88512": "Mengen",
   "88518": "Herbertingen",
   "88521": "Ertingen",
+  "88605": "Meßkirch",
+  "88630": "Pfullendorf",
 
   // --- Tuttlingen ---
   "78532": "Tuttlingen",
@@ -135,7 +139,7 @@ export const PLZ_DATA: Record<string, string> = {
   "72172": "Sulz am Neckar",
   "72175": "Dornhan",
   "72178": "Waldachtal",
-  "72186": "Empfingen",
+  "72186": "Empfingen / Starzach",
   "72189": "Vöhringen",
   "72250": "Freudenstadt",
   "72253": "Freudenstadt",

@@ -1304,5 +1304,109 @@ input:-webkit-autofill:active {
   color: #1C2541 !important;
 }
 
+/* Ensure absolute contrast and visibility for all inputs/selects/textareas inside ambient custom themes (.theme-ocean, .theme-sage, .theme-wood) */
+:where(.theme-ocean, .theme-sage, .theme-wood) input:not([type="checkbox"]),
+:where(.theme-ocean, .theme-sage, .theme-wood) select,
+:where(.theme-ocean, .theme-sage, .theme-wood) textarea {
+  color: var(--app-text) !important;
+}
+
+/* Specific override exception to maintain dark text for Stats Tab light inputs */
+.theme-ocean #personal-stats-tab-content input,
+.theme-ocean #personal-stats-tab-content select,
+.theme-ocean #personal-stats-tab-content textarea {
+  color: #1e293b !important;
+}
+
+/* Specific overrides for CommissionCard/Table KW and Jahr Inputs under standard & custom themes */
+.commission-kw-input,
+.commission-jahr-input {
+  background-color: #f1f5f9 !important; /* light grey in default light mode */
+  color: #0f172a !important; /* dark slate in default light mode */
+  border-color: #cbd5e1 !important;
+}
+
+.commission-kw-input::placeholder,
+.commission-jahr-input::placeholder {
+  color: #94a3b8 !important; /* clear dark gray placeholder in light mode */
+}
+
+:where(.dark) .commission-kw-input,
+:where(.dark) .commission-jahr-input {
+  background-color: #27272a !important; /* dark charcoal in standard dark mode */
+  color: #f4f4f5 !important; /* near white in standard dark mode */
+  border-color: #3f3f46 !important;
+}
+
+:where(.dark) .commission-kw-input::placeholder,
+:where(.dark) .commission-jahr-input::placeholder {
+  color: #71717a !important;
+}
+
+.theme-ocean .commission-kw-input,
+.theme-ocean .commission-jahr-input {
+  background-color: #0B132B !important; /* deep ocean dark blue */
+  color: #EDF2F4 !important; /* high-visibility light blue-grey */
+  border-color: #4B5A76 !important; /* readable blue slate border */
+}
+
+.theme-ocean .commission-kw-input::placeholder,
+.theme-ocean .commission-jahr-input::placeholder {
+  color: #8D99AE !important; /* custom blue-gray clear placeholder */
+}
+
+.theme-sage .commission-kw-input,
+.theme-sage .commission-jahr-input {
+  background-color: #F1F3F0 !important; /* soft botanical background */
+  color: #2C3531 !important; /* dark botanical sage contrast text */
+  border-color: #8A9A86 !important;
+}
+
+.theme-sage .commission-kw-input::placeholder,
+.theme-sage .commission-jahr-input::placeholder {
+  color: #8A9A86 !important;
+}
+
+.theme-wood .commission-kw-input,
+.theme-wood .commission-jahr-input {
+  background-color: #FBF7F4 !important; /* soft wood warm tone bg */
+  color: #3E2723 !important; /* rich dark mahagony text */
+  border-color: #795548 !important;
+}
+
+.theme-wood .commission-kw-input::placeholder,
+.theme-wood .commission-jahr-input::placeholder {
+  color: #a1887f !important;
+}
+
+/* Explicit focus rules to match each theme's accent styles */
+.commission-kw-input:focus,
+.commission-jahr-input:focus {
+  outline: none !important;
+  border-color: #3b82f6 !important;
+}
+
+.theme-ocean .commission-kw-input:focus,
+.theme-ocean .commission-jahr-input:focus {
+  border-color: #90CDF4 !important;
+  background-color: #1C2541 !important;
+  color: #EDF2F4 !important;
+}
+
+.theme-sage .commission-kw-input:focus,
+.theme-sage .commission-jahr-input:focus {
+  border-color: #2C3531 !important;
+  background-color: #FFFFFF !important;
+  color: #2C3531 !important;
+}
+
+.theme-wood .commission-kw-input:focus,
+.theme-wood .commission-jahr-input:focus {
+  border-color: #3E2723 !important;
+  background-color: #FFFFFF !important;
+  color: #3E2723 !important;
+}
+
+
 
 
