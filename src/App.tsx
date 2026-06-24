@@ -1881,8 +1881,8 @@ export default function App() {
               </div>
             )}
 
-            {/* Grande Italic Time-of-day greeting (No long text, simple and elegant as requested) */}
-            <div className="text-2xl md:text-3.5xl font-serif italic text-slate-800 dark:text-zinc-200 tracking-tight leading-none select-none font-semibold mt-1">
+            {/* Clean & elegant uppercase greeting */}
+            <div className="text-lg md:text-xl font-sans uppercase tracking-widest text-slate-600 dark:text-zinc-400 leading-none select-none font-medium mt-1.5">
               {greetingText}...
             </div>
           </div>

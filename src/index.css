@@ -1407,6 +1407,67 @@ input:-webkit-autofill:active {
   color: #3E2723 !important;
 }
 
+/* ToolTip Box for Top-Lieferorte - Identical styling in ALL themes (ignoring theme/dark mode overrides) */
+.top-deliveries-tooltip {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+  color: #334155 !important;
+  opacity: 1 !important;
+}
+
+/* Ensure no theme-specific overrides affect text inside the tooltip */
+.top-deliveries-tooltip,
+.top-deliveries-tooltip div,
+.top-deliveries-tooltip span,
+.top-deliveries-tooltip p {
+  color: #334155 !important;
+  text-shadow: none !important;
+}
+
+.top-deliveries-tooltip .tooltip-title {
+  color: #0f172a !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.top-deliveries-tooltip .tooltip-title span {
+  color: #0f172a !important;
+}
+
+.top-deliveries-tooltip .tooltip-count-badge {
+  background-color: #ecfdf5 !important;
+  color: #059669 !important;
+  border: 1px solid rgba(16, 185, 129, 0.2) !important;
+}
+
+.top-deliveries-tooltip .tooltip-item-row {
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.top-deliveries-tooltip .tooltip-item-row:last-child {
+  border-bottom-width: 0px !important;
+}
+
+.top-deliveries-tooltip .tooltip-item-name {
+  color: #1e293b !important;
+}
+
+.top-deliveries-tooltip .tooltip-item-kw {
+  background-color: #fffbeb !important;
+  color: #d97706 !important;
+  border: 1px solid rgba(245, 158, 11, 0.2) !important;
+}
+
+.top-deliveries-tooltip .tooltip-item-price {
+  color: #475569 !important;
+}
+
+.top-deliveries-tooltip .tooltip-arrow {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+
 
 
 

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Commission, Ausarbeitung } from '../types.ts';
 import { motion } from 'motion/react';
 import { TrendingUp, Trophy, Calendar, Truck, MapPin } from 'lucide-react';
@@ -35,6 +35,22 @@ export const StatsTab: React.FC<StatsTabProps> = ({
   const [filterMonthBestellt, setFilterMonthBestellt] = useState<string>('all');
   const [filterMonthDelivery, setFilterMonthDelivery] = useState<string>('all');
   const [filterDeliveryYear, setFilterDeliveryYear] = useState<string>('all');
+  const [activeCityTooltip, setActiveCityTooltip] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.city-row-container')) {
+        setActiveCityTooltip(null);
+      }
+    };
+    document.addEventListener('click', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick, { passive: true });
+    return () => {
+      document.removeEventListener('click', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+    };
+  }, []);
 
   // Saisonalitäts-Daten berechnen (unabhängig von filterMonth, aber abhängig von filterYear)
   const monthlySeasonality = useMemo(() => {
@@ -1322,76 +1338,87 @@ export const StatsTab: React.FC<StatsTabProps> = ({
           <div className="pt-2">
             {cityStats.list.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
-                {cityStats.list.slice(0, 8).map((city, index) => {
-                  const percentWidth = (city.count / cityStats.maxCount) * 100;
-                  return (
-                    <div key={city.cityName} className="space-y-1.5 group/city-row relative">
-                      <div className="flex justify-between items-center text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-[10px] text-slate-400 dark:text-zinc-550 font-bold w-4">
-                            #{index + 1}
-                          </span>
-                          <span className="font-semibold text-slate-800 dark:text-zinc-200 cursor-help border-b border-dashed border-slate-300 dark:border-zinc-750 pb-0.5 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
-                            {city.cityName}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 font-semibold">
-                          <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono">
-                            {city.count} {city.count === 1 ? 'Küche' : 'Küchen'}
-                          </span>
-                          <span className="text-slate-400 dark:text-zinc-550 text-[10px] font-normal font-mono">
-                            ({formatter.format(city.totalValue)})
-                          </span>
-                        </div>
-                      </div>
+                 {cityStats.list.slice(0, 8).map((city, index) => {
+                   const percentWidth = (city.count / cityStats.maxCount) * 100;
+                   return (
+                     <div 
+                       key={city.cityName} 
+                       className="space-y-1.5 group/city-row relative city-row-container cursor-pointer select-none"
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         setActiveCityTooltip(prev => prev === city.cityName ? null : city.cityName);
+                       }}
+                     >
+                       <div className="flex justify-between items-center text-xs">
+                         <div className="flex items-center gap-2">
+                           <span className="font-mono text-[10px] text-slate-400 dark:text-zinc-550 font-bold w-4">
+                             #{index + 1}
+                           </span>
+                           <span className="font-semibold text-slate-800 dark:text-zinc-200 cursor-help border-b border-dashed border-slate-300 dark:border-zinc-750 pb-0.5 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+                             {city.cityName}
+                           </span>
+                         </div>
+                         <div className="flex items-center gap-2 font-semibold">
+                           <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono">
+                             {city.count} {city.count === 1 ? 'Küche' : 'Küchen'}
+                           </span>
+                           <span className="text-slate-400 dark:text-zinc-550 text-[10px] font-normal font-mono">
+                             ({formatter.format(city.totalValue)})
+                           </span>
+                         </div>
+                       </div>
 
-                      {/* Bar visualization */}
-                      <div className="h-2 w-full bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden relative border border-slate-200/40 dark:border-zinc-800/40">
-                        <motion.div
-                          className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${percentWidth}%` }}
-                          transition={{ duration: 0.8, ease: 'easeOut', delay: index * 0.05 }}
-                        />
-                      </div>
+                       {/* Bar visualization */}
+                       <div className="h-2 w-full bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden relative border border-slate-200/40 dark:border-zinc-800/40">
+                         <motion.div
+                           className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full"
+                           initial={{ width: 0 }}
+                           animate={{ width: `${percentWidth}%` }}
+                           transition={{ duration: 0.8, ease: 'easeOut', delay: index * 0.05 }}
+                         />
+                       </div>
 
-                      {/* Interactive Hover Tooltip for Commissions */}
-                      {city.items.length > 0 && (
-                        <div 
-                          className={`absolute z-50 invisible group-hover/city-row:visible opacity-0 group-hover/city-row:opacity-100 transition-all duration-200 bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-3 shadow-xl w-64 left-6 pointer-events-none text-[11px] leading-normal font-sans text-slate-700 dark:text-zinc-300 ${
-                            index < 4 ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
-                          }`}
-                        >
-                          <div className="font-bold border-b border-slate-100 dark:border-zinc-900 pb-1 mb-1.5 flex justify-between items-center text-slate-800 dark:text-zinc-100 text-[11px]">
-                            <span className="truncate max-w-[170px]">{city.cityName}</span>
-                            <span className="font-mono text-[9px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded font-extrabold shrink-0">{city.count}x</span>
-                          </div>
-                          <div className="space-y-1.5 max-h-[140px] overflow-y-auto scrollbar-none pr-0.5">
-                            {city.items.map((item, idx) => (
-                              <div key={item.id + '-' + idx} className="flex justify-between items-center gap-1.5 py-0.5 border-b border-slate-50 dark:border-zinc-900/30 last:border-0">
-                                <span className="truncate text-slate-700 dark:text-zinc-300 font-semibold max-w-[120px]">{item.name}</span>
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                  <span className="text-[8.5px] font-mono px-1 py-0.5 rounded font-black border bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-200/30 dark:border-amber-900/30 leading-none">
-                                    {item.deliveryKw ? `KW ${item.deliveryKw.toUpperCase().replace('KW', '').trim()}` : 'KW ?'}
-                                  </span>
-                                  <span className="font-mono text-[10px] font-bold text-slate-500 dark:text-zinc-400">{formatter.format(item.price)}</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                          {/* Arrow pointing to the row */}
-                          <div 
-                            className={`absolute left-6 w-2.5 h-2.5 bg-white dark:bg-zinc-950 ${
-                              index < 4 
-                                ? 'bottom-full -mb-[5px] border-l border-t border-slate-200/80 dark:border-zinc-800/80' 
-                                : 'top-full -mt-[5px] border-r border-b border-slate-200/80 dark:border-zinc-800/80'
-                            } rotate-45`} 
-                          />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                       {/* Interactive Hover Tooltip for Commissions */}
+                       {city.items.length > 0 && (
+                         <div 
+                           className={`top-deliveries-tooltip absolute z-50 transition-all duration-200 bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-3 shadow-xl w-64 left-6 text-[11px] leading-normal font-sans text-slate-700 dark:text-zinc-300 ${
+                             activeCityTooltip === city.cityName
+                               ? 'visible opacity-100 pointer-events-auto'
+                               : 'invisible group-hover/city-row:visible opacity-0 group-hover/city-row:opacity-100 pointer-events-none'
+                           } ${
+                             index < 4 ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
+                           }`}
+                         >
+                           <div className="tooltip-title font-bold border-b border-slate-100 dark:border-zinc-900 pb-1 mb-1.5 flex justify-between items-center text-slate-800 dark:text-zinc-100 text-[11px]">
+                             <span className="truncate max-w-[170px]">{city.cityName}</span>
+                             <span className="tooltip-count-badge font-mono text-[9px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded font-extrabold shrink-0">{city.count}x</span>
+                           </div>
+                           <div className="space-y-1.5 max-h-[140px] overflow-y-auto scrollbar-none pr-0.5">
+                             {city.items.map((item, idx) => (
+                               <div key={item.id + '-' + idx} className="tooltip-item-row flex justify-between items-center gap-1.5 py-0.5 border-b border-slate-50 dark:border-zinc-900/30 last:border-0">
+                                 <span className="tooltip-item-name truncate text-slate-700 dark:text-zinc-300 font-semibold max-w-[120px]">{item.name}</span>
+                                 <div className="flex items-center gap-1.5 shrink-0">
+                                   <span className="tooltip-item-kw text-[8.5px] font-mono px-1 py-0.5 rounded font-black border bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-200/30 dark:border-amber-900/30 leading-none">
+                                     {item.deliveryKw ? `KW ${item.deliveryKw.toUpperCase().replace('KW', '').trim()}` : 'KW ?'}
+                                   </span>
+                                   <span className="tooltip-item-price font-mono text-[10px] font-bold text-slate-500 dark:text-zinc-400">{formatter.format(item.price)}</span>
+                                 </div>
+                               </div>
+                             ))}
+                           </div>
+                           {/* Arrow pointing to the row */}
+                           <div 
+                             className={`tooltip-arrow absolute left-6 w-2.5 h-2.5 bg-white dark:bg-zinc-950 ${
+                               index < 4 
+                                 ? 'bottom-full -mb-[5px] border-l border-t border-slate-200/80 dark:border-zinc-800/80' 
+                                 : 'top-full -mt-[5px] border-r border-b border-slate-200/80 dark:border-zinc-800/80'
+                             } rotate-45`} 
+                           />
+                         </div>
+                       )}
+                     </div>
+                   );
+                 })}
               </div>
             ) : (
               <div className="bg-white dark:bg-zinc-950/40 p-8 rounded-2xl border border-dashed border-slate-205 dark:border-zinc-805 text-center flex flex-col items-center justify-center space-y-2">
