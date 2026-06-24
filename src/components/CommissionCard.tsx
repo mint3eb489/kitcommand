@@ -7,6 +7,7 @@ import React, { useState, useRef } from 'react';
 import { Commission, TeammateConfig } from '../types.ts';
 import { Pencil, ClipboardList, RefreshCw, Trash2, Calendar, Check, X, Plus, Minus } from 'lucide-react';
 import { processCityInput, getPlzSuggestions } from '../utils/geo.ts';
+import { normalizeYear } from '../utils/date.ts';
 
 interface CommissionCardProps {
   commission: Commission;
@@ -337,7 +338,7 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                 
                 {isSold && (commission.deliveryKw || commission.deliveryYear) && (
                   <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold px-1.5 py-0.5 rounded">
-                    KW {commission.deliveryKw || '--'} / {commission.deliveryYear || '----'}
+                    KW {commission.deliveryKw || '--'} / {normalizeYear(commission.deliveryYear) || '----'}
                   </span>
                 )}
                 
@@ -808,6 +809,12 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                       maxLength={4}
                       value={commission.deliveryYear || ''}
                       onChange={(e) => onUpdateField(commission.id, 'deliveryYear', e.target.value)}
+                      onBlur={(e) => {
+                        const val = e.target.value.trim();
+                        if (/^\d{2}$/.test(val)) {
+                          onUpdateField(commission.id, 'deliveryYear', '20' + val);
+                        }
+                      }}
                       title="Liefer-Jahr"
                     />
                   </div>

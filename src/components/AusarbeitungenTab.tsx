@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Ausarbeitung } from '../types.ts';
 import { Plus, Trash2, Pencil, Calendar, Hash, Euro, Copy, Check, CheckCircle, Sparkles, X } from 'lucide-react';
 import { processCityInput, getPlzSuggestions } from '../utils/geo.ts';
+import { normalizeYear } from '../utils/date.ts';
 
 interface AusarbeitungenTabProps {
   items: Ausarbeitung[];
@@ -129,7 +130,7 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
         orderedAt: newOrderedAt,
         note: '', // Omitted as requested
         deliveryKw: newDeliveryKw.trim(),
-        deliveryYear: newDeliveryYear.trim(),
+        deliveryYear: normalizeYear(newDeliveryYear.trim()),
         city: newCity.trim(),
       });
       // Reset input fields
@@ -170,7 +171,7 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
         price: parseFloat(editPrice) || 0,
         orderedAt: editOrderedAt,
         deliveryKw: editDeliveryKw.trim(),
-        deliveryYear: editDeliveryYear.trim(),
+        deliveryYear: normalizeYear(editDeliveryYear.trim()),
         city: editCity.trim(),
       });
       setEditingId(null);
@@ -378,6 +379,9 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
                 maxLength={4}
                 value={newDeliveryYear}
                 onChange={(e) => setNewDeliveryYear(e.target.value)}
+                onBlur={() => {
+                  setNewDeliveryYear(normalizeYear(newDeliveryYear));
+                }}
                 placeholder="Jahr"
                 title="Lieferjahr"
                 className="bg-white/10 dark:bg-zinc-950/40 border border-white/15 dark:border-zinc-800 text-white placeholder-white/50 py-1.5 px-1.5 rounded-xl text-xs outline-none focus:border-white/50 focus:ring-1 focus:ring-white/10 w-14 text-center font-bold font-sans"
@@ -493,6 +497,9 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
                         maxLength={4}
                         value={editDeliveryYear}
                         onChange={(e) => setEditDeliveryYear(e.target.value)}
+                        onBlur={() => {
+                          setEditDeliveryYear(normalizeYear(editDeliveryYear));
+                        }}
                         placeholder="Jahr"
                         title="Liefer-Jahr"
                         className="commission-jahr-input bg-white dark:bg-zinc-900 text-xs font-bold text-slate-850 dark:text-zinc-100 p-2 rounded-xl border border-slate-250 dark:border-zinc-805 outline-none focus:ring-1 focus:ring-blue-500 w-1/2 text-center font-bold"
@@ -563,7 +570,7 @@ export const AusarbeitungenTab: React.FC<AusarbeitungenTabProps> = ({
                       </span>
                       {item.deliveryKw && (
                         <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-550 mt-1 select-none">
-                          KW {item.deliveryKw}{item.deliveryYear ? ` / ${item.deliveryYear}` : ''}
+                          KW {item.deliveryKw}{item.deliveryYear ? ` / ${normalizeYear(item.deliveryYear)}` : ''}
                         </span>
                       )}
                     </div>

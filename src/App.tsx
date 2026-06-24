@@ -8,6 +8,7 @@ import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { onSnapshot, addDoc, updateDoc, doc, deleteDoc, setDoc, deleteField } from 'firebase/firestore';
 import { auth, getDbCollectionRef, getAusarbeitungenCollectionRef, handleFirestoreError, isUserAdmin, ADMIN_EMAILS } from './firebase.ts';
 import { Commission, OperationType, Ausarbeitung, TeammateConfig } from './types.ts';
+import { normalizeYear } from './utils/date.ts';
 import { LoginOverlay } from './components/LoginOverlay.tsx';
 import { CommissionCard } from './components/CommissionCard.tsx';
 import { StatsTab } from './components/StatsTab.tsx';
@@ -469,7 +470,8 @@ const INITIAL_DEMO_AUSARBEITUNGEN: Ausarbeitung[] = [
     createdByUid: 'demo-guest-uid',
     note: 'Arbeitsplattenmaß ist noch unsicher.',
     deliveryKw: '36',
-    deliveryYear: '2026'
+    deliveryYear: '2026',
+    city: 'Rottenburg'
   },
   {
     id: 'demo-aus-2',
@@ -483,7 +485,8 @@ const INITIAL_DEMO_AUSARBEITUNGEN: Ausarbeitung[] = [
     createdByUid: 'demo-guest-uid',
     note: 'Inklusive Glasrückwand.',
     deliveryKw: '40',
-    deliveryYear: '2026'
+    deliveryYear: '2026',
+    city: 'Meßkirch'
   }
 ];
 
@@ -1232,6 +1235,7 @@ export default function App() {
     note: string;
     deliveryKw?: string;
     deliveryYear?: string;
+    city?: string;
   }) => {
     if (sessionStorage.getItem('kk_is_demo_mode') === 'true') {
       const newAus = {
@@ -1436,7 +1440,8 @@ export default function App() {
   // Check if current logged-in user is Enrico (belmonte@fs-kuechen.de or belmonte.enrico@gmail.com)
   const isEnrico = useMemo(() => {
     const rawEmail = currentUser?.email?.toLowerCase();
-    return rawEmail === 'belmonte.enrico@gmail.com' || rawEmail === 'belmonte@fs-kuechen.de';
+    const isDemo = sessionStorage.getItem('kk_is_demo_mode') === 'true';
+    return rawEmail === 'belmonte.enrico@gmail.com' || rawEmail === 'belmonte@fs-kuechen.de' || isDemo;
   }, [currentUser]);
 
   // Listen to standard perspective changes or initial login to decide default perspective
@@ -1511,21 +1516,34 @@ export default function App() {
     
     const rawEmail = currentUser.email?.toLowerCase();
     const email = (rawEmail === 'belmonte.enrico@gmail.com') ? 'belmonte@fs-kuechen.de' : rawEmail;
+    const isDemo = sessionStorage.getItem('kk_is_demo_mode') === 'true';
     
-    // Only belmonte@fs-kuechen.de works with Ausarbeitungen
-    if (email !== 'belmonte@fs-kuechen.de') {
+    // Only belmonte@fs-kuechen.de or gast@fs-kuechen.de in demo mode works with Ausarbeitungen
+    if (email !== 'belmonte@fs-kuechen.de' && email !== 'gast@fs-kuechen.de' && !isDemo) {
       return [];
     }
 
     // Filter by selectedColleague dropdown perspective if Enrico wants to view another colleague's stats
     if (selectedColleague !== 'all') {
       const selectedLower = selectedColleague.toLowerCase().trim();
-      if (selectedLower !== 'belmonte@fs-kuechen.de' && selectedLower !== 'belmonte.enrico@gmail.com') {
-        return [];
-      }
+      const config = teammateConfigs.find((t) => t.email.toLowerCase().trim() === selectedLower);
+      const colleagueNameStr = config ? config.name.toLowerCase().trim() : '';
+
+      return ausarbeitungen.filter((a) => {
+        const creatorEmail = (a.createdByEmail || '').toLowerCase().trim();
+        const collName = (a.colleagueName || '').toLowerCase().trim();
+
+        const matchesEmail = creatorEmail === selectedLower || 
+          (selectedLower === 'belmonte@fs-kuechen.de' && creatorEmail === 'belmonte.enrico@gmail.com') ||
+          (selectedLower === 'belmonte.enrico@gmail.com' && creatorEmail === 'belmonte@fs-kuechen.de');
+        
+        const matchesName = colleagueNameStr && collName.includes(colleagueNameStr);
+
+        return matchesEmail || matchesName;
+      });
     }
     return ausarbeitungen;
-  }, [ausarbeitungen, currentUser, selectedColleague]);
+  }, [ausarbeitungen, currentUser, selectedColleague, teammateConfigs]);
 
   // Dynamic but robust city suggestions with local region postal codes defaults
   const citySuggestions = useMemo(() => {
@@ -1648,18 +1666,40 @@ export default function App() {
     return openItems.reduce((acc, c) => acc + (c.price || 0), 0);
   }, [openItems]);
 
-  // Dynamically extract list of years containing commission dates + current year + custom year targets
+  // Dynamically extract list of years containing commission dates + current year + custom year targets + ausarbeitungen
   const availableYears = useMemo(() => {
     const years = new Set<number>();
+    
+    // 1. Commission resolved/created years and delivery years
     filteredCommissions.forEach((c) => {
       const targetDateStr = c.resolvedAt || c.createdAt;
       if (targetDateStr) {
-        years.add(new Date(targetDateStr).getFullYear());
+        const y = new Date(targetDateStr).getFullYear();
+        if (!isNaN(y)) years.add(y);
+      }
+      if (c.deliveryYear) {
+        const y = parseInt(normalizeYear(c.deliveryYear), 10);
+        if (!isNaN(y)) years.add(y);
       }
     });
+
+    // 2. Ausarbeitungen delivery, ordered, or created years
+    filteredAusarbeitungen.forEach((a) => {
+      if (a.deliveryYear) {
+        const y = parseInt(normalizeYear(a.deliveryYear), 10);
+        if (!isNaN(y)) years.add(y);
+      }
+      const targetDateStr = a.orderedAt || a.createdAt;
+      if (targetDateStr) {
+        const y = new Date(targetDateStr).getFullYear();
+        if (!isNaN(y)) years.add(y);
+      }
+    });
+
+    // 3. Current year
     years.add(new Date().getFullYear());
     
-    // Also include any years that already have custom targets
+    // 4. Also include any years that already have custom targets
     if (yearlyTargets) {
       Object.keys(yearlyTargets).forEach((key) => {
         const parts = key.split('_');
@@ -1672,7 +1712,7 @@ export default function App() {
     }
     
     return Array.from(years).sort((a, b) => b - a);
-  }, [filteredCommissions, yearlyTargets]);
+  }, [filteredCommissions, filteredAusarbeitungen, yearlyTargets]);
 
   const greetingText = useMemo(() => {
     const hour = new Date().getHours();

@@ -7,6 +7,7 @@ import React, { useState, useMemo } from 'react';
 import { Commission, Ausarbeitung } from '../types.ts';
 import { motion } from 'motion/react';
 import { TrendingUp, Trophy, Calendar, Truck, MapPin } from 'lucide-react';
+import { normalizeYear } from '../utils/date.ts';
 
 interface StatsTabProps {
   commissions: Commission[];
@@ -33,6 +34,7 @@ export const StatsTab: React.FC<StatsTabProps> = ({
   const [filterMonth, setFilterMonth] = useState<string>('all');
   const [filterMonthBestellt, setFilterMonthBestellt] = useState<string>('all');
   const [filterMonthDelivery, setFilterMonthDelivery] = useState<string>('all');
+  const [filterDeliveryYear, setFilterDeliveryYear] = useState<string>('all');
 
   // Saisonalitäts-Daten berechnen (unabhängig von filterMonth, aber abhängig von filterYear)
   const monthlySeasonality = useMemo(() => {
@@ -308,7 +310,7 @@ export const StatsTab: React.FC<StatsTabProps> = ({
       const dateStr = c.resolvedAt || c.createdAt;
       const defaultYear = dateStr ? new Date(dateStr).getFullYear() : 2026;
       
-      const parsed = parseKwAndYear(c.deliveryKw, c.deliveryYear ? parseInt(c.deliveryYear, 10) : defaultYear);
+      const parsed = parseKwAndYear(c.deliveryKw, c.deliveryYear ? parseInt(normalizeYear(c.deliveryYear), 10) : defaultYear);
       if (!parsed) return;
       
       if (filterYear !== 'all' && parsed.year.toString() !== filterYear) return;
@@ -327,7 +329,7 @@ export const StatsTab: React.FC<StatsTabProps> = ({
       const dateStr = a.orderedAt || a.createdAt;
       const defaultYear = dateStr ? new Date(dateStr).getFullYear() : 2026;
       
-      const parsed = parseKwAndYear(a.deliveryKw, a.deliveryYear ? parseInt(a.deliveryYear, 10) : defaultYear);
+      const parsed = parseKwAndYear(a.deliveryKw, a.deliveryYear ? parseInt(normalizeYear(a.deliveryYear), 10) : defaultYear);
       if (!parsed) return;
       
       if (filterYear !== 'all' && parsed.year.toString() !== filterYear) return;
@@ -408,7 +410,7 @@ export const StatsTab: React.FC<StatsTabProps> = ({
       const dateStr = c.resolvedAt || c.createdAt;
       const defaultYear = dateStr ? new Date(dateStr).getFullYear() : 2026;
       
-      const parsed = parseKwAndYear(c.deliveryKw, c.deliveryYear ? parseInt(c.deliveryYear, 10) : defaultYear);
+      const parsed = parseKwAndYear(c.deliveryKw, c.deliveryYear ? parseInt(normalizeYear(c.deliveryYear), 10) : defaultYear);
       if (!parsed) return;
       
       if (filterYear !== 'all' && parsed.year.toString() !== filterYear) return;
@@ -423,7 +425,7 @@ export const StatsTab: React.FC<StatsTabProps> = ({
       const dateStr = a.orderedAt || a.createdAt;
       const defaultYear = dateStr ? new Date(dateStr).getFullYear() : 2026;
       
-      const parsed = parseKwAndYear(a.deliveryKw, a.deliveryYear ? parseInt(a.deliveryYear, 10) : defaultYear);
+      const parsed = parseKwAndYear(a.deliveryKw, a.deliveryYear ? parseInt(normalizeYear(a.deliveryYear), 10) : defaultYear);
       if (!parsed) return;
       
       if (filterYear !== 'all' && parsed.year.toString() !== filterYear) return;
@@ -444,7 +446,7 @@ export const StatsTab: React.FC<StatsTabProps> = ({
         const dateStr = c.resolvedAt || c.createdAt;
         const defaultYear = dateStr ? new Date(dateStr).getFullYear() : 2026;
         
-        const parsed = parseKwAndYear(c.deliveryKw, c.deliveryYear ? parseInt(c.deliveryYear, 10) : defaultYear);
+        const parsed = parseKwAndYear(c.deliveryKw, c.deliveryYear ? parseInt(normalizeYear(c.deliveryYear), 10) : defaultYear);
         if (!parsed) return;
         
         if (filterYear !== 'all' && parsed.year.toString() !== filterYear) return;
@@ -459,7 +461,7 @@ export const StatsTab: React.FC<StatsTabProps> = ({
             price: c.price || 0,
             type: 'commission',
             deliveryKw: c.deliveryKw,
-            deliveryYear: c.deliveryYear,
+            deliveryYear: normalizeYear(c.deliveryYear),
           });
         }
       });
@@ -470,7 +472,7 @@ export const StatsTab: React.FC<StatsTabProps> = ({
         const dateStr = a.orderedAt || a.createdAt;
         const defaultYear = dateStr ? new Date(dateStr).getFullYear() : 2026;
         
-        const parsed = parseKwAndYear(a.deliveryKw, a.deliveryYear ? parseInt(a.deliveryYear, 10) : defaultYear);
+        const parsed = parseKwAndYear(a.deliveryKw, a.deliveryYear ? parseInt(normalizeYear(a.deliveryYear), 10) : defaultYear);
         if (!parsed) return;
         
         if (filterYear !== 'all' && parsed.year.toString() !== filterYear) return;
@@ -485,14 +487,14 @@ export const StatsTab: React.FC<StatsTabProps> = ({
             price: a.price || 0,
             type: 'ausarbeitung',
             deliveryKw: a.deliveryKw,
-            deliveryYear: a.deliveryYear,
+            deliveryYear: normalizeYear(a.deliveryYear),
           });
         }
       });
 
       filteredItems.sort((x, y) => {
-        const xParsed = parseKwAndYear(x.deliveryKw || '', x.deliveryYear ? parseInt(x.deliveryYear, 10) : 2026);
-        const yParsed = parseKwAndYear(y.deliveryKw || '', y.deliveryYear ? parseInt(y.deliveryYear, 10) : 2026);
+        const xParsed = parseKwAndYear(x.deliveryKw || '', x.deliveryYear ? parseInt(normalizeYear(x.deliveryYear), 10) : 2026);
+        const yParsed = parseKwAndYear(y.deliveryKw || '', y.deliveryYear ? parseInt(normalizeYear(y.deliveryYear), 10) : 2026);
         
         const xYear = xParsed ? xParsed.year : 9999;
         const xWeek = xParsed ? xParsed.week : 99;
@@ -637,70 +639,122 @@ export const StatsTab: React.FC<StatsTabProps> = ({
     };
   }, [commissions, filterYear, filterMonth]);
 
-  // Städte-Statistik berechnen (abhängig von filterYear)
+  // Städte-Statistik berechnen (abhängig von filterDeliveryYear)
   const cityStats = useMemo(() => {
-    const counts: Record<string, { count: number; totalValue: number; names: string[] }> = {};
+    const counts: Record<string, { 
+      cityName: string;
+      count: number; 
+      totalValue: number; 
+      items: Array<{ id: string; name: string; price: number; deliveryKw?: string; deliveryYear?: string }> 
+    }> = {};
     
     // Process sold commissions
     commissions.forEach((c) => {
       if (c.status === 'sold') {
-        const dateStr = c.resolvedAt || c.createdAt;
-        if (dateStr) {
-          const yearStr = new Date(dateStr).getFullYear().toString();
-          if (filterYear !== 'all' && yearStr !== filterYear) return;
-        } else {
-          if (filterYear !== 'all') return;
+        // Use specified deliveryYear if available, otherwise fallback to resolvedAt/createdAt year
+        let deliveryYear = c.deliveryYear ? normalizeYear(c.deliveryYear) : '';
+        if (!deliveryYear) {
+          const dateStr = c.resolvedAt || c.createdAt;
+          if (dateStr) {
+            const parsedDate = new Date(dateStr);
+            if (!isNaN(parsedDate.getTime())) {
+              deliveryYear = parsedDate.getFullYear().toString();
+            }
+          }
         }
+        if (!deliveryYear) {
+          deliveryYear = new Date().getFullYear().toString();
+        }
+        
+        if (filterDeliveryYear !== 'all' && deliveryYear !== filterDeliveryYear) return;
 
-        const cityKey = c.city ? c.city.trim() : '';
-        if (!cityKey) return;
+        const rawCity = c.city ? c.city.trim() : '';
+        if (!rawCity) return;
+        const cityKey = rawCity.toLowerCase();
         
         if (!counts[cityKey]) {
-          counts[cityKey] = { count: 0, totalValue: 0, names: [] };
+          counts[cityKey] = { cityName: rawCity, count: 0, totalValue: 0, items: [] };
         }
         counts[cityKey].count += 1;
         counts[cityKey].totalValue += c.price || 0;
-        if (counts[cityKey].names.length < 5) {
-          counts[cityKey].names.push(c.name);
-        }
+        counts[cityKey].items.push({
+          id: c.id,
+          name: c.name,
+          price: c.price || 0,
+          deliveryKw: c.deliveryKw,
+          deliveryYear: normalizeYear(c.deliveryYear) || deliveryYear,
+        });
       }
     });
 
     // Process ausarbeitungen
     ausarbeitungen.forEach((a) => {
-      if (a.orderedAt) {
-        const yearStr = new Date(a.orderedAt).getFullYear().toString();
-        if (filterYear !== 'all' && yearStr !== filterYear) return;
-      } else {
-        if (filterYear !== 'all') return;
+      // Use specified deliveryYear if available, otherwise fallback to orderedAt/createdAt year
+      let deliveryYear = a.deliveryYear ? normalizeYear(a.deliveryYear) : '';
+      if (!deliveryYear) {
+        const dateStr = a.orderedAt || a.createdAt;
+        if (dateStr) {
+          const parsedDate = new Date(dateStr);
+          if (!isNaN(parsedDate.getTime())) {
+            deliveryYear = parsedDate.getFullYear().toString();
+          }
+        }
+      }
+      if (!deliveryYear) {
+        deliveryYear = new Date().getFullYear().toString();
       }
 
-      const cityKey = a.city ? a.city.trim() : '';
-      if (!cityKey) return;
+      if (filterDeliveryYear !== 'all' && deliveryYear !== filterDeliveryYear) return;
+
+      const rawCity = a.city ? a.city.trim() : '';
+      if (!rawCity) return;
+      const cityKey = rawCity.toLowerCase();
 
       if (!counts[cityKey]) {
-        counts[cityKey] = { count: 0, totalValue: 0, names: [] };
+        counts[cityKey] = { cityName: rawCity, count: 0, totalValue: 0, items: [] };
       }
       counts[cityKey].count += 1;
       counts[cityKey].totalValue += a.price || 0;
-      if (counts[cityKey].names.length < 5) {
-        counts[cityKey].names.push(a.customerName);
-      }
+      counts[cityKey].items.push({
+        id: a.id,
+        name: a.customerName,
+        price: a.price || 0,
+        deliveryKw: a.deliveryKw,
+        deliveryYear: normalizeYear(a.deliveryYear) || deliveryYear,
+      });
     });
 
-    const list = Object.entries(counts)
-      .map(([cityName, data]) => ({
-        cityName,
-        count: data.count,
-        totalValue: data.totalValue,
-        names: data.names,
-      }))
+    // Helper to sort delivery KWs numerically
+    const parseKw = (kwStr: string | undefined): number => {
+      if (!kwStr) return 999;
+      // Extract only digits, e.g. "KW 35" -> "35"
+      const num = parseInt(kwStr.replace(/\D/g, ''), 10);
+      return isNaN(num) ? 998 : num;
+    };
+
+    const list = Object.values(counts)
+      .map((data) => {
+        // Sort items inside each city by delivery KW ascending, then by name
+        const sortedItems = [...data.items].sort((a, b) => {
+          const kwA = parseKw(a.deliveryKw);
+          const kwB = parseKw(b.deliveryKw);
+          if (kwA !== kwB) return kwA - kwB;
+          return a.name.localeCompare(b.name);
+        });
+
+        return {
+          cityName: data.cityName,
+          count: data.count,
+          totalValue: data.totalValue,
+          items: sortedItems,
+        };
+      })
       .sort((a, b) => b.count - a.count || b.totalValue - a.totalValue);
 
     const maxCount = list.length > 0 ? Math.max(...list.map(l => l.count)) : 1;
 
     return { list, maxCount };
-  }, [commissions, ausarbeitungen, filterYear]);
+  }, [commissions, ausarbeitungen, filterDeliveryYear]);
 
   const formatter = new Intl.NumberFormat('de-DE', {
     style: 'currency',
@@ -1222,22 +1276,46 @@ export const StatsTab: React.FC<StatsTabProps> = ({
       {/* TOWN / CITY STATISTICS */}
       <div
         id="city-statistics-container"
-        className="mb-8 bg-zinc-50 dark:bg-zinc-900/40 rounded-3xl p-6 border border-slate-200/80 dark:border-zinc-800/80 relative overflow-hidden isolate shadow-xs hover:border-slate-300 dark:hover:border-zinc-700 transition-all duration-300 group/city"
+        className="mb-8 bg-zinc-50 dark:bg-zinc-900/40 rounded-3xl p-6 border border-slate-200/80 dark:border-zinc-800/80 relative isolate shadow-xs hover:border-slate-300 dark:hover:border-zinc-700 transition-all duration-300 group/city"
       >
-        <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-emerald-500/5 dark:bg-emerald-400/5 rounded-full blur-3xl pointer-events-none group-hover/city:bg-emerald-500/10 dark:group-hover/city:bg-emerald-400/10 transition-colors duration-500" />
+        <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none z-0">
+          <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-emerald-500/5 dark:bg-emerald-400/5 rounded-full blur-3xl group-hover/city:bg-emerald-500/10 dark:group-hover/city:bg-emerald-400/10 transition-colors duration-500" />
+        </div>
         
         <div className="relative z-10 space-y-5">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-400/10 text-emerald-600 dark:text-emerald-405">
-              <MapPin className="w-5 h-5 stroke-[2]" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-400/10 text-emerald-600 dark:text-emerald-405">
+                <MapPin className="w-5 h-5 stroke-[2]" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-550">
+                  Top-Lieferorte & Verkaufs-Städte
+                </span>
+                <span className="block text-xs font-semibold text-slate-600 dark:text-zinc-400">
+                  In welchen Städten und Gemeinden wurden die meisten Küchen ausgeliefert?
+                </span>
+              </div>
             </div>
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-550">
-                Top-Lieferorte & Verkaufs-Städte
+
+            {/* Delivery Year Filter Dropdown */}
+            <div className="shrink-0 flex items-center gap-1.5 self-start sm:self-auto">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-550 uppercase tracking-wider hidden xs:inline">
+                Lieferjahr:
               </span>
-              <span className="block text-xs font-semibold text-slate-600 dark:text-zinc-400">
-                In welchen Städten und Gemeinden wurden die meisten Küchen ausgeliefert?
-              </span>
+              <select
+                id="filter-delivery-year"
+                value={filterDeliveryYear}
+                onChange={(e) => setFilterDeliveryYear(e.target.value)}
+                className="text-[10px] sm:text-xs py-1.5 px-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 text-slate-800 dark:text-zinc-100 shadow-3xs rounded-xl outline-none focus:ring-1 focus:ring-emerald-500 font-bold cursor-pointer transition-all hover:border-slate-300 dark:hover:border-zinc-750"
+              >
+                <option value="all">Alle Lieferjahre</option>
+                {availableYears.map((y) => (
+                  <option key={y} value={y.toString()}>
+                    {y}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -1247,13 +1325,13 @@ export const StatsTab: React.FC<StatsTabProps> = ({
                 {cityStats.list.slice(0, 8).map((city, index) => {
                   const percentWidth = (city.count / cityStats.maxCount) * 100;
                   return (
-                    <div key={city.cityName} className="space-y-1.5 group/city-row">
+                    <div key={city.cityName} className="space-y-1.5 group/city-row relative">
                       <div className="flex justify-between items-center text-xs">
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-[10px] text-slate-400 dark:text-zinc-550 font-bold w-4">
                             #{index + 1}
                           </span>
-                          <span className="font-semibold text-slate-800 dark:text-zinc-200">
+                          <span className="font-semibold text-slate-800 dark:text-zinc-200 cursor-help border-b border-dashed border-slate-300 dark:border-zinc-750 pb-0.5 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
                             {city.cityName}
                           </span>
                         </div>
@@ -1277,10 +1355,38 @@ export const StatsTab: React.FC<StatsTabProps> = ({
                         />
                       </div>
 
-                      {/* Tooltip detail element */}
-                      {city.names.length > 0 && (
-                        <div className="text-[9px] text-slate-400 dark:text-zinc-500 font-normal italic truncate mt-0.5">
-                          Kunden: {city.names.join(', ')}
+                      {/* Interactive Hover Tooltip for Commissions */}
+                      {city.items.length > 0 && (
+                        <div 
+                          className={`absolute z-50 invisible group-hover/city-row:visible opacity-0 group-hover/city-row:opacity-100 transition-all duration-200 bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-3 shadow-xl w-64 left-6 pointer-events-none text-[11px] leading-normal font-sans text-slate-700 dark:text-zinc-300 ${
+                            index < 4 ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
+                          }`}
+                        >
+                          <div className="font-bold border-b border-slate-100 dark:border-zinc-900 pb-1 mb-1.5 flex justify-between items-center text-slate-800 dark:text-zinc-100 text-[11px]">
+                            <span className="truncate max-w-[170px]">{city.cityName}</span>
+                            <span className="font-mono text-[9px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded font-extrabold shrink-0">{city.count}x</span>
+                          </div>
+                          <div className="space-y-1.5 max-h-[140px] overflow-y-auto scrollbar-none pr-0.5">
+                            {city.items.map((item, idx) => (
+                              <div key={item.id + '-' + idx} className="flex justify-between items-center gap-1.5 py-0.5 border-b border-slate-50 dark:border-zinc-900/30 last:border-0">
+                                <span className="truncate text-slate-700 dark:text-zinc-300 font-semibold max-w-[120px]">{item.name}</span>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <span className="text-[8.5px] font-mono px-1 py-0.5 rounded font-black border bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-200/30 dark:border-amber-900/30 leading-none">
+                                    {item.deliveryKw ? `KW ${item.deliveryKw.toUpperCase().replace('KW', '').trim()}` : 'KW ?'}
+                                  </span>
+                                  <span className="font-mono text-[10px] font-bold text-slate-500 dark:text-zinc-400">{formatter.format(item.price)}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {/* Arrow pointing to the row */}
+                          <div 
+                            className={`absolute left-6 w-2.5 h-2.5 bg-white dark:bg-zinc-950 ${
+                              index < 4 
+                                ? 'bottom-full -mb-[5px] border-l border-t border-slate-200/80 dark:border-zinc-800/80' 
+                                : 'top-full -mt-[5px] border-r border-b border-slate-200/80 dark:border-zinc-800/80'
+                            } rotate-45`} 
+                          />
                         </div>
                       )}
                     </div>
