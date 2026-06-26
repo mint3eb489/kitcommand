@@ -63,7 +63,7 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
             placeholder="Nr. eingeben"
             value={commission.orderNumber || ''}
             onChange={(e) => onUpdateField(commission.id, 'orderNumber', e.target.value)}
-            className="w-full px-2 py-1 text-xs font-bold text-slate-800 dark:text-zinc-200 bg-white dark:bg-zinc-90 w-full border border-slate-200 dark:border-zinc-800/80 rounded-lg focus:outline-hidden focus:border-blue-500 shadow-3xs"
+            className="w-full px-2 py-1 text-xs font-bold text-slate-800 dark:text-zinc-200 bg-white dark:bg-zinc-900 w-full border border-slate-200 dark:border-zinc-800/80 rounded-lg focus:outline-hidden focus:border-blue-500 shadow-3xs"
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -84,7 +84,7 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                 onUpdateField(commission.id, 'city', res.normalized);
               }
             }}
-            className="w-full px-2 py-1 text-xs font-bold text-slate-800 dark:text-zinc-200 bg-white dark:bg-zinc-90 w-full border border-slate-200 dark:border-zinc-800/80 rounded-lg focus:outline-hidden focus:border-blue-500 shadow-3xs"
+            className="w-full px-2 py-1 text-xs font-bold text-slate-800 dark:text-zinc-200 bg-white dark:bg-zinc-900 w-full border border-slate-200 dark:border-zinc-800/80 rounded-lg focus:outline-hidden focus:border-blue-500 shadow-3xs"
           />
           <datalist id={`city-sug-${commission.id}`}>
             {getPlzSuggestions(commission.city || '').map((sug, idx) => (

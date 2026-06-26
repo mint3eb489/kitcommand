@@ -15,6 +15,7 @@ interface EditPriceModalProps {
   currentPrice: number;
   onClose: () => void;
   onSave: (id: string, newName: string, newPrice: number) => Promise<void>;
+  onDelete?: (id: string) => void;
 }
 
 export const EditPriceModal: React.FC<EditPriceModalProps> = ({
@@ -23,6 +24,7 @@ export const EditPriceModal: React.FC<EditPriceModalProps> = ({
   currentPrice,
   onClose,
   onSave,
+  onDelete,
 }) => {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
@@ -106,6 +108,21 @@ export const EditPriceModal: React.FC<EditPriceModalProps> = ({
             {saving ? 'Speichert...' : 'Speichern'}
           </button>
         </div>
+
+        {onDelete && (
+          <div className="mt-5 pt-4 border-t border-slate-100 dark:border-zinc-800/80">
+            <button
+              onClick={() => {
+                onDelete(id);
+                onClose();
+              }}
+              className="w-full py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Kommission löschen
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
