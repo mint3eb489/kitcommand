@@ -96,6 +96,7 @@ export const PLZ_DATA: Record<string, string> = {
   // --- Sigmaringen ---
   "72488": "Sigmaringen",
   "72501": "Gammertingen",
+  "72510": "Stetten",
   "72513": "Hettingen",
   "72514": "Inzigkofen",
   "72516": "Scheer",
@@ -110,6 +111,7 @@ export const PLZ_DATA: Record<string, string> = {
   "88521": "Ertingen",
   "88605": "Meßkirch",
   "88630": "Pfullendorf",
+  "89584": "Ehingen",
 
   // --- Tuttlingen ---
   "78532": "Tuttlingen",
@@ -133,6 +135,7 @@ export const PLZ_DATA: Record<string, string> = {
   "78595": "Hausen ob Verena",
   "78597": "Irndorf",
   "78599": "Mahlstetten",
+  "78600": "Kolbingen",
 
   // --- Freudenstadt & Horb ---
   "72160": "Horb am Neckar",
@@ -174,6 +177,7 @@ export const PLZ_DATA: Record<string, string> = {
   "71159": "Nufringen",
 
   // --- Calw & Northern Black Forest ---
+  "72202": "Nagold",
   "75365": "Calw",
   "75378": "Bad Liebenzell",
   "75382": "Althengstett",

@@ -1039,23 +1039,7 @@ export default function App() {
               lastContactAt: new Date().toISOString(),
             };
             if (field === 'bestellt') {
-              if (value) {
-                const resolvedYear = c.resolvedAt ? new Date(c.resolvedAt).getFullYear() : null;
-                const currentYear = new Date().getFullYear();
-                if (resolvedYear && resolvedYear < currentYear) {
-                  updates.bestelltAt = c.resolvedAt;
-                } else {
-                  updates.bestelltAt = new Date().toISOString();
-                }
-              } else {
-                updates.bestelltAt = null;
-              }
-            } else if (field === 'resolvedAt' && c.bestellt) {
-              const resolvedYear = value ? new Date(value).getFullYear() : null;
-              const currentYear = new Date().getFullYear();
-              if (resolvedYear && resolvedYear < currentYear) {
-                updates.bestelltAt = value;
-              }
+              updates.bestelltAt = value ? new Date().toISOString() : null;
             }
             return updates;
           }
@@ -1076,23 +1060,7 @@ export default function App() {
         lastContactAt: new Date().toISOString(),
       };
       if (field === 'bestellt') {
-        if (value) {
-          const resolvedYear = commObj?.resolvedAt ? new Date(commObj.resolvedAt).getFullYear() : null;
-          const currentYear = new Date().getFullYear();
-          if (resolvedYear && resolvedYear < currentYear) {
-            updates.bestelltAt = commObj.resolvedAt;
-          } else {
-            updates.bestelltAt = new Date().toISOString();
-          }
-        } else {
-          updates.bestelltAt = null;
-        }
-      } else if (field === 'resolvedAt' && commObj?.bestellt) {
-        const resolvedYear = value ? new Date(value).getFullYear() : null;
-        const currentYear = new Date().getFullYear();
-        if (resolvedYear && resolvedYear < currentYear) {
-          updates.bestelltAt = value;
-        }
+        updates.bestelltAt = value ? new Date().toISOString() : null;
       }
       await updateDoc(docRef, updates);
     } catch (error) {
