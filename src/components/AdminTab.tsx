@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Users, Trash2, Calendar, Target, Edit, Shield, UserPlus, CheckCircle, Save, Check, X, User } from 'lucide-react';
+import { Users, Trash2, Calendar, Target, Edit, Shield, UserPlus, CheckCircle, Save, Check, X, User, Database, Download, Upload, AlertTriangle, RefreshCw } from 'lucide-react';
 import { TeammateConfig } from '../types.ts';
 
 interface AdminTabProps {
@@ -21,6 +21,9 @@ interface AdminTabProps {
   teammates?: TeammateConfig[];
   onSaveTeammates?: (teammates: TeammateConfig[]) => Promise<void>;
   onOpenUserProfile?: (email: string) => void;
+  commissions?: any[];
+  ausarbeitungen?: any[];
+  onImportBackup?: (backupData: any) => Promise<void>;
 }
 
 export const AdminTab: React.FC<AdminTabProps> = ({
@@ -37,6 +40,9 @@ export const AdminTab: React.FC<AdminTabProps> = ({
   teammates = [],
   onSaveTeammates,
   onOpenUserProfile,
+  commissions = [],
+  ausarbeitungen = [],
+  onImportBackup,
 }) => {
   const [targetInput, setTargetInput] = useState('');
   const [savingAdmins, setSavingAdmins] = useState(false);
@@ -53,6 +59,12 @@ export const AdminTab: React.FC<AdminTabProps> = ({
   const [activeTargetEmail, setActiveTargetEmail] = useState<string | null>(null);
   const [memberYearInput, setMemberYearInput] = useState(new Date().getFullYear().toString());
   const [memberTargetInput, setMemberTargetInput] = useState('');
+
+  // States for backup import confirmation
+  const [pendingBackup, setPendingBackup] = useState<any | null>(null);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+  const [isRestoring, setIsRestoring] = useState(false);
 
   // Sync state initially with fallback target value
   useEffect(() => {
@@ -642,6 +654,106 @@ export const AdminTab: React.FC<AdminTabProps> = ({
             })()}
           </div>
         </div>
+
+        {/* Block: Backup & Datenwiederherstellung */}
+        <div className="relative overflow-hidden isolate bg-white dark:bg-zinc-900 rounded-xl p-5 border border-slate-200 dark:border-zinc-800 shadow-xs transition-all duration-300 group/admin-card hover:border-slate-350 dark:hover:border-zinc-700">
+          <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full blur-3xl pointer-events-none opacity-0 group-hover/admin-card:opacity-100 transition-opacity duration-500 bg-amber-500/10 dark:bg-amber-400/5" />
+          
+          <div className="relative z-10 flex items-center justify-between mb-4 pb-3 border-b border-slate-150 dark:border-zinc-800/80">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <Database className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">
+                  Backup & Datenwiederherstellung
+                </h3>
+                <p className="text-[9px] text-slate-400 mt-0.5">Sichere deine Daten im JSON-Format oder stelle sie aus einem Backup wieder her.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative z-10 space-y-4">
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
+              Mit dieser Funktion kannst du alle Angebote, Ausarbeitungen, Umsatzziele, Administratoren und Verkäuferkonfigurationen in einer einzigen Datei auf deinem Computer speichern. Im Notfall lässt sich dieser Zustand vollständig wiederherstellen.
+            </p>
+
+            <div className="flex flex-wrap gap-3">
+              {/* Export Button */}
+              <button
+                onClick={() => {
+                  try {
+                    const backup = {
+                      version: 1,
+                      exportedAt: new Date().toISOString(),
+                      commissions: commissions || [],
+                      ausarbeitungen: ausarbeitungen || [],
+                      settings: {
+                        annualTarget,
+                        yearlyTargets,
+                        adminEmails,
+                        teammates,
+                      }
+                    };
+                    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    const d = new Date();
+                    const dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                    a.href = url;
+                    a.download = `kitcommand_backup_${dateStr}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                  } catch (err) {
+                    console.error('Export failed:', err);
+                    alert('Export fehlgeschlagen: ' + err);
+                  }
+                }}
+                className="bg-slate-800 hover:bg-slate-900 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white p-2.5 px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Backup herunterladen (JSON)</span>
+              </button>
+
+              {/* Import Upload trigger */}
+              <label className="bg-amber-600 hover:bg-amber-700 text-white p-2.5 px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 cursor-pointer active:scale-95 transition-all select-none">
+                <Upload className="w-3.5 h-3.5" />
+                <span>Backup einspielen (JSON)</span>
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = async (event) => {
+                      try {
+                        const parsed = JSON.parse(event.target?.result as string);
+                        if (!parsed || (typeof parsed !== 'object')) {
+                          throw new Error('Ungültiges Dateiformat. Die Datei muss ein JSON-Objekt sein.');
+                        }
+                        if (!parsed.commissions || !Array.isArray(parsed.commissions)) {
+                          throw new Error('Die Datei enthält keine gültigen Kommissionsdaten.');
+                        }
+                        setPendingBackup(parsed);
+                        setConfirmText('');
+                        setIsConfirmOpen(true);
+                      } catch (err: any) {
+                        alert('Fehler beim Lesen der Backup-Datei: ' + err.message);
+                      }
+                    };
+                    reader.readAsText(file);
+                    e.target.value = '';
+                  }}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       {/* Logout button at bottom */}
@@ -653,6 +765,115 @@ export const AdminTab: React.FC<AdminTabProps> = ({
           Abmelden
         </button>
       </div>
+
+      {/* Restore Confirmation Modal */}
+      {isConfirmOpen && pendingBackup && (
+        <div className="fixed inset-0 bg-black/65 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-805 p-6 md:p-8 max-w-sm w-full rounded-2xl shadow-2xl relative overflow-hidden text-slate-800 dark:text-zinc-200">
+            <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full blur-3xl pointer-events-none bg-red-500/8 dark:bg-red-400/5" />
+            
+            <div className="relative z-10">
+              <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center mb-4">
+                <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+              
+              <h3 className="text-sm font-black uppercase tracking-widest text-red-600 dark:text-red-405 mb-2">
+                Backup einspielen?
+              </h3>
+              
+              <p className="text-[10px] text-slate-500 dark:text-zinc-400 leading-relaxed mb-4">
+                Achtung: Dies überschreibt <strong>alle</strong> aktuellen Angebote, Ausarbeitungen und Systemeinstellungen in deiner Datenbank unwiderruflich! Dieser Vorgang kann nicht rückgängig gemacht werden.
+              </p>
+
+              <div className="bg-slate-50 dark:bg-zinc-950 p-4 rounded-xl border border-slate-100 dark:border-zinc-850 space-y-2 mb-5">
+                <h4 className="text-[9px] font-black text-slate-400 dark:text-zinc-500 uppercase tracking-widest">
+                  Inhalt des hochgeladenen Backups:
+                </h4>
+                <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
+                  <div className="text-slate-500 dark:text-zinc-400">Angebote:</div>
+                  <div className="font-bold text-slate-800 dark:text-zinc-200">
+                    {pendingBackup.commissions?.length ?? 0}
+                  </div>
+                  
+                  <div className="text-slate-500 dark:text-zinc-400">Ausarbeitungen:</div>
+                  <div className="font-bold text-slate-800 dark:text-zinc-200">
+                    {pendingBackup.ausarbeitungen?.length ?? 0}
+                  </div>
+                  
+                  <div className="text-slate-500 dark:text-zinc-400">Standard Umsatzziel:</div>
+                  <div className="font-bold text-slate-800 dark:text-zinc-200">
+                    {pendingBackup.settings?.annualTarget ? formatter.format(pendingBackup.settings.annualTarget) : '-'}
+                  </div>
+
+                  <div className="text-slate-500 dark:text-zinc-400">Exportiert am:</div>
+                  <div className="font-bold text-slate-800 dark:text-zinc-200 truncate" title={pendingBackup.exportedAt}>
+                    {pendingBackup.exportedAt ? new Date(pendingBackup.exportedAt).toLocaleString('de-DE') : 'Unbekannt'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2 mb-6">
+                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block">
+                  Bestätigung erforderlich:
+                </label>
+                <p className="text-[9px] text-slate-400">
+                  Bitte tippe das Wort <span className="font-bold text-slate-800 dark:text-white select-all">WIEDERHERSTELLEN</span> ein, um fortzufahren.
+                </p>
+                <input
+                  type="text"
+                  value={confirmText}
+                  onChange={(e) => setConfirmText(e.target.value)}
+                  placeholder="WIEDERHERSTELLEN"
+                  className="input-field text-xs text-center font-bold tracking-widest bg-slate-50 dark:bg-zinc-950 dark:text-white border-slate-200 dark:border-zinc-850 px-2.5 py-1.5 w-full"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setIsConfirmOpen(false);
+                    setPendingBackup(null);
+                  }}
+                  disabled={isRestoring}
+                  className="flex-1 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-350 hover:bg-slate-200 dark:hover:bg-zinc-700 cursor-pointer active:scale-95 transition-all text-center"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  onClick={async () => {
+                    if (confirmText !== 'WIEDERHERSTELLEN' || isRestoring || !onImportBackup) return;
+                    setIsRestoring(true);
+                    try {
+                      await onImportBackup(pendingBackup);
+                      setIsConfirmOpen(false);
+                      setPendingBackup(null);
+                      alert('Backup erfolgreich eingespielt!');
+                    } catch (err: any) {
+                      // Handled in onImportBackup, but close modal as safety
+                      setIsConfirmOpen(false);
+                      setPendingBackup(null);
+                    } finally {
+                      setIsRestoring(false);
+                    }
+                  }}
+                  disabled={confirmText !== 'WIEDERHERSTELLEN' || isRestoring}
+                  className="flex-1 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white shadow-md shadow-red-600/20 cursor-pointer active:scale-95 transition-all text-center flex items-center justify-center gap-2"
+                >
+                  {isRestoring ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Wird eingespielt...</span>
+                    </>
+                  ) : (
+                    <span>Einspielen</span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

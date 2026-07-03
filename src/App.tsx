@@ -947,6 +947,99 @@ export default function App() {
     }
   };
 
+  // Import backup data and restore database state (client-side restore)
+  const handleImportBackup = async (backupData: any) => {
+    if (sessionStorage.getItem('kk_is_demo_mode') === 'true') {
+      // In demo mode, just update sessionStorage and state
+      if (backupData.commissions) {
+        setCommissions(backupData.commissions);
+        sessionStorage.setItem('kk_demo_commissions', JSON.stringify(backupData.commissions));
+      }
+      if (backupData.ausarbeitungen) {
+        setAusarbeitungen(backupData.ausarbeitungen);
+        sessionStorage.setItem('kk_demo_ausarbeitungen', JSON.stringify(backupData.ausarbeitungen));
+      }
+      if (backupData.settings) {
+        const { annualTarget, yearlyTargets, adminEmails, teammates } = backupData.settings;
+        if (annualTarget !== undefined) {
+          setAnnualTarget(annualTarget);
+          sessionStorage.setItem('kk_demo_annual_target', annualTarget.toString());
+        }
+        if (yearlyTargets !== undefined) {
+          setYearlyTargets(yearlyTargets);
+          sessionStorage.setItem('kk_demo_yearly_targets', JSON.stringify(yearlyTargets));
+        }
+        if (adminEmails !== undefined) {
+          setAdminEmails(adminEmails);
+          sessionStorage.setItem('kk_demo_admin_emails', JSON.stringify(adminEmails));
+        }
+        if (teammates !== undefined) {
+          setTeammateConfigs(teammates);
+          sessionStorage.setItem('kk_demo_teammates', JSON.stringify(teammates));
+        }
+      }
+      return;
+    }
+
+    if (!currentUser) return;
+
+    setSyncStatus('connecting');
+    try {
+      // 1. Restore system settings document
+      const colRef = getDbCollectionRef();
+      const settingsDocRef = doc(colRef, '_system_settings_');
+      
+      const settingsToSave: any = {};
+      if (backupData.settings) {
+        const { annualTarget, yearlyTargets, adminEmails, teammates } = backupData.settings;
+        if (annualTarget !== undefined) settingsToSave.annualTarget = annualTarget;
+        if (yearlyTargets !== undefined) settingsToSave.yearlyTargets = yearlyTargets;
+        if (adminEmails !== undefined) settingsToSave.adminEmails = adminEmails;
+        if (teammates !== undefined) settingsToSave.teammates = teammates;
+      }
+      
+      if (Object.keys(settingsToSave).length > 0) {
+        await setDoc(settingsDocRef, settingsToSave, { merge: true });
+      }
+
+      // 2. Delete current commissions in Firestore (except the _system_settings_ doc itself)
+      for (const c of commissions) {
+        if (c.id !== '_system_settings_') {
+          await deleteDoc(doc(colRef, c.id));
+        }
+      }
+
+      // 3. Write new commissions from backup
+      if (backupData.commissions && Array.isArray(backupData.commissions)) {
+        for (const c of backupData.commissions) {
+          const { id, ...data } = c;
+          await setDoc(doc(colRef, id), data);
+        }
+      }
+
+      // 4. Delete current ausarbeitungen
+      const ausRef = getAusarbeitungenCollectionRef();
+      for (const a of ausarbeitungen) {
+        await deleteDoc(doc(ausRef, a.id));
+      }
+
+      // 5. Write new ausarbeitungen from backup
+      if (backupData.ausarbeitungen && Array.isArray(backupData.ausarbeitungen)) {
+        for (const a of backupData.ausarbeitungen) {
+          const { id, ...data } = a;
+          await setDoc(doc(ausRef, id), data);
+        }
+      }
+
+      setSyncStatus('synced');
+    } catch (error) {
+      console.error('Failed to import backup:', error);
+      setSyncStatus('error');
+      setErrorMessage('Das Einspielen des Backups ist fehlgeschlagen.');
+      throw error;
+    }
+  };
+
   // Add a new Commission entry
   const handleAddCommission = async (
     name: string,
@@ -2527,6 +2620,9 @@ export default function App() {
                 setTargetProfileEmail(email);
                 setIsProfileOpen(true);
               }}
+              commissions={commissions}
+              ausarbeitungen={ausarbeitungen}
+              onImportBackup={handleImportBackup}
             />
           )}
 
