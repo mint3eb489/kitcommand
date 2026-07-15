@@ -1761,6 +1761,10 @@ export default function App() {
     return openItems.reduce((acc, c) => acc + (c.price || 0), 0);
   }, [openItems]);
 
+  const activeSoldItemsSum = useMemo(() => {
+    return activeSoldItems.reduce((acc, c) => acc + (c.price || 0), 0);
+  }, [activeSoldItems]);
+
   // Dynamically extract list of years containing commission dates + current year + custom year targets + ausarbeitungen
   const availableYears = useMemo(() => {
     const years = new Set<number>();
@@ -2351,6 +2355,9 @@ export default function App() {
                   >
                     {viewMode === 'compact' ? <LayoutGrid className="w-3.5 h-3.5" /> : <LayoutList className="w-3.5 h-3.5" />}
                   </button>
+                  <span id="in-bearbeitung-section-sum" className="text-[10px] font-mono font-bold px-2 py-1 rounded-md">
+                    {currencyFormatter.format(activeSoldItemsSum)}
+                  </span>
                   <span id="in-bearbeitung-section-badge" className="text-[10px] font-mono font-bold px-2 py-1 rounded-md">
                     {activeSoldItems.length}
                   </span>

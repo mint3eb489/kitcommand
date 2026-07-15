@@ -762,7 +762,8 @@ input:-webkit-autofill:active {
 #in-bearbeitung-section-chevron {
   color: var(--theme-in-bearbeitung-color) !important;
 }
-#in-bearbeitung-section-badge {
+#in-bearbeitung-section-badge,
+#in-bearbeitung-section-sum {
   color: var(--theme-in-bearbeitung-color) !important;
   background-color: var(--theme-in-bearbeitung-badge-bg) !important;
 }
