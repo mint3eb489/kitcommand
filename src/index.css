@@ -762,10 +762,50 @@ input:-webkit-autofill:active {
 #in-bearbeitung-section-chevron {
   color: var(--theme-in-bearbeitung-color) !important;
 }
-#in-bearbeitung-section-badge,
-#in-bearbeitung-section-sum {
-  color: var(--theme-in-bearbeitung-color) !important;
-  background-color: var(--theme-in-bearbeitung-badge-bg) !important;
+.theme-tab-sum-badge {
+  background-color: rgba(37, 99, 235, 0.1) !important;
+  color: #2563eb !important;
+}
+
+.theme-tab-count-badge {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+}
+
+:where(.dark) .theme-tab-sum-badge {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+  color: #60a5fa !important;
+}
+:where(.dark) .theme-tab-count-badge {
+  background-color: #27272a !important;
+  color: #d4d4d8 !important;
+}
+
+:where(.theme-sage) .theme-tab-sum-badge {
+  background-color: rgba(44, 53, 49, 0.15) !important;
+  color: #2C3531 !important;
+}
+:where(.theme-sage) .theme-tab-count-badge {
+  background-color: #E1E8DE !important;
+  color: #2C3531 !important;
+}
+
+:where(.theme-ocean) .theme-tab-sum-badge {
+  background-color: rgba(78, 168, 222, 0.2) !important;
+  color: #4EA8DE !important;
+}
+:where(.theme-ocean) .theme-tab-count-badge {
+  background-color: rgba(78, 168, 222, 0.1) !important;
+  color: #EDF2F4 !important;
+}
+
+:where(.theme-wood) .theme-tab-sum-badge {
+  background-color: rgba(211, 84, 0, 0.15) !important;
+  color: #D35400 !important;
+}
+:where(.theme-wood) .theme-tab-count-badge {
+  background-color: #F0E5DE !important;
+  color: #3E2723 !important;
 }
 
 /* High-specificity override class selectors to bypass :root */
@@ -1468,7 +1508,86 @@ input:-webkit-autofill:active {
   border-color: #e2e8f0 !important;
 }
 
+/* Backup & Datenwiederherstellung buttons themed classes */
+.theme-backup-download-btn {
+  background-color: #1e293b !important; /* bg-slate-800 equivalent */
+  color: #ffffff !important;
+  transition: all 0.2s ease-in-out !important;
+}
+.theme-backup-download-btn:hover {
+  background-color: #0f172a !important;
+}
+
+:where(.dark) .theme-backup-download-btn {
+  background-color: #27272a !important;
+  color: #ffffff !important;
+}
+:where(.dark) .theme-backup-download-btn:hover {
+  background-color: #3f3f46 !important;
+}
+
+:where(.theme-sage) .theme-backup-download-btn {
+  background-color: #E1E8DE !important;
+  color: #2C3531 !important;
+}
+:where(.theme-sage) .theme-backup-download-btn:hover {
+  background-color: #CED7CA !important;
+}
+
+:where(.theme-ocean) .theme-backup-download-btn {
+  background-color: rgba(78, 168, 222, 0.15) !important;
+  color: #4EA8DE !important;
+}
+:where(.theme-ocean) .theme-backup-download-btn:hover {
+  background-color: rgba(78, 168, 222, 0.25) !important;
+}
+
+:where(.theme-wood) .theme-backup-download-btn {
+  background-color: #F0E5DE !important;
+  color: #3E2723 !important;
+}
+:where(.theme-wood) .theme-backup-download-btn:hover {
+  background-color: #DECBC1 !important;
+}
 
 
+.theme-backup-upload-btn {
+  background-color: #d97706 !important; /* amber-600 */
+  color: #ffffff !important;
+  transition: all 0.2s ease-in-out !important;
+}
+.theme-backup-upload-btn:hover {
+  background-color: #b45309 !important; /* amber-700 */
+}
 
+:where(.dark) .theme-backup-upload-btn {
+  background-color: #d97706 !important;
+  color: #ffffff !important;
+}
+:where(.dark) .theme-backup-upload-btn:hover {
+  background-color: #b45309 !important;
+}
 
+:where(.theme-sage) .theme-backup-upload-btn {
+  background-color: #2C3531 !important;
+  color: #F9FBF7 !important;
+}
+:where(.theme-sage) .theme-backup-upload-btn:hover {
+  background-color: #1e2522 !important;
+}
+
+:where(.theme-ocean) .theme-backup-upload-btn {
+  background-color: #4EA8DE !important;
+  color: #0B132B !important;
+}
+:where(.theme-ocean) .theme-backup-upload-btn:hover {
+  background-color: #56b4ee !important;
+}
+
+:where(.theme-wood) .theme-backup-upload-btn {
+  background-color: #D35400 !important;
+  color: #FFFFFF !important;
+}
+:where(.theme-wood) .theme-backup-upload-btn:hover {
+  background-color: #ba4a00 !important;
+}

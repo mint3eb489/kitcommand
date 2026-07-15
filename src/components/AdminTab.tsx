@@ -711,14 +711,14 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                     alert('Export fehlgeschlagen: ' + err);
                   }
                 }}
-                className="bg-slate-800 hover:bg-slate-900 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white p-2.5 px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
+                className="theme-backup-download-btn p-2.5 px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Backup herunterladen (JSON)</span>
               </button>
 
               {/* Import Upload trigger */}
-              <label className="bg-amber-600 hover:bg-amber-700 text-white p-2.5 px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 cursor-pointer active:scale-95 transition-all select-none">
+              <label className="theme-backup-upload-btn p-2.5 px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 cursor-pointer active:scale-95 transition-all select-none">
                 <Upload className="w-3.5 h-3.5" />
                 <span>Backup einspielen (JSON)</span>
                 <input

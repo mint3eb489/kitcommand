@@ -2248,10 +2248,10 @@ export default function App() {
                   >
                     {viewMode === 'compact' ? <LayoutGrid className="w-3.5 h-3.5" /> : <LayoutList className="w-3.5 h-3.5" />}
                   </button>
-                  <span className="text-[10px] font-mono font-bold text-blue-500 bg-blue-500/10 px-2 py-1 rounded-md">
+                  <span className="theme-tab-sum-badge text-[10px] font-mono font-bold px-2 py-1 rounded-md">
                     {currencyFormatter.format(openItemsSum)}
                   </span>
-                  <span className="text-[10px] font-mono font-bold bg-slate-200 dark:bg-zinc-850 text-slate-600 dark:text-slate-400 px-2 py-1 rounded-md">
+                  <span className="theme-tab-count-badge text-[10px] font-mono font-bold px-2 py-1 rounded-md">
                     {openItems.length}
                   </span>
                 </div>
@@ -2355,10 +2355,10 @@ export default function App() {
                   >
                     {viewMode === 'compact' ? <LayoutGrid className="w-3.5 h-3.5" /> : <LayoutList className="w-3.5 h-3.5" />}
                   </button>
-                  <span id="in-bearbeitung-section-sum" className="text-[10px] font-mono font-bold px-2 py-1 rounded-md">
+                  <span id="in-bearbeitung-section-sum" className="theme-tab-sum-badge text-[10px] font-mono font-bold px-2 py-1 rounded-md">
                     {currencyFormatter.format(activeSoldItemsSum)}
                   </span>
-                  <span id="in-bearbeitung-section-badge" className="text-[10px] font-mono font-bold px-2 py-1 rounded-md">
+                  <span id="in-bearbeitung-section-badge" className="theme-tab-count-badge text-[10px] font-mono font-bold px-2 py-1 rounded-md">
                     {activeSoldItems.length}
                   </span>
                 </div>
@@ -2451,7 +2451,7 @@ export default function App() {
                   >
                     {viewMode === 'compact' ? <LayoutGrid className="w-3.5 h-3.5" /> : <LayoutList className="w-3.5 h-3.5" />}
                   </button>
-                  <span className="text-[10px] font-mono font-bold bg-slate-200 dark:bg-zinc-855 text-slate-600 dark:text-slate-400 px-2 py-1 rounded-md">
+                  <span className="theme-tab-count-badge text-[10px] font-mono font-bold px-2 py-1 rounded-md">
                     {archivedItems.length}
                   </span>
                 </div>
