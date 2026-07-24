@@ -62,14 +62,27 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const [statsMonth, setStatsMonth] = useState<string>('all');
   const [showRemaining, setShowRemaining] = useState<boolean>(false);
 
+  const currentYear = new Date().getFullYear().toString();
+  const currentYearForTarget = statsYear === 'all' ? currentYear : statsYear;
+
+  const isOwnProfile = useMemo(() => {
+    const currentEmail = currentUser?.email?.toLowerCase().trim() || '';
+    if (!targetProfileEmail) return true;
+    return targetProfileEmail.toLowerCase().trim() === currentEmail;
+  }, [currentUser?.email, targetProfileEmail]);
+
   useEffect(() => {
     if (isOpen) {
       setEditedName(localStorage.getItem('kk_custom_display_name') || '');
       setStartTab((localStorage.getItem('kk_default_tab') || 'open') as any);
       setPerspectiveSetting((localStorage.getItem('kk_default_colleague_perspective') || 'all') as any);
       setSavedSuccess(false);
+
+      if (!isOwnProfile) {
+        setActiveProfileTab('stats');
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, isOwnProfile]);
 
   // Formatter for Currency
   const formatter = useMemo(() => new Intl.NumberFormat('de-DE', {
@@ -92,10 +105,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     });
     return Array.from(years).sort((a, b) => b - a);
   }, [commissions]);
-
-
-  const currentYear = new Date().getFullYear().toString();
-  const currentYearForTarget = statsYear === 'all' ? currentYear : statsYear;
 
   const activeProfileEmail = useMemo(() => {
     if (isAdmin && targetProfileEmail) {
@@ -613,7 +622,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     <div id="profile-modal-backdrop" className="fixed inset-0 bg-black/60 backdrop-blur-md z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
       <div 
         id="profile-modal-card" 
-        className="bg-white dark:bg-zinc-900 border-t sm:border border-slate-200 dark:border-zinc-800 max-w-md sm:max-w-4xl w-full rounded-t-[2.5rem] sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col sm:my-auto max-h-[95vh] sm:max-h-[90vh]"
+        className="bg-white dark:bg-zinc-900 border-t sm:border border-slate-200 dark:border-zinc-800 max-w-md sm:max-w-4xl w-full rounded-t-[2.5rem] sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col sm:my-auto h-[85vh] sm:h-[720px] max-h-[92vh] sm:max-h-[800px] min-h-[520px]"
       >
         {/* Header styling */}
         <div className={`relative ${themeStyles.headerBg} p-6 border-b border-slate-200/50 dark:border-zinc-800/80 flex items-center justify-between`}>
@@ -640,45 +649,47 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
         </div>
 
         {/* Dynamic Dual Tab Selector Custom Header */}
-        <div className="flex border-b border-slate-200/60 dark:border-zinc-850 bg-slate-50/40 dark:bg-zinc-950/20 select-none px-4">
-          <button
-            onClick={() => setActiveProfileTab('stats')}
-            className={`py-3.5 px-4 text-xs font-black uppercase tracking-wider relative flex items-center gap-2 transition-all cursor-pointer ${
-              activeProfileTab === 'stats'
-                ? themeStyles.tabActiveText
-                : 'text-slate-400 hover:text-slate-600 dark:text-zinc-550 dark:hover:text-zinc-300'
-            }`}
-          >
-            <BarChart2 className="w-4 h-4" />
-            Persönliche Statistiken
-            {activeProfileTab === 'stats' && (
-              <motion.div 
-                layoutId="active-profile-tab-indicator" 
-                className={`absolute bottom-0 left-0 right-0 h-0.5 ${themeStyles.tabActiveIndicator} rounded-full`}
-              />
-            )}
-          </button>
-          <button
-            onClick={() => setActiveProfileTab('settings')}
-            className={`py-3.5 px-4 text-xs font-black uppercase tracking-wider relative flex items-center gap-2 transition-all cursor-pointer ${
-              activeProfileTab === 'settings'
-                ? themeStyles.tabActiveText
-                : 'text-slate-400 hover:text-slate-600 dark:text-zinc-550 dark:hover:text-zinc-300'
-            }`}
-          >
-            <Settings className="w-4 h-4" />
-            Einstellungen & Themes
-            {activeProfileTab === 'settings' && (
-              <motion.div 
-                layoutId="active-profile-tab-indicator" 
-                className={`absolute bottom-0 left-0 right-0 h-0.5 ${themeStyles.tabActiveIndicator} rounded-full`}
-              />
-            )}
-          </button>
-        </div>
+        {isOwnProfile && (
+          <div className="flex border-b border-slate-200/60 dark:border-zinc-850 bg-slate-50/40 dark:bg-zinc-950/20 select-none px-4">
+            <button
+              onClick={() => setActiveProfileTab('stats')}
+              className={`py-3.5 px-4 text-xs font-black uppercase tracking-wider relative flex items-center gap-2 transition-all cursor-pointer ${
+                activeProfileTab === 'stats'
+                  ? themeStyles.tabActiveText
+                  : 'text-slate-400 hover:text-slate-600 dark:text-zinc-550 dark:hover:text-zinc-300'
+              }`}
+            >
+              <BarChart2 className="w-4 h-4" />
+              Persönliche Statistiken
+              {activeProfileTab === 'stats' && (
+                <motion.div 
+                  layoutId="active-profile-tab-indicator" 
+                  className={`absolute bottom-0 left-0 right-0 h-0.5 ${themeStyles.tabActiveIndicator} rounded-full`}
+                />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveProfileTab('settings')}
+              className={`py-3.5 px-4 text-xs font-black uppercase tracking-wider relative flex items-center gap-2 transition-all cursor-pointer ${
+                activeProfileTab === 'settings'
+                  ? themeStyles.tabActiveText
+                  : 'text-slate-400 hover:text-slate-600 dark:text-zinc-550 dark:hover:text-zinc-300'
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+              Einstellungen & Themes
+              {activeProfileTab === 'settings' && (
+                <motion.div 
+                  layoutId="active-profile-tab-indicator" 
+                  className={`absolute bottom-0 left-0 right-0 h-0.5 ${themeStyles.tabActiveIndicator} rounded-full`}
+                />
+              )}
+            </button>
+          </div>
+        )}
 
         {/* Content scrolling container */}
-        <div className="p-6 overflow-y-auto flex-1 max-h-[66vh]">
+        <div className="p-6 overflow-y-auto flex-1 min-h-0">
           
           {/* TAB 1: PERSÖNLICHE STATISTIKEN */}
           {activeProfileTab === 'stats' && (
@@ -694,9 +705,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-705 dark:text-slate-200 leading-none">
                       {activeProfileEmail === currentUser?.email?.toLowerCase().trim() ? 'Eigene Erfolgsbilanz' : 'Mitarbeiter Erfolgsbilanz'}
                     </h3>
-                    <span className="text-[10px] text-slate-400 dark:text-zinc-500 block mt-0.5 font-mono">
-                      {activeProfileEmail === currentUser?.email?.toLowerCase().trim() ? 'Nur deine eigenen Abschlüsse' : `Abschlüsse von ${activeProfileName}`}
-                    </span>
+                    {activeProfileEmail !== currentUser?.email?.toLowerCase().trim() && (
+                      <span className="text-[10px] text-slate-400 dark:text-zinc-500 block mt-0.5 font-mono">
+                        Abschlüsse von {activeProfileName}
+                      </span>
+                    )}
                   </div>
                 </div>
                 
@@ -1002,7 +1015,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           )}
 
           {/* TAB 2: EINSTELLUNGEN & DESIGN */}
-          {activeProfileTab === 'settings' && (
+          {activeProfileTab === 'settings' && isOwnProfile && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-start text-left">
               
               {/* Left Column Settings */}

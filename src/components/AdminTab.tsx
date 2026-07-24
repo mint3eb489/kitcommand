@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Users, Trash2, Calendar, Target, Edit, Shield, UserPlus, CheckCircle, Save, Check, X, User, Database, Download, Upload, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Users, Trash2, Calendar, Target, Edit, Shield, UserPlus, CheckCircle, Save, Check, X, User, Database, Download, Upload, AlertTriangle, RefreshCw, Search, SlidersHorizontal, UserCheck, UserX, Sparkles, ShieldCheck, Mail } from 'lucide-react';
 import { TeammateConfig } from '../types.ts';
 
 interface AdminTabProps {
@@ -54,6 +54,8 @@ export const AdminTab: React.FC<AdminTabProps> = ({
   const [editingTeammateEmail, setEditingTeammateEmail] = useState<string | null>(null);
   const [editingTeammateName, setEditingTeammateName] = useState('');
   const [savingTeammates, setSavingTeammates] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'active' | 'inactive' | 'admin'>('all');
 
   // States for managing custom teammate targets inside the teammate list
   const [activeTargetEmail, setActiveTargetEmail] = useState<string | null>(null);
@@ -151,89 +153,218 @@ export const AdminTab: React.FC<AdminTabProps> = ({
         <div className="relative overflow-hidden isolate bg-white dark:bg-zinc-900 rounded-xl p-5 border border-slate-200 dark:border-zinc-800 shadow-xs transition-all duration-300 group/admin-card hover:border-slate-350 dark:hover:border-zinc-700">
           <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full blur-3xl pointer-events-none opacity-0 group-hover/admin-card:opacity-100 transition-opacity duration-500 bg-blue-500/10 dark:bg-blue-400/5" />
           
+          {/* Header */}
           <div className="relative z-10 flex items-center justify-between mb-4 pb-3 border-b border-slate-150 dark:border-zinc-800/80">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-450">
+              <div className="p-2 rounded-xl bg-gradient-to-br from-indigo-500/15 to-blue-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
                 <Users className="w-4 h-4" />
               </div>
               <div>
                 <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">
                   Mitarbeiter- & Verkäuferverwaltung
                 </h3>
-                <p className="text-[9px] text-slate-400 mt-0.5">Definiere, wie Namen in Berichten, Filtern und Dropdown-Menüs angezeigt werden.</p>
+                <p className="text-[9px] text-slate-400 mt-0.5">Übersicht aller Accounts, Zuweisung von Admin-Rechten und individuellen Umsatzzielen.</p>
               </div>
             </div>
-            <span className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[9px] px-2 py-0.5 rounded-full font-black">
-              {allTeammates.length} Account(s)
+            <span className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[9px] px-2.5 py-1 rounded-full font-black border border-indigo-500/20 flex items-center gap-1">
+              <Sparkles className="w-2.5 h-2.5" />
+              <span>{allTeammates.length} Account(s)</span>
             </span>
           </div>
 
-          <p className="relative z-10 text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed mb-4">
-            <span className="text-emerald-600 dark:text-emerald-450 font-extrabold">Sicherheit & Firebase-Login:</span> Das Ändern oder Hinzufügen von Namen hier dient rein der visuellen Anzeige im System und hat <strong>keinen Einfluss</strong> auf die Firebase-Login-Passwörter oder Zugänge deines Teams. Es gibt keine Login-Kollision.
+          {/* Quick Info Box */}
+          <p className="relative z-10 text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed mb-5 bg-slate-50/70 dark:bg-zinc-950/50 p-3 rounded-xl border border-slate-200/50 dark:border-zinc-850">
+            <span className="text-emerald-600 dark:text-emerald-400 font-extrabold flex items-center gap-1 mb-0.5">
+              <ShieldCheck className="w-3 h-3 inline" /> Sicherheit & Login-Kompatibilität:
+            </span>
+            Anzeigenamen dienen der Zuordnung in Berichten und Filtern. Firebase-Logins bleiben davon unberührt.
           </p>
 
+          {/* KPI Summary Cards */}
+          {(() => {
+            const displayListRaw: { email: string; name: string; isActive: boolean; isConfigured: boolean }[] = [
+              ...teammates.map(t => ({ email: t.email, name: t.name, isActive: t.isActive, isConfigured: true }))
+            ];
+
+            allTeammates.forEach(email => {
+              const emLower = email.toLowerCase().trim();
+              if (!displayListRaw.some(d => d.email.toLowerCase().trim() === emLower)) {
+                const prefix = emLower.split('@')[0];
+                const fallbackName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+                displayListRaw.push({ email: emLower, name: fallbackName, isActive: true, isConfigured: false });
+              }
+            });
+
+            adminEmails.forEach(email => {
+              const emLower = email.toLowerCase().trim();
+              if (!displayListRaw.some(d => d.email.toLowerCase().trim() === emLower)) {
+                const prefix = emLower.split('@')[0];
+                const fallbackName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+                displayListRaw.push({ email: emLower, name: fallbackName, isActive: true, isConfigured: false });
+              }
+            });
+
+            const totalCount = displayListRaw.length;
+            const activeCount = displayListRaw.filter(d => d.isActive).length;
+            const adminCount = displayListRaw.filter(d => adminEmails.map(e => e.toLowerCase().trim()).includes(d.email.toLowerCase().trim())).length;
+            const targetsCount = Object.keys(yearlyTargets).length;
+
+            return (
+              <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
+                <div className="bg-slate-50/80 dark:bg-zinc-950/80 p-2.5 rounded-xl border border-slate-200/60 dark:border-zinc-850 flex flex-col">
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Gesamt-Team</span>
+                  <span className="text-base font-black text-slate-800 dark:text-zinc-100 mt-0.5">{totalCount}</span>
+                </div>
+                <div className="bg-slate-50/80 dark:bg-zinc-950/80 p-2.5 rounded-xl border border-slate-200/60 dark:border-zinc-850 flex flex-col">
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Aktive Mitarbeiter</span>
+                  <span className="text-base font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{activeCount}</span>
+                </div>
+                <div className="bg-slate-50/80 dark:bg-zinc-950/80 p-2.5 rounded-xl border border-slate-200/60 dark:border-zinc-850 flex flex-col">
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Admins</span>
+                  <span className="text-base font-black text-amber-600 dark:text-amber-400 mt-0.5">{adminCount}</span>
+                </div>
+                <div className="bg-slate-50/80 dark:bg-zinc-950/80 p-2.5 rounded-xl border border-slate-200/60 dark:border-zinc-850 flex flex-col">
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Inidividuelle Ziele</span>
+                  <span className="text-base font-black text-blue-600 dark:text-blue-400 mt-0.5">{targetsCount}</span>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Form: Add a new managed teammate */}
-          <div className="relative z-10 bg-slate-50 dark:bg-zinc-950 p-4 rounded-xl border border-slate-100 dark:border-zinc-900 mb-5 space-y-3">
-            <h4 className="text-[9px] font-black text-slate-400 dark:text-zinc-500 uppercase tracking-widest flex items-center gap-1">
-              <UserPlus className="w-3 h-3" /> Verkäufer hinzufügen / benennen
+          <div className="relative z-10 bg-slate-50/80 dark:bg-zinc-950/80 p-4 rounded-xl border border-slate-200/60 dark:border-zinc-850 mb-5 space-y-3">
+            <h4 className="text-[9px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+              <UserPlus className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Verkäufer / Teammitglied hinzufügen</span>
             </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-end">
               <div className="flex flex-col gap-1">
                 <label className="text-[8px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">E-Mail Adresse</label>
-                <input
-                  type="email"
-                  value={newTeammateEmail}
-                  onChange={(e) => setNewTeammateEmail(e.target.value)}
-                  className="input-field text-xs font-mono bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800"
-                  placeholder="z.B. kollege@fs-kuechen.de"
-                />
+                <div className="relative">
+                  <Mail className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="email"
+                    value={newTeammateEmail}
+                    onChange={(e) => setNewTeammateEmail(e.target.value)}
+                    className="input-field text-xs font-mono pl-8 h-9 bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 focus:border-indigo-500 w-full rounded-xl"
+                    placeholder="mitarbeiter@fs-kuechen.de"
+                  />
+                </div>
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-[8px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Anzeigename / Alias</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newTeammateName}
-                    onChange={(e) => setNewTeammateName(e.target.value)}
-                    className="input-field text-xs bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 flex-1 border px-2.5 py-1"
-                    placeholder="z.B. Claudio"
-                  />
-                  <button
-                    onClick={async () => {
-                      const email = newTeammateEmail.trim().toLowerCase();
-                      const name = newTeammateName.trim();
-                      if (!email || !email.includes('@') || !name || savingTeammates || !onSaveTeammates) return;
-                      setSavingTeammates(true);
-                      try {
-                        const existing = teammates.filter(t => t.email.toLowerCase().trim() !== email);
-                        const updated = [...existing, { email, name, isActive: true }];
-                        await onSaveTeammates(updated);
-                        setNewTeammateEmail('');
-                        setNewTeammateName('');
-                      } catch (err) {
-                        console.error(err);
-                      } finally {
-                        setSavingTeammates(false);
-                      }
-                    }}
-                    disabled={savingTeammates || !newTeammateEmail || !newTeammateName}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 rounded-xl font-bold text-[10px] uppercase tracking-wider shadow-sm active:scale-95 transition-all whitespace-nowrap cursor-pointer disabled:opacity-50"
-                  >
-                    Hinzufügen
-                  </button>
-                </div>
+                <input
+                  type="text"
+                  value={newTeammateName}
+                  onChange={(e) => setNewTeammateName(e.target.value)}
+                  className="input-field text-xs h-9 bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 px-3 focus:border-indigo-500 w-full rounded-xl border"
+                  placeholder="z. B. Claudio"
+                />
               </div>
+              <div className="flex flex-col gap-1 justify-end">
+                <label className="text-[8px] font-bold text-transparent select-none hidden sm:block">Aktion</label>
+                <button
+                  onClick={async () => {
+                    const email = newTeammateEmail.trim().toLowerCase();
+                    const name = newTeammateName.trim();
+                    if (!email || !email.includes('@') || !name || savingTeammates || !onSaveTeammates) return;
+                    setSavingTeammates(true);
+                    try {
+                      const existing = teammates.filter(t => t.email.toLowerCase().trim() !== email);
+                      const updated = [...existing, { email, name, isActive: true }];
+                      await onSaveTeammates(updated);
+                      setNewTeammateEmail('');
+                      setNewTeammateName('');
+                    } catch (err) {
+                      console.error(err);
+                    } finally {
+                      setSavingTeammates(false);
+                    }
+                  }}
+                  disabled={savingTeammates || !newTeammateEmail || !newTeammateName}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white h-9 px-5 rounded-xl font-bold text-[10px] uppercase tracking-wider shadow-md shadow-indigo-600/20 active:scale-95 transition-all whitespace-nowrap cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Hinzufügen</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Search & Filter Toolbar */}
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-xs">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Mitarbeiter oder E-Mail suchen..."
+                className="input-field text-xs pl-8 pr-7 py-1.5 bg-slate-50/80 dark:bg-zinc-950/80 border-slate-200 dark:border-zinc-800 w-full rounded-xl"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Filter Tabs */}
+            <div className="flex items-center gap-1 bg-slate-100/80 dark:bg-zinc-950 p-1 rounded-xl text-[10px] font-bold self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setRoleFilter('all')}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  roleFilter === 'all'
+                    ? 'bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-100 shadow-xs font-black'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-zinc-200'
+                }`}
+              >
+                Alle
+              </button>
+              <button
+                type="button"
+                onClick={() => setRoleFilter('active')}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  roleFilter === 'active'
+                    ? 'bg-white dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 shadow-xs font-black'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-zinc-200'
+                }`}
+              >
+                Aktiv
+              </button>
+              <button
+                type="button"
+                onClick={() => setRoleFilter('inactive')}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  roleFilter === 'inactive'
+                    ? 'bg-white dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 shadow-xs font-black'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-zinc-200'
+                }`}
+              >
+                Inaktiv
+              </button>
+              <button
+                type="button"
+                onClick={() => setRoleFilter('admin')}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  roleFilter === 'admin'
+                    ? 'bg-white dark:bg-zinc-800 text-amber-600 dark:text-amber-400 shadow-xs font-black'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-zinc-200'
+                }`}
+              >
+                Admins
+              </button>
             </div>
           </div>
 
           {/* List of Teammates */}
           <div className="relative z-10 space-y-2">
-            <h4 className="text-[9px] font-black text-slate-400 dark:text-zinc-500 uppercase tracking-widest select-none mb-2">
-              Eingetragene Verkäufer & Teammitglieder
-            </h4>
             {(() => {
-              // Surface all teammate configurations + auto-detected ones from allTeammates & adminEmails
-              const configuredEmails = teammates.map(t => t.email.toLowerCase().trim());
               const displayList: { email: string; name: string; isActive: boolean; isConfigured: boolean }[] = [
                 ...teammates.map(t => ({ email: t.email, name: t.name, isActive: t.isActive, isConfigured: true }))
               ];
@@ -242,7 +373,6 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                 const emLower = email.toLowerCase().trim();
                 const alreadyAdded = displayList.some(d => d.email.toLowerCase().trim() === emLower);
                 if (!alreadyAdded) {
-                  // Fallback name
                   const prefix = emLower.split('@')[0];
                   const fallbackName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
                   displayList.push({
@@ -269,22 +399,55 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                 }
               });
 
-              if (displayList.length === 0) {
-                return <p className="text-center font-mono text-[10px] text-slate-400 py-3">Keine Verkäufer vorhanden.</p>;
+              // Apply Search & Filter
+              const filteredList = displayList.filter((item) => {
+                const q = searchQuery.trim().toLowerCase();
+                const matchesQuery = !q || item.name.toLowerCase().includes(q) || item.email.toLowerCase().includes(q);
+
+                const isAdmin = adminEmails.map(e => e.toLowerCase().trim()).includes(item.email.toLowerCase().trim());
+
+                if (!matchesQuery) return false;
+                if (roleFilter === 'active' && !item.isActive) return false;
+                if (roleFilter === 'inactive' && item.isActive) return false;
+                if (roleFilter === 'admin' && !isAdmin) return false;
+
+                return true;
+              });
+
+              if (filteredList.length === 0) {
+                return (
+                  <div className="text-center py-8 bg-slate-50/50 dark:bg-zinc-950/50 rounded-2xl border border-dashed border-slate-200 dark:border-zinc-800">
+                    <Users className="w-8 h-8 text-slate-300 dark:text-zinc-700 mx-auto mb-2" />
+                    <p className="text-xs font-medium text-slate-500 dark:text-zinc-400">Keine passenden Mitarbeiter gefunden.</p>
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline mt-1 cursor-pointer"
+                      >
+                        Suchfilter zurücksetzen
+                      </button>
+                    )}
+                  </div>
+                );
               }
 
-              return displayList.map((item) => {
+              return filteredList.map((item) => {
                 const isEditing = editingTeammateEmail === item.email;
                 const isAdminUser = adminEmails.map(e => e.toLowerCase().trim()).includes(item.email.toLowerCase().trim());
                 const isSystemAdmin = ['belmonte@fs-kuechen.de', 'belmonte.enrico@gmail.com'].includes(item.email.toLowerCase().trim());
 
-                // Unified save function for editing teammate details & target inline
+                // Color badge helper for initials avatar
+                const getAvatarGradient = (str: string) => {
+                  if (isSystemAdmin) return 'from-indigo-600 to-purple-600 text-white';
+                  if (isAdminUser) return 'from-amber-500 to-orange-500 text-white';
+                  return 'from-blue-500 to-indigo-500 text-white';
+                };
+
                 const handleSaveEditing = async () => {
                   const trimmedName = editingTeammateName.trim();
                   if (!trimmedName || !onSaveTeammates) return;
                   setSavingTeammates(true);
                   try {
-                    // 1. Save display name preserving list order
                     const isAlreadyConfigured = teammates.some(t => t.email.toLowerCase().trim() === item.email.toLowerCase().trim());
                     let updated;
                     if (isAlreadyConfigured) {
@@ -298,7 +461,6 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                     }
                     await onSaveTeammates(updated);
 
-                    // 2. Save yearly target if specified in sliding field
                     if (activeTargetEmail === item.email) {
                       const yr = memberYearInput.trim();
                       if (yr && !isNaN(parseInt(yr))) {
@@ -328,27 +490,29 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                 return (
                   <div 
                     key={item.email}
-                    className={`flex flex-col bg-slate-50 dark:bg-zinc-950 rounded-xl border transition-all duration-300 ${
-                      item.isActive ? 'border-slate-100 dark:border-zinc-800/80 hover:border-slate-200 dark:hover:border-zinc-700' : 'border-slate-200/40 dark:border-zinc-900 opacity-60'
+                    className={`flex flex-col bg-slate-50/90 dark:bg-zinc-950/90 rounded-xl border transition-all duration-300 hover:shadow-xs ${
+                      item.isActive 
+                        ? 'border-slate-200/80 dark:border-zinc-800/80 hover:border-slate-300 dark:hover:border-zinc-700' 
+                        : 'border-slate-200/40 dark:border-zinc-900 opacity-60'
                     }`}
                   >
-                    {/* Main Teammate row */}
+                    {/* Main Teammate Row */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 px-4 min-h-[56px]">
-                      {/* Left: Avatar + Name / Edit Name input */}
+                      {/* Avatar + Info */}
                       <div 
                         onClick={() => {
                           if (!isEditing && onOpenUserProfile) {
                             onOpenUserProfile(item.email);
                           }
                         }}
-                        className={`flex items-center gap-2.5 min-w-0 flex-1 ${!isEditing && onOpenUserProfile ? 'cursor-pointer group/item select-none' : ''}`}
-                        title={!isEditing && onOpenUserProfile ? `Klicken, um das Mitarbeiterprofil von ${item.name} anzuzeigen` : undefined}
+                        className={`flex items-center gap-3 min-w-0 flex-1 ${!isEditing && onOpenUserProfile ? 'cursor-pointer group/item select-none' : ''}`}
+                        title={!isEditing && onOpenUserProfile ? `Klicken, um das Profil von ${item.name} anzuzeigen` : undefined}
                       >
                         <div className="relative shrink-0 select-none">
-                          <div className="w-8 h-8 rounded-full bg-slate-250 dark:bg-zinc-850 flex items-center justify-center text-[10.5px] font-black text-slate-600 dark:text-zinc-400 uppercase transition-all group-hover/item:scale-105 group-hover/item:ring-2 group-hover/item:ring-indigo-500/35">
+                          <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${getAvatarGradient(item.name)} flex items-center justify-center text-xs font-black uppercase shadow-xs transition-all group-hover/item:scale-105`}>
                             {item.name.charAt(0)}
                           </div>
-                          <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-zinc-950 ${item.isActive ? 'bg-green-500' : 'bg-slate-400'}`}></span>
+                          <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-zinc-950 ${item.isActive ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
                         </div>
 
                         <div className="min-w-0 flex-1">
@@ -366,23 +530,35 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                                     setActiveTargetEmail(null);
                                   }
                                 }}
-                                className="input-field text-xs bg-white dark:bg-zinc-900 border-slate-300 dark:border-zinc-800 px-2 py-1 h-7 border rounded text-left active:border-blue-500 focus:border-blue-500 w-full max-w-[160px]"
+                                className="input-field text-xs bg-white dark:bg-zinc-900 border-slate-300 dark:border-zinc-800 px-2.5 py-1 h-7 border rounded-lg text-left focus:border-blue-500 w-full max-w-[180px]"
                                 placeholder="Anzeigename"
                               />
                             </div>
                           ) : (
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-xs font-black text-slate-800 dark:text-zinc-200 group-hover/item:text-indigo-650 dark:group-hover/item:text-indigo-400 transition-colors">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs font-black text-slate-800 dark:text-zinc-100 group-hover/item:text-indigo-600 dark:group-hover/item:text-indigo-400 transition-colors">
                                 {item.name}
                               </span>
-                              {!item.isConfigured ? (
-                                <span className="text-[7px] font-black uppercase text-slate-400 bg-slate-100 dark:bg-zinc-900 border border-slate-200/50 px-1 rounded select-none">
-                                  Auto-erfasst
-                                </span>
-                              ) : null}
+                              
                               {isAdminUser && (
-                                <span className={`admin-badge-inline text-[7.5px] font-black uppercase px-1 rounded select-none ${isSystemAdmin ? 'admin-badge-purp text-indigo-600 bg-indigo-500/10 border border-indigo-500/20' : 'admin-badge-amb text-amber-600 bg-amber-500/10 border border-amber-500/20'}`}>
+                                <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md select-none border ${
+                                  isSystemAdmin 
+                                    ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20' 
+                                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                                }`}>
                                   {isSystemAdmin ? 'Sys-Admin' : 'Admin'}
+                                </span>
+                              )}
+
+                              {!isAdminUser && (
+                                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 bg-slate-200/50 dark:bg-zinc-850 px-2 py-0.5 rounded-md border border-slate-200/60 dark:border-zinc-800 select-none">
+                                  Verkäufer
+                                </span>
+                              )}
+
+                              {!item.isConfigured && (
+                                <span className="text-[7.5px] font-bold uppercase tracking-wider text-slate-400 bg-slate-100 dark:bg-zinc-900 border border-slate-200/50 px-1.5 py-0.5 rounded select-none">
+                                  Auto-erfasst
                                 </span>
                               )}
                             </div>
@@ -393,14 +569,14 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                         </div>
                       </div>
 
-                      {/* Middle: Side-sliding targets panel */}
+                      {/* Sliding Targets Drawer / Display */}
                       <div className={`overflow-hidden transition-all duration-300 flex items-center shrink-0 ${
                         activeTargetEmail === item.email 
-                          ? 'max-w-[340px] opacity-100 mx-1 md:mx-3' 
+                          ? 'max-w-[360px] opacity-100 mx-1 md:mx-3' 
                           : 'max-w-0 opacity-0 pointer-events-none'
                       }`}>
                         {isEditing ? (
-                          <div className="flex items-center gap-1.5 bg-blue-50/50 dark:bg-zinc-900/50 border border-blue-150 dark:border-zinc-800/85 p-1 px-1.5 rounded-lg">
+                          <div className="flex items-center gap-1.5 bg-blue-50/70 dark:bg-zinc-900/70 border border-blue-200 dark:border-zinc-800 p-1.5 px-2 rounded-xl">
                             <span className="text-[9px] font-black uppercase text-blue-600 dark:text-blue-400 select-none">Ziel:</span>
                             <input
                               type="number"
@@ -415,7 +591,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                                   setActiveTargetEmail(null);
                                 }
                               }}
-                              className="input-field text-xs font-mono w-[64px] bg-white dark:bg-zinc-950 border-slate-300 dark:border-zinc-800 h-7 text-center rounded px-1 focus:border-blue-500"
+                              className="input-field text-xs font-mono w-[64px] bg-white dark:bg-zinc-950 border-slate-300 dark:border-zinc-800 h-7 text-center rounded-lg px-1 focus:border-blue-500"
                               placeholder="Jahr"
                             />
                             <input
@@ -430,7 +606,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                                 }
                               }}
                               inputMode="decimal"
-                              className="input-field text-xs font-mono w-[110px] bg-white dark:bg-zinc-950 border-slate-300 dark:border-zinc-800 h-7 text-right rounded px-1 focus:border-blue-500"
+                              className="input-field text-xs font-mono w-[110px] bg-white dark:bg-zinc-950 border-slate-300 dark:border-zinc-800 h-7 text-right rounded-lg px-1 focus:border-blue-500"
                               placeholder="Umsatz in €"
                             />
                           </div>
@@ -453,7 +629,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                               return mTargets.map((tgt) => (
                                 <div 
                                   key={tgt.key}
-                                  className="flex items-center gap-1 bg-blue-500/10 dark:bg-blue-500/5 text-blue-700 dark:text-blue-400 border border-blue-500/15 p-0.5 px-2 rounded-lg text-[9px] font-black whitespace-nowrap"
+                                  className="flex items-center gap-1 bg-blue-500/10 dark:bg-blue-500/5 text-blue-700 dark:text-blue-400 border border-blue-500/20 p-1 px-2 rounded-lg text-[9px] font-black whitespace-nowrap"
                                 >
                                   <span>{tgt.year}: {formatter.format(tgt.value)}</span>
                                   <button
@@ -461,7 +637,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                                       e.stopPropagation();
                                       await onDeleteYearlyTarget(tgt.key);
                                     }}
-                                    className="p-0.5 text-blue-600 hover:text-red-500 rounded hover:bg-slate-200 dark:hover:bg-zinc-850 cursor-pointer ml-0.5"
+                                    className="p-0.5 text-blue-600 hover:text-red-500 rounded hover:bg-blue-100 dark:hover:bg-zinc-800 cursor-pointer ml-0.5"
                                     title="Dieses Umsatzziel löschen"
                                   >
                                     <X className="w-2.5 h-2.5" />
@@ -473,13 +649,13 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                         )}
                       </div>
 
-                      {/* Right: Actions */}
+                      {/* Right Actions */}
                       <div className="flex items-center gap-1.5 sm:self-center self-end shrink-0 flex-wrap">
                         {isEditing ? (
                           <div className="flex items-center gap-1">
                             <button
                               onClick={handleSaveEditing}
-                              className="p-1 px-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer active:scale-95 transition-all"
+                              className="p-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer active:scale-95 transition-all shadow-xs"
                               title="Speichern"
                             >
                               <Check className="w-3 h-3" />
@@ -490,7 +666,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                                 setEditingTeammateEmail(null);
                                 setActiveTargetEmail(null);
                               }}
-                              className="p-1 px-2.5 rounded-lg bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-300 text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer active:scale-95 transition-all"
+                              className="p-1.5 px-3 rounded-lg bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-300 text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer active:scale-95 transition-all"
                               title="Abbrechen"
                             >
                               <X className="w-3 h-3" />
@@ -499,18 +675,6 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                           </div>
                         ) : (
                           <>
-                            {/* Profile View button */}
-                            {onOpenUserProfile && (
-                              <button
-                                onClick={() => onOpenUserProfile(item.email)}
-                                className="admin-btn-profile flex items-center gap-1 p-1 px-2.5 rounded-lg border border-indigo-200/50 dark:border-indigo-850/50 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100/80 dark:hover:bg-indigo-900/40 text-[9px] font-black uppercase tracking-wider transition-all duration-200 cursor-pointer active:scale-95"
-                                title={`Mitarbeiterprofil von ${item.name} anzeigen`}
-                              >
-                                <User className="w-3 h-3" />
-                                <span>Profil</span>
-                              </button>
-                            )}
-
                             {/* Target management button */}
                             <button
                               onClick={() => {
@@ -519,18 +683,17 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                                 } else {
                                   setActiveTargetEmail(item.email);
                                   setMemberYearInput(new Date().getFullYear().toString());
-                                  // Prefill target value for the current year
                                   const tKey = `${item.email.toLowerCase().trim()}_${new Date().getFullYear()}`;
                                   const activeTVal = yearlyTargets[tKey];
                                   setMemberTargetInput(activeTVal ? activeTVal.toString() : '');
                                 }
                               }}
-                              className={`admin-btn-targets flex items-center gap-1 p-1 px-2.5 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                              className={`flex items-center gap-1 p-1.5 px-2.5 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                                 activeTargetEmail === item.email
-                                  ? 'admin-btn-targets-active bg-blue-600 border-blue-650 text-white hover:bg-blue-700 font-bold shadow-xs'
-                                  : 'admin-btn-targets-inactive bg-slate-100/85 dark:bg-zinc-900 border-slate-200/60 dark:border-zinc-800/80 text-slate-500 hover:text-slate-705 dark:hover:text-zinc-200 dark:hover:bg-zinc-800'
+                                  ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700 font-bold shadow-xs'
+                                  : 'bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800'
                               }`}
-                              title="Umsatz-Ziele einblenden / verwalten"
+                              title="Umsatz-Ziele verwalten"
                             >
                               <Target className="w-3 h-3" />
                               <span>Ziele</span>
@@ -557,12 +720,12 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                                   }
                                 }}
                                 disabled={savingAdmins || isSystemAdmin}
-                                className={`admin-btn-role flex items-center gap-1 p-1 px-2.5 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                                className={`flex items-center gap-1 p-1.5 px-2.5 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                                   isSystemAdmin
-                                    ? 'admin-btn-role-sys bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400 opacity-75'
+                                    ? 'bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400 opacity-75'
                                     : isAdminUser
-                                      ? 'admin-btn-role-admin bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/15'
-                                      : 'admin-btn-role-user bg-slate-100/85 dark:bg-zinc-900 border-slate-200/60 dark:border-zinc-800/80 text-slate-500 hover:text-slate-755 dark:hover:text-zinc-200 dark:hover:bg-zinc-800'
+                                      ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
+                                      : 'bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 dark:hover:bg-zinc-800'
                                 }`}
                                 title={
                                   isSystemAdmin
@@ -593,9 +756,9 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                                     setSavingTeammates(false);
                                   }
                                 }}
-                                className={`p-1 px-2.5 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                                className={`p-1.5 px-2.5 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                                   item.isActive 
-                                    ? 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400 hover:bg-green-500/20' 
+                                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20' 
                                     : 'bg-zinc-500/10 border-zinc-500/20 text-zinc-500 hover:bg-zinc-200'
                                 }`}
                                 title={item.isActive ? "Inaktiv schalten" : "Aktiv schalten"}
@@ -609,7 +772,6 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                               onClick={() => {
                                 setEditingTeammateEmail(item.email);
                                 setEditingTeammateName(item.name);
-                                // Also auto-open goals to edit both inline!
                                 setActiveTargetEmail(item.email);
                                 const defaultYr = new Date().getFullYear().toString();
                                 setMemberYearInput(defaultYr);
@@ -617,7 +779,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                                 const activeTVal = yearlyTargets[mKey];
                                 setMemberTargetInput(activeTVal ? activeTVal.toString() : '');
                               }}
-                              className="p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-500 hover:text-slate-800 dark:hover:text-zinc-200 bg-white dark:bg-zinc-900 hover:border-slate-350 cursor-pointer active:scale-95 transition-all"
+                              className="p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-500 hover:text-slate-800 dark:hover:text-zinc-200 bg-white dark:bg-zinc-900 hover:border-slate-300 cursor-pointer active:scale-95 transition-all"
                               title="Anzeigename & Umsatzziel bearbeiten"
                             >
                               <Edit className="w-3.5 h-3.5" />

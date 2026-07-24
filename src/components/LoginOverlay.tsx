@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, getActiveFirebaseInfo } from '../firebase.ts';
-import { Lock, Database, ShieldAlert, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { Lock, ShieldAlert, Eye, EyeOff, Sparkles } from 'lucide-react';
 
 interface LoginOverlayProps {
   onLoginSuccess?: () => void;
@@ -37,17 +37,17 @@ export const LoginOverlay: React.FC<LoginOverlayProps> = ({ onDemoLogin }) => {
         errCode === 'auth/user-not-found' ||
         errCode === 'auth/wrong-password'
       ) {
-        setError('E-Mail oder Passwort ist falsch.');
+        setError('E-Mail oder Passwort ist falsch. Wende dich bitte an den Administrator.');
+      } else if (errCode === 'auth/operation-not-allowed') {
+        setError('E-Mail/Passwort-Anmeldung ist in Firebase noch nicht aktiviert. Bitte aktiviere "E-Mail/Passwort" oder nutze den Demo-Modus.');
       } else if (errCode === 'auth/too-many-requests') {
-        setError('Zu viele Versuche wegen wiederholter Fehlanmeldungen. Bitte versuche es später erneut.');
+        setError('Zu viele Fehlversuche. Bitte warte einen Moment und versuche es erneut.');
       } else if (errCode === 'auth/unauthorized-domain') {
-        setError(`Domain nicht autorisiert (${errCode}). Diese Domain muss in deiner Firebase-Konsole unter "Authentication -> Settings -> Authorized domains" eingetragen sein.`);
+        setError(`Domain nicht autorisiert (${errCode}).`);
       } else if (errCode === 'auth/network-request-failed') {
-        setError(`Netzwerkfehler (${errCode}). Bitte überprüfe deine Internetverbindung.`);
-      } else if (errCode === 'auth/configuration-not-found') {
-        setError(`Firebase Auth Konfiguration fehlt oder ist ungültig (${errCode}).`);
+        setError('Netzwerkfehler. Bitte überprüfe deine Internetverbindung.');
       } else {
-        setError(`Anmeldefehler: ${err.message || errCode || 'Unbekanntes Problem'}. Bitte überprüfe deine Daten und dein Firebase-Projekt.`);
+        setError(`Anmeldefehler: ${err.message || errCode || 'Unbekanntes Problem'}.`);
       }
     } finally {
       setLoading(false);
@@ -66,38 +66,39 @@ export const LoginOverlay: React.FC<LoginOverlayProps> = ({ onDemoLogin }) => {
   return (
     <div
       id="login-overlay"
-      className="fixed inset-0 z-[300] bg-slate-50 dark:bg-black flex items-center justify-center p-4"
+      className="fixed inset-0 z-[300] bg-slate-50/90 dark:bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
     >
-      <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-8 max-w-sm w-full rounded-2xl shadow-2xl text-center">
-        <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
-          <Lock className="w-8 h-8 text-blue-500" />
+      <div className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 p-8 max-w-sm w-full rounded-2xl shadow-2xl text-center">
+        <div className="w-14 h-14 bg-gradient-to-br from-blue-500/10 to-indigo-500/15 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-blue-500/20">
+          <Lock className="w-7 h-7 text-blue-600 dark:text-blue-400" />
         </div>
-        <h2 className="text-xl font-black tracking-tight text-slate-800 dark:text-slate-100 mb-2">
+        <h2 className="text-xl font-black tracking-tight text-slate-800 dark:text-slate-100 mb-1">
           Login
         </h2>
-        <p className="text-xs text-slate-500 mb-6 font-medium">
-          Bitte melde dich an, um KitCommand Pro zu nutzen.
+        <p className="text-xs text-slate-500 dark:text-zinc-400 mb-6 font-medium leading-relaxed">
+          Bitte melde dich mit deinen Zugangsdaten an.
         </p>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
           <input
             type="email"
             id="login-email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="text-sm w-full font-bold text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 bg-slate-100/50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-805 rounded-xl transition-all focus:bg-white dark:focus:bg-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none p-3.5"
-            placeholder="E-Mail Adresse"
+            className="text-sm w-full font-medium text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl transition-all focus:bg-white dark:focus:bg-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none p-3.5"
+            placeholder="E-Mail-Adresse"
             required
             autoFocus
             disabled={loading}
           />
+
           <div className="relative w-full">
             <input
               type={showPassword ? 'text' : 'password'}
               id="login-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="text-sm w-full font-bold text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 bg-slate-100/50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-805 pr-11 rounded-xl transition-all focus:bg-white dark:focus:bg-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none p-3.5"
+              className="text-sm w-full font-medium text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 pr-11 rounded-xl transition-all focus:bg-white dark:focus:bg-zinc-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none p-3.5"
               placeholder="Passwort"
               required
               disabled={loading}
@@ -113,86 +114,56 @@ export const LoginOverlay: React.FC<LoginOverlayProps> = ({ onDemoLogin }) => {
           </div>
 
           {error && (
-            <div id="login-error" className="p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 text-left flex gap-2">
+            <div id="login-error" className="p-3 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 text-left flex gap-2">
               <ShieldAlert className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
               <p className="text-xs text-red-600 dark:text-red-400 font-medium leading-relaxed">
                 {error}
               </p>
             </div>
           )}
+
           <button
             type="submit"
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-600/20 active:scale-95 transition-all w-full mt-2 cursor-pointer disabled:opacity-50"
+            className="bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-md shadow-blue-600/20 active:scale-95 transition-all w-full mt-1 cursor-pointer disabled:opacity-50"
           >
             {loading ? 'Prüfe/Lade...' : 'Anmelden'}
           </button>
 
-          <div className="relative flex py-2 items-center">
-            <div className="flex-grow border-t border-slate-200 dark:border-zinc-800"></div>
-            <span className="flex-shrink mx-4 text-slate-400 dark:text-zinc-500 text-[10px] font-bold uppercase tracking-wider">oder</span>
-            <div className="flex-grow border-t border-slate-200 dark:border-zinc-800"></div>
-          </div>
+          {onDemoLogin && (
+            <>
+              <div className="relative flex py-1 items-center">
+                <div className="flex-grow border-t border-slate-200 dark:border-zinc-800"></div>
+                <span className="flex-shrink mx-4 text-slate-400 dark:text-zinc-500 text-[10px] font-bold uppercase tracking-wider">oder</span>
+                <div className="flex-grow border-t border-slate-200 dark:border-zinc-800"></div>
+              </div>
 
-          <button
-            type="button"
-            onClick={onDemoLogin}
-            className="flex items-center justify-center gap-2 border border-blue-600/30 dark:border-blue-500/30 hover:border-blue-600 dark:hover:border-blue-500 text-blue-600 dark:text-blue-400 font-bold text-xs uppercase tracking-widest py-3 rounded-xl transition-all w-full cursor-pointer hover:bg-blue-500/5 active:scale-95"
-          >
-            <Sparkles className="w-4 h-4 text-blue-500 animate-pulse" />
-            Demo-Modus
-          </button>
+              <button
+                type="button"
+                onClick={onDemoLogin}
+                className="flex items-center justify-center gap-2 border border-blue-600/30 dark:border-blue-500/30 hover:border-blue-600 dark:hover:border-blue-500 text-blue-600 dark:text-blue-400 font-bold text-xs uppercase tracking-widest py-3 rounded-xl transition-all w-full cursor-pointer hover:bg-blue-500/5 active:scale-95"
+              >
+                <Sparkles className="w-4 h-4 text-blue-500 animate-pulse" />
+                Demo-Modus
+              </button>
+            </>
+          )}
         </form>
 
-        {/* Info über das aktive Firebase Projekt & Sandbox Umschalter */}
-        {fbInfo.hasStudioInjected && (
-          <div className="mt-8 pt-4 border-t border-slate-150 dark:border-zinc-800 text-left">
-            <div className="flex items-center gap-1.5 text-slate-400 dark:text-zinc-500 mb-2">
-              <Database className="w-3.5 h-3.5" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Verbindung & Umgebung</span>
+        {fbInfo.hasStudioInjected && fbInfo.isSandbox && (
+          <div className="mt-6 pt-4 border-t border-slate-150 dark:border-zinc-800 text-left">
+            <div className="bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-[11px] leading-relaxed text-slate-600 dark:text-zinc-400">
+              <p className="font-medium text-amber-800 dark:text-amber-400 mb-1">
+                ⚠️ AI Studio-Vorschau aktiv
+              </p>
+              <button
+                type="button"
+                onClick={handleToggleSandbox}
+                className="mt-1 text-blue-600 dark:text-blue-400 font-bold hover:underline cursor-pointer flex items-center gap-1"
+              >
+                👉 Zu echten Live-Daten wechseln
+              </button>
             </div>
-            
-            {fbInfo.isSandbox ? (
-              <div className="bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-[11px] leading-relaxed text-slate-600 dark:text-zinc-400">
-                <p className="font-medium text-amber-850 dark:text-amber-400 mb-1.5">
-                  ⚠️ AI Studio-Vorschau aktiv
-                </p>
-                Melde dich mit deinen Vorschaudaten an. Möchtest du deine echten Live-Aufträge aus deinem eigenen Firebase-Projekt laden?
-                <button
-                  type="button"
-                  onClick={handleToggleSandbox}
-                  className="mt-2 text-blue-600 dark:text-blue-400 font-bold hover:underline cursor-pointer flex items-center gap-1"
-                >
-                  👉 Zu echten Live-Daten wechseln
-                </button>
-              </div>
-            ) : (
-              <div className="bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-[11px] leading-relaxed text-slate-600 dark:text-zinc-400">
-                <p className="font-medium text-emerald-850 dark:text-emerald-400 mb-1.5 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Ganzheitlicher Live-Modus aktiv
-                </p>
-                Du bist direkt mit deinem produktiven System verbunden:
-                <div className="mt-1 font-mono text-slate-500 dark:text-zinc-500 font-bold select-all bg-slate-100 dark:bg-zinc-950 p-1 rounded text-[10px]">
-                  ID: {fbInfo.projectId}
-                </div>
-                <button
-                  type="button"
-                  onClick={handleToggleSandbox}
-                  className="mt-2 text-slate-500 dark:text-zinc-400 font-bold hover:underline cursor-pointer"
-                >
-                  &larr; Zurück zur AI Studio Sandbox wechseln
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Standard-Anzeige falls außerhalb von AI Studio (z.B. nach Hosting-Deployment) */}
-        {!fbInfo.hasStudioInjected && (
-          <div className="mt-6 pt-4 border-t border-slate-150 dark:border-zinc-800 flex justify-between items-center text-[10px] text-slate-400 dark:text-zinc-500 font-mono">
-            <span>Projekt-ID:</span>
-            <span className="font-bold select-all">{fbInfo.projectId}</span>
           </div>
         )}
 
