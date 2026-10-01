@@ -22,7 +22,7 @@ import {
   EditNoteModal,
   ConfirmDeleteModal,
 } from './components/EditModals.tsx';
-import { Search, Plus, Clipboard, ChevronDown, CheckCircle, Flame, X, TrendingUp, Sparkles, Settings, LayoutGrid, LayoutList, User as UserIcon } from 'lucide-react';
+import { Search, Plus, Clipboard, ChevronDown, CheckCircle, Flame, X, TrendingUp, Sparkles, Settings, LayoutGrid, LayoutList } from 'lucide-react';
 
 const INITIAL_DEMO_COMMISSIONS: Commission[] = [
   // 5 running offers (status: 'open', bestellt: false)
@@ -1998,19 +1998,71 @@ export default function App() {
     return Array.from(years).sort((a, b) => b - a);
   }, [filteredCommissions, filteredAusarbeitungen, yearlyTargets]);
 
-  const greetingText = useMemo(() => {
-    const hour = new Date().getHours();
-    let greeting = 'Hallo';
-    if (hour >= 5 && hour < 12) {
-      greeting = 'Guten Morgen';
-    } else if (hour >= 12 && hour < 18) {
-      greeting = 'Hallo';
-    } else {
-      greeting = 'Schönen Abend';
+  // Compute initials for mobile header button (e.g. "EB" for Enrico Belmonte)
+  const userInitials = useMemo(() => {
+    const rawEmail = (currentUser?.email || '').toLowerCase().trim();
+    if (rawEmail === 'belmonte.enrico@gmail.com' || rawEmail === 'belmonte@fs-kuechen.de') {
+      return 'EB';
     }
-    const namePart = (currentUserDisplayName || '').split(' ')[0];
-    return namePart ? `${greeting}, ${namePart}` : greeting;
-  }, [currentUserDisplayName]);
+    const name = (currentUserDisplayName || '').trim();
+    if (name) {
+      const parts = name.split(/\s+/).filter(Boolean);
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+      }
+      const emailPrefix = rawEmail.split('@')[0];
+      const emailParts = emailPrefix.split(/[._-]/).filter(Boolean);
+      if (emailParts.length >= 2) {
+        return (emailParts[0][0] + emailParts[1][0]).toUpperCase();
+      }
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+    const prefix = rawEmail.split('@')[0];
+    const parts = prefix.split(/[._-]/).filter(Boolean);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return (prefix.slice(0, 2) || 'KK').toUpperCase();
+  }, [currentUser, currentUserDisplayName]);
+
+  // Role-based styling for the mobile initials badge
+  const userRoleStyles = useMemo(() => {
+    if (isEnrico) {
+      // Sys-Admin: Lila / Purple
+      return {
+        text: 'text-purple-600 dark:text-purple-400',
+        bg: 'bg-purple-500/10 dark:bg-purple-950/40 hover:bg-purple-500/20',
+        border: 'border-purple-400/50 dark:border-purple-500/40',
+        badgeName: 'Sys-Admin',
+      };
+    }
+    if (isAdmin) {
+      // Admin: Bernstein / Amber
+      return {
+        text: 'text-amber-600 dark:text-amber-400',
+        bg: 'bg-amber-500/10 dark:bg-amber-950/40 hover:bg-amber-500/20',
+        border: 'border-amber-400/50 dark:border-amber-500/40',
+        badgeName: 'Admin',
+      };
+    }
+    // Verkäufer: Blau / Blue
+    return {
+      text: 'text-blue-600 dark:text-blue-400',
+      bg: 'bg-blue-500/10 dark:bg-blue-950/40 hover:bg-blue-500/20',
+      border: 'border-blue-400/50 dark:border-blue-500/40',
+      badgeName: 'Verkäufer',
+    };
+  }, [isEnrico, isAdmin]);
+
+  // Readable name of selected perspective
+  const currentPerspectiveDisplayName = useMemo(() => {
+    if (selectedColleague === 'all') return 'Gesamtes Team';
+    const emailLower = selectedColleague.toLowerCase().trim();
+    const conf = teammateConfigs.find(t => t.email.toLowerCase().trim() === emailLower);
+    if (conf && conf.name.trim()) return conf.name;
+    const prefix = selectedColleague.split('@')[0];
+    return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+  }, [selectedColleague, teammateConfigs]);
 
   if (!authChecked) {
     return (
@@ -2045,28 +2097,65 @@ export default function App() {
   return (
     <div className="p-3 bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-100 min-h-screen flex flex-col pt-[calc(1.25rem+env(safe-area-inset-top))] md:p-8 md:pt-8 transition-colors duration-300">
       
-      {/* Floating Action Button (FAB) - On desktop and tablet */}
-      <button
-        onClick={() => setIsAddOpen(true)}
-        className="hidden md:flex fixed z-40 theme-add-btn w-14 h-14 rounded-full items-center justify-center active:scale-92 transition-all group bottom-8 right-8 cursor-pointer"
-        id="desktop-fab-add"
-      >
-        <Plus className="w-6 h-6 transform group-hover:rotate-90 transition-transform duration-300" />
-      </button>
-
       {/* Main Container */}
       <div className="max-w-4xl mx-auto w-full flex-1 pt-4 lg:pt-0">
         
         {/* Dynamic header / upper controls - unified elegant layout */}
-        <div id="unified-app-header" className="flex flex-col md:grid md:grid-cols-5 md:gap-8 items-center md:items-end justify-between mb-8 md:mb-10 mt-2 relative select-none">
+        <div id="unified-app-header" className="flex flex-col md:grid md:grid-cols-5 md:gap-8 items-center justify-between mb-4 md:mb-8 mt-1 md:mt-2 relative select-none">
           
-          {/* Left Side: App Logo & Name, User Profile, italic Time-Of-Day greeting */}
-          <div className="flex flex-col items-center md:items-start text-center md:text-left md:col-span-2 w-full gap-2.5">
+          {/* MOBILE HEADER (md:hidden): Compact, top left-aligned logo + title with connection dot */}
+          <div className="flex md:hidden w-full items-center justify-between gap-2 mb-3">
+            {/* Left: Kitcommand Logo and title with green connection dot right beside "Pro" badge */}
+            <div className="flex items-center gap-2 min-w-0">
+              <button
+                id="mobile-logo-theme-toggle"
+                onClick={toggleTheme}
+                className="w-8.5 h-8.5 bg-white dark:bg-zinc-900 border border-blue-500/80 dark:border-blue-400/80 rounded-lg flex items-center justify-center shadow-xs shrink-0 cursor-pointer active:scale-95 transition-all text-blue-600 dark:text-blue-450 relative overflow-hidden"
+                title="Wechsle Theme"
+              >
+                <div className="absolute inset-0 flex items-center justify-center p-1 z-10 pointer-events-none">
+                  <img
+                    src={theme === 'dark' ? '/icon-dark.png' : '/icon-light.png'}
+                    alt="KitCommand Logo"
+                    className="w-full h-full object-contain rounded"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+                <TrendingUp className="w-4 h-4 stroke-[2.25] text-blue-600 dark:text-blue-400" />
+              </button>
+
+              <h1 className="text-base font-black flex items-center tracking-tight truncate leading-none">
+                KitCommand
+                <span className="inline-flex items-center border border-amber-500 text-amber-500 rounded px-1 py-0.2 text-[8px] font-black ml-1.5 leading-none">
+                  Pro
+                </span>
+                {/* Grüner Verbindungspunkt direkt rechts neben dem Pro Badge (Mobil) */}
+                <span 
+                  className="relative flex h-2 w-2 ml-2 shrink-0 cursor-default" 
+                  title={syncStatus === 'synced' ? 'Echtzeit-Verbindung aktiv (Live)' : 'Verbinde mit Cloud-Datenbank...'}
+                >
+                  {syncStatus === 'synced' ? (
+                    <>
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 ring-2 ring-emerald-500/30"></span>
+                    </>
+                  ) : (
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500 animate-pulse ring-2 ring-blue-500/30"></span>
+                  )}
+                </span>
+              </h1>
+            </div>
+          </div>
+
+          {/* DESKTOP HEADER (hidden md:flex): Logo + Title + Pro + Live Dot */}
+          <div className="hidden md:flex items-center text-left md:col-span-2 w-full">
             <div className="flex items-center gap-3.5">
               <button
                 id="app-logo-theme-toggle"
                 onClick={toggleTheme}
-                className="w-13 h-13 md:w-14 md:h-14 bg-white dark:bg-zinc-900 border border-blue-500/80 dark:border-blue-400/80 rounded-xl flex items-center justify-center shadow-xs shrink-0 cursor-pointer active:scale-95 transition-all text-blue-600 dark:text-blue-450 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 hover:border-blue-600 dark:hover:border-blue-300 group relative overflow-hidden"
+                className="w-13 h-13 sm:w-14 sm:h-14 bg-white dark:bg-zinc-900 border border-blue-500/80 dark:border-blue-400/80 rounded-xl flex items-center justify-center shadow-xs shrink-0 cursor-pointer active:scale-95 transition-all text-blue-600 dark:text-blue-450 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 hover:border-blue-600 dark:hover:border-blue-300 group relative overflow-hidden"
                 title="Wechsle Theme"
               >
                 {/* Dynamic Image Logo */}
@@ -2083,292 +2172,190 @@ export default function App() {
 
                 {/* Symmetrical Vector Emblem */}
                 <div className="relative flex items-center justify-center z-0">
-                  <TrendingUp className="w-5 h-5 md:w-6 md:h-6 stroke-[2.25] text-blue-600 dark:text-blue-400 group-hover:scale-110 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-all duration-300 ease-out" />
+                  <TrendingUp className="w-6 h-6 stroke-[2.25] text-blue-600 dark:text-blue-400 group-hover:scale-110 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-all duration-300 ease-out" />
                   <Sparkles className="w-3.5 h-3.5 absolute -top-2.5 -right-2.5 text-amber-500 fill-amber-500/30 opacity-60 group-hover:opacity-100 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300" />
                 </div>
               </button>
               
               <div>
-                <h1 className="text-2xl md:text-3xl font-black flex items-center tracking-tighter">
+                <h1 className="text-3xl font-black flex items-center tracking-tighter">
                   KitCommand{' '}
                   <span className="inline-flex items-center border border-amber-500 text-amber-500 rounded px-1.5 py-0.5 text-[0.45em] font-black ml-2 transform translateY(-1px)">
                     Pro
                   </span>
+                  {/* Grüner Verbindungspunkt direkt rechts neben dem Pro Badge (Desktop) */}
+                  <span 
+                    className="relative flex h-2.5 w-2.5 ml-2.5 shrink-0 cursor-default" 
+                    title={syncStatus === 'synced' ? 'Echtzeit-Verbindung aktiv (Live)' : 'Verbinde mit Cloud-Datenbank...'}
+                  >
+                    {syncStatus === 'synced' ? (
+                      <>
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 ring-4 ring-emerald-500/25"></span>
+                      </>
+                    ) : (
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500 animate-pulse ring-4 ring-blue-500/25"></span>
+                    )}
+                  </span>
                 </h1>
               </div>
             </div>
-
-            {/* Profile Row with names and badges under App Name */}
-            {currentUser?.email && (
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-1.5 md:gap-2 select-none mt-1 w-full">
-                 {/* Two-row Interactive Profile Button with Icon & Hover effect */}
-                <button 
-                  onClick={() => setIsProfileOpen(true)}
-                  title="Mitarbeiterprofil ansehen"
-                  id="header-user-profile-btn"
-                  className="flex items-center gap-2 bg-white/90 dark:bg-zinc-900/90 hover:bg-slate-50 dark:hover:bg-zinc-850 px-2.5 md:px-3 rounded-lg md:rounded-xl border border-slate-200/60 dark:border-zinc-800/80 shadow-xs hover:border-slate-300 dark:hover:border-zinc-700 cursor-pointer active:scale-95 transition-all duration-200 text-left h-[38px] md:h-[48px] shrink-0 w-fit"
-                >
-                  {/* Elegant circular user icon with background badge */}
-                  <div className="w-7 h-7 md:w-[34px] md:h-[34px] rounded-lg bg-blue-500/10 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 user-icon-wrapper">
-                    <UserIcon className="w-3.5 h-3.5 md:w-4.5 md:h-4.5 stroke-[2.5]" />
-                  </div>
-                  
-                  {/* Text Column with Label and Dynamic User Display Name */}
-                  <div className="flex flex-col min-w-0 leading-tight">
-                    <span className="text-[7px] md:text-[8px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest block leading-none mb-0.5 select-none profile-label">
-                      Benutzerprofil
-                    </span>
-                    <div className="flex items-center gap-1 md:gap-1.5 whitespace-nowrap">
-                      <span className="text-[10px] md:text-[11px] font-black text-slate-800 dark:text-zinc-200 truncate max-w-[140px] xs:max-w-[190px] md:max-w-none profile-name">
-                        {currentUserDisplayName}
-                      </span>
-                      {sessionStorage.getItem('kk_is_demo_mode') === 'true' && (
-                        <span className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[7px] md:text-[8px] px-1 md:px-1.5 py-0.5 font-bold rounded uppercase tracking-wider shrink-0 flex items-center gap-0.5 profile-badge">
-                          <Sparkles className="w-1.5 h-1.5 text-blue-500 shrink-0" />
-                          Demo
-                        </span>
-                      )}
-                      {isEnrico ? (
-                        <span className="profile-badge profile-badge-purp font-black select-none shrink-0 uppercase tracking-wider text-[7.5px] px-1 py-0.5 rounded border">
-                          Sys-Admin
-                        </span>
-                      ) : isAdmin ? (
-                        <span className="profile-badge profile-badge-amb font-black select-none shrink-0 uppercase tracking-wider text-[7.5px] px-1 py-0.5 rounded border">
-                          Admin
-                        </span>
-                      ) : (
-                        <span className="profile-badge profile-badge-blu font-black select-none shrink-0 uppercase tracking-wider text-[7.5px] px-1 py-0.5 rounded border">
-                          Verkäufer
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </button>
-                
-                {/* Symmetrical Partner-Badge for Database Sync Status */}
-                <div 
-                  id="header-sync-status-btn"
-                  className="flex items-center justify-center gap-1.5 md:gap-2 bg-white/90 dark:bg-zinc-900/90 px-2.5 md:px-3 rounded-lg md:rounded-xl border border-slate-200/60 dark:border-zinc-800/80 shadow-xs h-[38px] md:h-[48px] shrink-0"
-                  title={syncStatus === 'synced' ? 'Echtzeit-Verbindung mit der Cloud is aktiv' : 'Verbinde mit Cloud-Datenbank...'}
-                >
-                  <div
-                    className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ring-2 md:ring-4 shrink-0 transition-all ${
-                      syncStatus === 'synced' 
-                        ? 'bg-green-500 ring-green-500/20' 
-                        : 'bg-blue-500 ring-blue-500/25 animate-pulse'
-                    }`}
-                  ></div>
-                  <span className="text-[10px] md:text-[11px] font-black text-slate-700 dark:text-zinc-350 select-none status-text">
-                    {syncStatus === 'connecting' ? 'Cloud Sync' : syncStatus === 'synced' ? 'Live' : 'Sync'}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Clean & elegant uppercase greeting */}
-            <div className="text-lg md:text-xl font-sans uppercase tracking-widest text-slate-600 dark:text-zinc-400 leading-none select-none font-medium mt-1.5">
-              {greetingText}...
-            </div>
           </div>
 
-          {/* Right Side: Tab Navigation (Suche + Tabs) */}
+          {/* Right Side: Unified Controls & Tab Navigation Box (Mobile & Desktop) */}
           <div className="w-full md:col-span-3">
-            {/* STICKY NAV ISLAND (Suche + Tabs) */}
+            {/* UNIFIED NAV ISLAND */}
             <div 
               id="sticky-nav-island"
               className="fixed left-0 right-0 bottom-0 z-50 md:relative md:bottom-auto md:left-auto md:right-auto max-w-md mx-auto md:ml-auto md:mr-0 md:mb-0 select-none w-full"
             >
-              <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-t-3xl md:rounded-xl border-t md:border border-slate-200/50 dark:border-zinc-800/50 shadow-[0_-15px_30px_-5px_rgba(0,0,0,0.15)] dark:shadow-[0_-15px_30px_-5px_rgba(0,0,0,0.6)] md:shadow-lg flex flex-col gap-2 p-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] md:p-2.5 md:pb-2.5">
+              <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-t-3xl md:rounded-xl border-t md:border border-slate-200/50 dark:border-zinc-800/50 shadow-[0_-15px_30px_-5px_rgba(0,0,0,0.15)] dark:shadow-[0_-15px_30px_-5px_rgba(0,0,0,0.6)] md:shadow-lg flex flex-col gap-2 p-3 pb-[calc(1rem+env(safe-area-inset-bottom))] md:p-2.5 md:pb-2.5">
                 
-                {/* Mobile controls */}
-                <div className="flex md:hidden flex-1 items-center justify-between gap-2">
-                  {/* Left: Perspektive Selection permanently visible if admin */}
-                  {isAdmin ? (
-                    <div className="flex-1 min-w-0 flex items-center gap-1.5 px-2 py-1.5 bg-slate-100/50 dark:bg-zinc-950/60 rounded-xl border border-slate-200/40 dark:border-zinc-850">
-                      <span className="text-[9px] font-black uppercase text-slate-400 dark:text-zinc-500 pl-0.5 tracking-wider select-none shrink-0">Perspektive:</span>
+                {/* OBERE ZEILE: Perspektive (Spalte 1 & 2) | Einstellungen & Profil nebeneinander (Spalte 3) | Plus NEU (Spalte 4) */}
+                <div id="app-top-controls-grid" className="grid grid-cols-4 gap-1 bg-slate-100/80 dark:bg-zinc-950 p-1 rounded-xl">
+                  
+                  {/* 1. Perspektive (Spalte 1 & 2 = gleiche Größe wie Offen + Verkauft zusammen, nur der Name ohne das Wort Perspektive) */}
+                  <div className="col-span-2 relative w-full h-full">
+                    <button
+                      type="button"
+                      className={`w-full h-full py-2 px-2.5 rounded-lg text-left text-[11px] sm:text-xs font-sans font-bold transition-all duration-200 cursor-pointer flex items-center justify-between gap-1.5 border shadow-xs select-none ${
+                        selectedColleague !== 'all'
+                          ? 'bg-blue-500/10 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border-blue-500/30'
+                          : 'bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-200 border-slate-200/80 dark:border-zinc-800'
+                      }`}
+                      title={`Ausgewählte Perspektive: ${currentPerspectiveDisplayName} (Klicken zum Ändern)`}
+                    >
+                      <span className="font-bold truncate text-slate-800 dark:text-zinc-100 flex-1">
+                        {currentPerspectiveDisplayName}
+                      </span>
+                      <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-60 text-slate-500 dark:text-zinc-400" />
+                    </button>
+                    {isAdmin && (
                       <select
                         value={selectedColleague}
                         onChange={(e) => setSelectedColleague(e.target.value)}
-                        className="bg-transparent text-[11px] font-bold text-slate-755 dark:text-zinc-200 border-none outline-none cursor-pointer flex-1 py-0.5 min-w-0"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        title="Perspektive auswählen"
                       >
-                        <option value="all" className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-100 font-bold">Gesamtes Team</option>
+                        <option value="all" className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-100 font-bold">
+                          Gesamtes Team
+                        </option>
                         {allTeammates.map((email) => {
                           const emailLower = email.toLowerCase().trim();
                           const isAdminUser = adminEmails.includes(emailLower);
                           const conf = teammateConfigs.find(t => t.email.toLowerCase().trim() === emailLower);
-                          
-                          let displayName = '';
-                          if (conf && conf.name.trim()) {
-                            displayName = conf.name;
-                          } else {
-                            const prefix = email.split('@')[0];
-                            displayName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
-                          }
-
-                          if (conf && !conf.isActive) {
-                            displayName = `[Inaktiv] ${displayName}`;
-                          }
-
+                          let displayName = conf?.name.trim() ? conf.name : (email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1));
+                          if (conf && !conf.isActive) displayName = `[Inaktiv] ${displayName}`;
                           return (
-                            <option 
-                              key={email} 
-                              value={email}
-                              className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-100"
-                            >
+                            <option key={email} value={email} className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-100">
                               {isAdminUser ? `★ ${displayName}` : displayName}
                             </option>
                           );
                         })}
                       </select>
-                    </div>
-                  ) : (
-                    <div className="flex-1 text-left text-[11px] text-slate-400 dark:text-zinc-500 font-black uppercase tracking-widest pl-2">
-                      Mein Verkaufsraum
-                    </div>
-                  )}
+                    )}
+                  </div>
 
-                  {/* Buttons right-aligned: Add trigger & Admin Zahnrad */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {/* Svelte compact add button right in mobile bar */}
+                  {/* 2. Zahnrad-Button und Benutzerprofil mit Initialen kleiner nebeneinander (Spalte 3 = gleiche Größe wie Ausarbeitungen darunter) */}
+                  <div className="col-span-1 grid grid-cols-2 gap-1 w-full h-full">
+                    {/* Zahnrad-Button (Einstellungen, Orange) */}
                     <button
-                      onClick={() => setIsAddOpen(true)}
-                      className="w-9 h-9 theme-add-btn rounded-xl flex items-center justify-center active:scale-90 transition-all cursor-pointer"
-                      title="Auftrag hinzufügen"
-                      id="mobile-nav-add"
+                      onClick={() => {
+                        if (isAdmin) {
+                          setActiveTab(activeTab === 'admin' ? 'open' : 'admin');
+                        } else {
+                          setIsProfileOpen(true);
+                        }
+                      }}
+                      id="nav-admin-settings-btn"
+                      className={`w-full h-full py-2 rounded-lg text-center transition-all duration-200 cursor-pointer flex items-center justify-center border shadow-xs select-none ${
+                        activeTab === 'admin'
+                          ? 'bg-amber-500 text-white border-amber-600 shadow-md ring-2 ring-amber-500/25 font-black'
+                          : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/35 hover:bg-amber-500/25'
+                      }`}
+                      title="Admin-Bereich & Einstellungen"
                     >
-                      <Plus className="w-5 h-5 animate-pulse" />
+                      <Settings className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'admin' ? 'animate-spin' : 'hover:rotate-45 transition-transform'}`} style={activeTab === 'admin' ? { animationDuration: '8s' } : undefined} />
                     </button>
 
-                    {/* Settings/Admin Zahnrad button if admin */}
-                    {isAdmin && (
+                    {/* Benutzerprofil mit Initialen (in Rollenfarbe) */}
+                    {currentUser?.email && (
                       <button
-                        onClick={() => {
-                          setActiveTab(activeTab === 'admin' ? 'open' : 'admin');
-                        }}
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all duration-300 active:scale-95 cursor-pointer shadow-xs ${
-                          activeTab === 'admin'
-                            ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/45 ring-2 ring-amber-500/20'
-                            : 'bg-slate-100/50 dark:bg-zinc-950/60 text-slate-500 dark:text-zinc-400 border-slate-200/45 dark:border-zinc-850 hover:text-slate-800 dark:hover:text-zinc-200'
-                        }`}
-                        title="Admin-Bereich"
+                        onClick={() => setIsProfileOpen(true)}
+                        id="nav-user-profile-btn"
+                        title={`Benutzerprofil (${currentUserDisplayName})`}
+                        className={`w-full h-full py-2 rounded-lg text-center text-xs font-sans font-black tracking-wider transition-all duration-200 cursor-pointer flex items-center justify-center border shadow-xs select-none ${userRoleStyles.bg} ${userRoleStyles.text} ${userRoleStyles.border}`}
                       >
-                        <Settings className="w-4 h-4" />
+                        {userInitials}
                       </button>
                     )}
                   </div>
-                </div>
-              
-              {/* Desktop Only / Perspective & Admin select row */}
-              <div className="hidden md:flex flex-col gap-2 transition-all duration-300">
-                {isAdmin && (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 min-w-0 flex items-center gap-2 px-2.5 py-1.5 bg-slate-100/50 dark:bg-zinc-950/60 rounded-xl border border-slate-200/40 dark:border-zinc-850">
-                      <span className="text-[9px] font-black uppercase text-slate-400 dark:text-zinc-500 pl-0.5 tracking-wider select-none shrink-0">Perspektive:</span>
-                      <select
-                        value={selectedColleague}
-                        onChange={(e) => setSelectedColleague(e.target.value)}
-                        className="bg-transparent text-xs font-bold text-slate-700 dark:text-zinc-200 border-none outline-none cursor-pointer flex-1 py-0.5 min-w-0"
-                      >
-                        <option value="all" className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-100 font-bold">Gesamtes Team</option>
-                        {allTeammates.map((email) => {
-                          const emailLower = email.toLowerCase().trim();
-                          const isAdminUser = adminEmails.includes(emailLower);
-                          const conf = teammateConfigs.find(t => t.email.toLowerCase().trim() === emailLower);
-                          
-                          let displayName = '';
-                          if (conf && conf.name.trim()) {
-                            displayName = conf.name;
-                          } else {
-                            const prefix = email.split('@')[0];
-                            displayName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
-                          }
 
-                          if (conf && !conf.isActive) {
-                            displayName = `[Inaktiv] ${displayName}`;
-                          }
-
-                          return (
-                            <option 
-                              key={email} 
-                              value={email}
-                              className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-100"
-                            >
-                              {isAdminUser ? `★ ${displayName}` : displayName}
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </div>
-
-                    {/* Settings gear built right next to it */}
-                    <button
-                      onClick={() => {
-                        setActiveTab(activeTab === 'admin' ? 'open' : 'admin');
-                      }}
-                      className={`w-9 h-9 shrink-0 rounded-xl flex items-center justify-center border transition-all duration-300 active:scale-95 cursor-pointer shadow-xs ${
-                        activeTab === 'admin'
-                          ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/45 ring-2 ring-amber-500/20'
-                          : 'bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800/80 hover:border-slate-350 dark:hover:border-zinc-700 hover:text-slate-800 dark:hover:text-zinc-200'
-                      }`}
-                      title="Admin-Bereich öffnen (Zahnrad)"
-                    >
-                      <Settings className={`w-4 h-4 ${activeTab === 'admin' ? 'animate-spin' : 'hover:rotate-45'}`} style={activeTab === 'admin' ? { animationDuration: '8s' } : undefined} />
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* High-quality tabs row - ALWAYS visible on both Mobile and Desktop, styled beautifully */}
-              <div id="app-navigation-tabs" className={`grid ${isEnrico ? 'grid-cols-4' : 'grid-cols-3'} gap-1 bg-slate-100/80 dark:bg-zinc-950 p-1 rounded-xl`}>
-                <button
-                  onClick={() => setActiveTab('open')}
-                  className={`py-2 px-2 rounded-lg text-center text-[11px] sm:text-xs font-sans font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                    activeTab === 'open'
-                      ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black is-active-tab'
-                      : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 font-bold'
-                  }`}
-                >
-                  Offen
-                </button>
-                <button
-                  onClick={() => setActiveTab('sold')}
-                  className={`py-2 px-2 rounded-lg text-center text-[11px] sm:text-xs font-sans font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                    activeTab === 'sold'
-                      ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black is-active-tab'
-                      : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 font-bold'
-                  }`}
-                >
-                  Verkauft
-                </button>
-                {isEnrico && (
+                  {/* 3. Plus mit dem NEU Button (Spalte 4 = über Statistik) */}
                   <button
-                    onClick={() => setActiveTab('ausarbeitung')}
+                    onClick={() => setIsAddOpen(true)}
+                    className="col-span-1 w-full py-2 px-1 sm:px-2 theme-add-btn rounded-lg text-center text-[10.5px] sm:text-xs font-sans font-black uppercase tracking-wider transition-all duration-200 cursor-pointer flex items-center justify-center gap-1 shadow-xs group select-none"
+                    title="Neue Kommission hinzufügen"
+                    id="nav-add-commission-btn"
+                  >
+                    <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5] group-hover:rotate-90 transition-transform duration-300 shrink-0" />
+                    <span className="truncate">Neu</span>
+                  </button>
+
+                </div>
+
+                {/* UNTERE ZEILE: Tabs (Offen, Verkauft, Ausarbeitung, Statistik) */}
+                <div id="app-navigation-tabs" className={`grid ${isEnrico ? 'grid-cols-4' : 'grid-cols-3'} gap-1 bg-slate-100/80 dark:bg-zinc-950 p-1 rounded-xl`}>
+                  <button
+                    onClick={() => setActiveTab('open')}
                     className={`py-2 px-2 rounded-lg text-center text-[11px] sm:text-xs font-sans font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                      activeTab === 'ausarbeitung'
+                      activeTab === 'open'
                         ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black is-active-tab'
                         : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 font-bold'
                     }`}
-                    title="Ausarbeitungen dokumentieren"
                   >
-                    Ausarbeit.
+                    Offen
                   </button>
-                )}
-                <button
-                  onClick={() => setActiveTab('stats')}
-                  className={`py-2 px-2 rounded-lg text-center text-[11px] sm:text-xs font-sans font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                    activeTab === 'stats'
-                      ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black is-active-tab'
-                      : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 font-bold'
-                  }`}
-                >
-                  Statistik
-                </button>
-              </div>
+                  <button
+                    onClick={() => setActiveTab('sold')}
+                    className={`py-2 px-2 rounded-lg text-center text-[11px] sm:text-xs font-sans font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                      activeTab === 'sold'
+                        ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black is-active-tab'
+                        : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 font-bold'
+                    }`}
+                  >
+                    Verkauft
+                  </button>
+                  {isEnrico && (
+                    <button
+                      onClick={() => setActiveTab('ausarbeitung')}
+                      className={`py-2 px-2 rounded-lg text-center text-[11px] sm:text-xs font-sans font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                        activeTab === 'ausarbeitung'
+                          ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black is-active-tab'
+                          : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 font-bold'
+                      }`}
+                      title="Ausarbeitungen dokumentieren"
+                    >
+                      Ausarbeit.
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setActiveTab('stats')}
+                    className={`py-2 px-2 rounded-lg text-center text-[11px] sm:text-xs font-sans font-black uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                      activeTab === 'stats'
+                        ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-[0_2px_8px_rgba(0,0,0,0.08)] font-black is-active-tab'
+                        : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 font-bold'
+                    }`}
+                  >
+                    Statistik
+                  </button>
+                </div>
 
+              </div>
+            </div>
           </div>
+
         </div>
-      </div>
-    </div>
 
         {/* Scrollable contents zone */}
         <main className="pb-[calc(11.5rem+env(safe-area-inset-bottom))] md:pb-24 mt-2 md:mt-0">
