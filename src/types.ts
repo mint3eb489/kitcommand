@@ -84,4 +84,18 @@ export interface TeammateConfig {
   isActive: boolean;
 }
 
+export type ThemeType = 'light' | 'dark' | 'sage' | 'ocean' | 'wood';
+export type StartTabType = 'open' | 'sold' | 'ausarbeitung' | 'stats' | 'admin';
+export type PerspectiveType = 'all' | 'own';
+
+export interface UserPreferences {
+  theme?: ThemeType;
+  startTab?: StartTabType;
+  defaultPerspective?: PerspectiveType;
+  viewMode?: 'detailed' | 'compact';
+  customDisplayName?: string;
+  email?: string;
+  updatedAt?: string;
+}
+
 

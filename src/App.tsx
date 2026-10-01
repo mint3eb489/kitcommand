@@ -6,8 +6,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { onSnapshot, addDoc, updateDoc, doc, deleteDoc, setDoc, deleteField } from 'firebase/firestore';
-import { auth, getDbCollectionRef, getAusarbeitungenCollectionRef, handleFirestoreError, isUserAdmin, ADMIN_EMAILS } from './firebase.ts';
-import { Commission, OperationType, Ausarbeitung, TeammateConfig } from './types.ts';
+import { auth, getDbCollectionRef, getAusarbeitungenCollectionRef, getUserPreferencesCollectionRef, handleFirestoreError, isUserAdmin, ADMIN_EMAILS } from './firebase.ts';
+import { Commission, OperationType, Ausarbeitung, TeammateConfig, UserPreferences, ThemeType, StartTabType, PerspectiveType } from './types.ts';
 import { normalizeYear } from './utils/date.ts';
 import { LoginOverlay } from './components/LoginOverlay.tsx';
 import { CommissionCard } from './components/CommissionCard.tsx';
@@ -523,14 +523,10 @@ export default function App() {
     return (localStorage.getItem('commission_view_mode') as 'detailed' | 'compact') || 'detailed';
   });
 
-  const handleToggleViewMode = () => {
-    const next = viewMode === 'detailed' ? 'compact' : 'detailed';
-    setViewMode(next);
-    localStorage.setItem('commission_view_mode', next);
-  };
+  // User Profile Cloud Preferences
+  const [userPreferences, setUserPreferences] = useState<UserPreferences>({});
+  const [isSavingPreferences, setIsSavingPreferences] = useState(false);
   
-  // Theme type definition and modern state setup 
-  type ThemeType = 'light' | 'dark' | 'sage' | 'ocean' | 'wood';
   const [theme, setTheme] = useState<ThemeType>('light');
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
@@ -593,11 +589,89 @@ export default function App() {
     applyThemeClasses(initialTheme);
   }, []);
 
+  // Centralized user preferences updater: syncs immediately to UI/localStorage AND persists to Firestore
+  const handleUpdateUserPreferences = async (newPrefs: Partial<UserPreferences>) => {
+    setIsSavingPreferences(true);
+
+    // 1. Immediately apply to state & local cache
+    if (newPrefs.theme) {
+      setTheme(newPrefs.theme);
+      localStorage.setItem('kk_theme', newPrefs.theme);
+      applyThemeClasses(newPrefs.theme);
+    }
+
+    if (newPrefs.startTab) {
+      localStorage.setItem('kk_default_tab', newPrefs.startTab);
+    }
+
+    if (newPrefs.defaultPerspective) {
+      localStorage.setItem('kk_default_colleague_perspective', newPrefs.defaultPerspective);
+      if (newPrefs.defaultPerspective === 'own' && currentUser) {
+        const rawEmail = currentUser.email?.toLowerCase();
+        const resolvedEmail = (rawEmail === 'belmonte.enrico@gmail.com') ? 'belmonte@fs-kuechen.de' : rawEmail;
+        setSelectedColleague(resolvedEmail || 'all');
+      } else if (newPrefs.defaultPerspective === 'all') {
+        setSelectedColleague('all');
+      }
+      window.dispatchEvent(new Event('storage_perspective_changed'));
+    }
+
+    if (newPrefs.customDisplayName !== undefined) {
+      setCustomLocalName(newPrefs.customDisplayName || null);
+      if (newPrefs.customDisplayName) {
+        localStorage.setItem('kk_custom_display_name', newPrefs.customDisplayName);
+      } else {
+        localStorage.removeItem('kk_custom_display_name');
+      }
+      window.dispatchEvent(new Event('storage_custom_name_changed'));
+    }
+
+    if (newPrefs.viewMode) {
+      setViewMode(newPrefs.viewMode);
+      localStorage.setItem('commission_view_mode', newPrefs.viewMode);
+    }
+
+    setUserPreferences((prev) => ({
+      ...prev,
+      ...newPrefs,
+      updatedAt: new Date().toISOString()
+    }));
+
+    // 2. Persist to Firestore or sessionStorage
+    if (currentUser && sessionStorage.getItem('kk_is_demo_mode') !== 'true') {
+      try {
+        const userPrefColRef = getUserPreferencesCollectionRef();
+        const userPrefDocRef = doc(userPrefColRef, currentUser.uid);
+        await setDoc(userPrefDocRef, {
+          ...newPrefs,
+          email: currentUser.email || '',
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      } catch (err) {
+        console.error('Failed to save user preferences to cloud:', err);
+      } finally {
+        setIsSavingPreferences(false);
+      }
+    } else {
+      const currentDemo = sessionStorage.getItem('kk_demo_user_preferences');
+      let parsed: UserPreferences = {};
+      if (currentDemo) {
+        try { parsed = JSON.parse(currentDemo); } catch(e) {}
+      }
+      const merged = { ...parsed, ...newPrefs, updatedAt: new Date().toISOString() };
+      sessionStorage.setItem('kk_demo_user_preferences', JSON.stringify(merged));
+      setIsSavingPreferences(false);
+    }
+  };
+
+  const handleToggleViewMode = () => {
+    const next = viewMode === 'detailed' ? 'compact' : 'detailed';
+    handleUpdateUserPreferences({ viewMode: next });
+  };
+
   const toggleTheme = () => {
     const nextTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(nextTheme);
-    localStorage.setItem('kk_theme', nextTheme);
-    applyThemeClasses(nextTheme);
+    handleUpdateUserPreferences({ theme: nextTheme });
   };
 
   // Auth Listener
@@ -697,12 +771,122 @@ export default function App() {
         setAnnualTarget(parseInt(storedAnnualTarget) || 1500000);
       }
 
+      const storedUserPrefs = sessionStorage.getItem('kk_demo_user_preferences');
+      if (storedUserPrefs) {
+        try {
+          const parsed = JSON.parse(storedUserPrefs);
+          setUserPreferences(parsed);
+          if (parsed.theme) {
+            setTheme(parsed.theme);
+            applyThemeClasses(parsed.theme);
+          }
+          if (parsed.customDisplayName) {
+            setCustomLocalName(parsed.customDisplayName);
+          }
+          if (parsed.startTab) {
+            setActiveTab(parsed.startTab);
+          }
+          if (parsed.viewMode) {
+            setViewMode(parsed.viewMode);
+          }
+        } catch (e) {}
+      }
+
       setSyncStatus('synced');
       return;
     }
 
     setSyncStatus('connecting');
     const colRef = getDbCollectionRef();
+
+    // 0. User Preferences Snapshot (per authenticated user)
+    const userPrefColRef = getUserPreferencesCollectionRef();
+    const userPrefDocRef = doc(userPrefColRef, currentUser.uid);
+    const unsubUserPref = onSnapshot(
+      userPrefDocRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data() as UserPreferences;
+          setUserPreferences(data);
+
+          // 1. Theme
+          if (data.theme && ['light', 'dark', 'sage', 'ocean', 'wood'].includes(data.theme)) {
+            setTheme(data.theme);
+            localStorage.setItem('kk_theme', data.theme);
+            applyThemeClasses(data.theme);
+          }
+
+          // 2. Custom Display Name
+          if (data.customDisplayName !== undefined) {
+            setCustomLocalName(data.customDisplayName || null);
+            if (data.customDisplayName) {
+              localStorage.setItem('kk_custom_display_name', data.customDisplayName);
+            } else {
+              localStorage.removeItem('kk_custom_display_name');
+            }
+          }
+
+          // 3. View Mode
+          if (data.viewMode && ['detailed', 'compact'].includes(data.viewMode)) {
+            setViewMode(data.viewMode);
+            localStorage.setItem('commission_view_mode', data.viewMode);
+          }
+
+          // 4. Default Starttab
+          if (data.startTab && ['open', 'sold', 'ausarbeitung', 'stats', 'admin'].includes(data.startTab)) {
+            localStorage.setItem('kk_default_tab', data.startTab);
+            const rawEmail = currentUser.email?.toLowerCase();
+            const isEnricoUser = rawEmail === 'belmonte.enrico@gmail.com' || rawEmail === 'belmonte@fs-kuechen.de';
+            const isAdminUser = isUserAdmin(currentUser.email) || adminEmails.includes(currentUser.email?.toLowerCase().trim() || '');
+            if (data.startTab === 'ausarbeitung' && !isEnricoUser && !isAdminUser) {
+              setActiveTab('open');
+            } else if (data.startTab === 'admin' && !isAdminUser) {
+              setActiveTab('open');
+            } else {
+              setActiveTab(data.startTab);
+            }
+          }
+
+          // 5. Default Perspective
+          if (data.defaultPerspective && ['all', 'own'].includes(data.defaultPerspective)) {
+            localStorage.setItem('kk_default_colleague_perspective', data.defaultPerspective);
+            if (data.defaultPerspective === 'own') {
+              const rawEmail = currentUser.email?.toLowerCase();
+              const resolvedEmail = (rawEmail === 'belmonte.enrico@gmail.com') ? 'belmonte@fs-kuechen.de' : rawEmail;
+              setSelectedColleague(resolvedEmail || 'all');
+            } else {
+              setSelectedColleague('all');
+            }
+          }
+        } else {
+          // Automatic migration of current local preferences to Firestore cloud for first-time login
+          const initialLocalTheme = (localStorage.getItem('kk_theme') as ThemeType) || 'light';
+          const initialLocalStartTab = (localStorage.getItem('kk_default_tab') as StartTabType) || 'open';
+          const initialLocalPerspective = (localStorage.getItem('kk_default_colleague_perspective') as PerspectiveType) || 'all';
+          const initialLocalName = localStorage.getItem('kk_custom_display_name') || '';
+          const initialViewMode = (localStorage.getItem('commission_view_mode') as 'detailed' | 'compact') || 'detailed';
+
+          const initialPrefs: UserPreferences = {
+            theme: initialLocalTheme,
+            startTab: initialLocalStartTab,
+            defaultPerspective: initialLocalPerspective,
+            viewMode: initialViewMode,
+            customDisplayName: initialLocalName,
+            email: currentUser.email || '',
+            updatedAt: new Date().toISOString()
+          };
+
+          setUserPreferences(initialPrefs);
+
+          setDoc(userPrefDocRef, initialPrefs, { merge: true }).catch((err) => {
+            console.error('Failed to initialize cloud user preferences:', err);
+          });
+        }
+      },
+      (error) => {
+        console.error('UserPreferences Firestore-Error:', error);
+      }
+    );
 
     // 1. Settings Snapshot
     const settingsDocRef = doc(colRef, '_system_settings_');
@@ -804,6 +988,7 @@ export default function App() {
     );
 
     return () => {
+      unsubUserPref();
       unsubSettings();
       unsubCommissions();
       unsubAus();
@@ -1543,7 +1728,7 @@ export default function App() {
   useEffect(() => {
     const applyDefaultPerspective = () => {
       if (currentUser && isAdmin) {
-        const defaultPerspectiveSetting = localStorage.getItem('kk_default_colleague_perspective') || 'all';
+        const defaultPerspectiveSetting = userPreferences.defaultPerspective || localStorage.getItem('kk_default_colleague_perspective') || 'all';
         if (defaultPerspectiveSetting === 'own') {
           const email = currentUser.email?.toLowerCase();
           const resolvedEmail = (email === 'belmonte.enrico@gmail.com') ? 'belmonte@fs-kuechen.de' : email;
@@ -1562,7 +1747,7 @@ export default function App() {
     return () => {
       window.removeEventListener('storage_perspective_changed', applyDefaultPerspective);
     };
-  }, [currentUser, isAdmin]);
+  }, [currentUser, isAdmin, userPreferences.defaultPerspective]);
 
   // Resolve user display name from custom local modifications or database configs or email prefix fallback
   const currentUserDisplayName = useMemo(() => {
@@ -1589,7 +1774,7 @@ export default function App() {
   // Custom starting-tab route dispatcher based on user selections
   useEffect(() => {
     if (authChecked && currentUser) {
-      const savedDefaultTab = localStorage.getItem('kk_default_tab');
+      const savedDefaultTab = userPreferences.startTab || localStorage.getItem('kk_default_tab');
       if (savedDefaultTab && ['open', 'sold', 'ausarbeitung', 'stats', 'admin'].includes(savedDefaultTab)) {
         // Enforce safety restrictions
         if (savedDefaultTab === 'ausarbeitung' && !isEnrico && !isAdmin) {
@@ -1601,7 +1786,7 @@ export default function App() {
         }
       }
     }
-  }, [currentUser, authChecked, isEnrico, isAdmin]);
+  }, [currentUser, authChecked, isEnrico, isAdmin, userPreferences.startTab]);
 
 
 
@@ -2694,15 +2879,16 @@ export default function App() {
         annualTarget={annualTarget}
         theme={theme}
         onChangeTheme={(newTheme) => {
-          setTheme(newTheme);
-          localStorage.setItem('kk_theme', newTheme);
-          applyThemeClasses(newTheme);
+          handleUpdateUserPreferences({ theme: newTheme });
         }}
         commissions={commissions}
         isAdmin={isAdmin}
         selectedColleague={selectedColleague}
         teammates={teammateConfigs}
         targetProfileEmail={targetProfileEmail}
+        userPreferences={userPreferences}
+        onUpdatePreferences={handleUpdateUserPreferences}
+        isSavingPreferences={isSavingPreferences}
       />
 
       {/* Error Toast Dialog Overlay */}

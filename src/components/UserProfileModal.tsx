@@ -7,9 +7,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   X, LogOut, Palette, Check, User, Target, 
   Compass, Trophy, Sparkles, Star, ShieldAlert,
-  Calendar, TrendingUp, Award, BarChart2, Briefcase, Settings, PieChart
+  Calendar, TrendingUp, Award, BarChart2, Briefcase, Settings, PieChart,
+  Cloud
 } from 'lucide-react';
-import { Commission } from '../types.ts';
+import { Commission, UserPreferences } from '../types.ts';
 import { User as FirebaseUser } from 'firebase/auth';
 import { DonutChart } from './DonutChart.tsx';
 import { motion, AnimatePresence } from 'motion/react';
@@ -29,6 +30,9 @@ interface UserProfileModalProps {
   selectedColleague?: string;
   teammates?: { email: string; name: string; isActive: boolean }[];
   targetProfileEmail?: string | null;
+  userPreferences?: UserPreferences;
+  onUpdatePreferences?: (prefs: Partial<UserPreferences>) => Promise<void> | void;
+  isSavingPreferences?: boolean;
 }
 
 export const UserProfileModal: React.FC<UserProfileModalProps> = ({
@@ -46,6 +50,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   selectedColleague,
   teammates,
   targetProfileEmail,
+  userPreferences,
+  onUpdatePreferences,
+  isSavingPreferences,
 }) => {
   const [editedName, setEditedName] = useState('');
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -73,16 +80,16 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setEditedName(localStorage.getItem('kk_custom_display_name') || '');
-      setStartTab((localStorage.getItem('kk_default_tab') || 'open') as any);
-      setPerspectiveSetting((localStorage.getItem('kk_default_colleague_perspective') || 'all') as any);
+      setEditedName(userPreferences?.customDisplayName ?? localStorage.getItem('kk_custom_display_name') ?? '');
+      setStartTab((userPreferences?.startTab ?? localStorage.getItem('kk_default_tab') ?? 'open') as any);
+      setPerspectiveSetting((userPreferences?.defaultPerspective ?? localStorage.getItem('kk_default_colleague_perspective') ?? 'all') as any);
       setSavedSuccess(false);
 
       if (!isOwnProfile) {
         setActiveProfileTab('stats');
       }
     }
-  }, [isOpen, isOwnProfile]);
+  }, [isOpen, isOwnProfile, userPreferences]);
 
   // Formatter for Currency
   const formatter = useMemo(() => new Intl.NumberFormat('de-DE', {
@@ -324,24 +331,48 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const rawTargetPercent = (personalStats.annualRevenue / (userTarget || 1500000)) * 100;
   const targetPercent = Math.min(rawTargetPercent, 100);
 
-  const handleSaveDisplayName = () => {
+  const handleSaveDisplayName = async () => {
     const trimmed = editedName.trim();
-    if (trimmed) {
-      localStorage.setItem('kk_custom_display_name', trimmed);
+    if (onUpdatePreferences) {
+      await onUpdatePreferences({ customDisplayName: trimmed });
     } else {
-      localStorage.removeItem('kk_custom_display_name');
+      if (trimmed) {
+        localStorage.setItem('kk_custom_display_name', trimmed);
+      } else {
+        localStorage.removeItem('kk_custom_display_name');
+      }
+      window.dispatchEvent(new Event('storage_custom_name_changed'));
     }
     setSavedSuccess(true);
     setTimeout(() => {
       setSavedSuccess(false);
-    }, 2000);
-    
-    window.dispatchEvent(new Event('storage_custom_name_changed'));
+    }, 2500);
   };
 
-  const handleSaveStartTab = (tab: any) => {
+  const handleSaveStartTab = async (tab: any) => {
     setStartTab(tab);
-    localStorage.setItem('kk_default_tab', tab);
+    if (onUpdatePreferences) {
+      await onUpdatePreferences({ startTab: tab });
+    } else {
+      localStorage.setItem('kk_default_tab', tab);
+    }
+  };
+
+  const handleSavePerspective = async (perspective: 'all' | 'own') => {
+    setPerspectiveSetting(perspective);
+    if (onUpdatePreferences) {
+      await onUpdatePreferences({ defaultPerspective: perspective });
+    } else {
+      localStorage.setItem('kk_default_colleague_perspective', perspective);
+      window.dispatchEvent(new Event('storage_perspective_changed'));
+    }
+  };
+
+  const handleSelectTheme = (themeId: any) => {
+    onChangeTheme(themeId);
+    if (onUpdatePreferences) {
+      onUpdatePreferences({ theme: themeId });
+    }
   };
 
   // Theme choices from prior spec
@@ -1018,6 +1049,34 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
           {activeProfileTab === 'settings' && isOwnProfile && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-start text-left">
               
+              {/* Cloud Sync Status Banner */}
+              <div className="col-span-1 sm:col-span-2 flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0">
+                    <Cloud className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black tracking-tight flex items-center gap-1.5 text-slate-800 dark:text-zinc-100">
+                      Cloud-Profilspeicherung aktiv
+                    </p>
+                    <p className="text-[10px] text-slate-500 dark:text-zinc-400 leading-tight">
+                      Theme, Starttab, Perspektive & Anzeigename sind in deinem Konto hinterlegt und bleiben nach jedem Login erhalten.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                  {isSavingPreferences ? (
+                    <span className="text-[10px] font-mono font-bold bg-blue-500/20 text-blue-700 dark:text-blue-300 py-1 px-2.5 rounded-lg animate-pulse flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 animate-spin" /> Speichere Cloud...
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 py-1 px-2.5 rounded-lg flex items-center gap-1">
+                      <Check className="w-3 h-3 stroke-[2.5]" /> In Cloud gesichert
+                    </span>
+                  )}
+                </div>
+              </div>
+
               {/* Left Column Settings */}
               <div className="space-y-6">
                 
@@ -1112,11 +1171,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     </div>
                     <div className="grid grid-cols-2 gap-2 pt-1.5">
                       <button
-                        onClick={() => {
-                          localStorage.setItem('kk_default_colleague_perspective', 'all');
-                          window.dispatchEvent(new Event('storage_perspective_changed'));
-                          setPerspectiveSetting('all');
-                        }}
+                        onClick={() => handleSavePerspective('all')}
                         className={`py-2 px-3 rounded-xl text-xs font-bold uppercase tracking-wider text-center active:scale-95 transition-all border cursor-pointer ${
                           perspectiveSetting === 'all'
                             ? themeStyles.btnActive
@@ -1126,11 +1181,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                         Gesamtes Team
                       </button>
                       <button
-                        onClick={() => {
-                          localStorage.setItem('kk_default_colleague_perspective', 'own');
-                          window.dispatchEvent(new Event('storage_perspective_changed'));
-                          setPerspectiveSetting('own');
-                        }}
+                        onClick={() => handleSavePerspective('own')}
                         className={`py-2 px-3 rounded-xl text-xs font-bold uppercase tracking-wider text-center active:scale-95 transition-all border cursor-pointer ${
                           perspectiveSetting === 'own'
                             ? themeStyles.btnActive
@@ -1163,7 +1214,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                       return (
                         <button
                           key={t.id}
-                          onClick={() => onChangeTheme(t.id)}
+                          onClick={() => handleSelectTheme(t.id)}
                           className={`flex items-center justify-between p-3 rounded-2xl border active:scale-98 transition-all cursor-pointer ${
                             isSelected 
                               ? themeStyles.themeOptionSelected

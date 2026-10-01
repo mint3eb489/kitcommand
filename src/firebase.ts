@@ -101,6 +101,21 @@ export function getAusarbeitungenCollectionRef(): CollectionReference<DocumentDa
 }
 
 /**
+ * Returns the proper Firestore collection reference for User Preferences.
+ * Stores theme, default starttab, default perspective and custom UI preferences per user.
+ */
+export function getUserPreferencesCollectionRef(): CollectionReference<DocumentData, DocumentData> {
+  const isStudioEnv = isStudioInjected && !bypassSandbox;
+
+  if (isStudioEnv) {
+    const appId = typeof win.__app_id !== 'undefined' ? win.__app_id : '27f298b5-15e3-41c7-b5db-50041df42451';
+    return collection(db, 'artifacts', appId, 'user_preferences');
+  } else {
+    return collection(db, 'user_preferences');
+  }
+}
+
+/**
  * Standardized Firestore error logging, matching FirestoreErrorInfo constraints.
  */
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
