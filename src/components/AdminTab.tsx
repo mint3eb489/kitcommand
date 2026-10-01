@@ -4,8 +4,13 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Users, Trash2, Calendar, Target, Edit, Shield, UserPlus, CheckCircle, Save, Check, X, User, Database, Download, Upload, AlertTriangle, RefreshCw, Search, SlidersHorizontal, UserCheck, UserX, Sparkles, ShieldCheck, Mail } from 'lucide-react';
-import { TeammateConfig } from '../types.ts';
+import { 
+  Users, Trash2, Calendar, Target, Edit, Shield, UserPlus, CheckCircle, 
+  Save, Check, X, User, Database, Download, Upload, AlertTriangle, 
+  RefreshCw, Search, SlidersHorizontal, UserCheck, UserX, Sparkles, 
+  ShieldCheck, Mail, Cloud, Compass, Palette, LogOut 
+} from 'lucide-react';
+import { TeammateConfig, ThemeType, UserPreferences } from '../types.ts';
 
 interface AdminTabProps {
   annualTarget: number;
@@ -24,6 +29,14 @@ interface AdminTabProps {
   commissions?: any[];
   ausarbeitungen?: any[];
   onImportBackup?: (backupData: any) => Promise<void>;
+  isAdmin?: boolean;
+  currentUser?: any;
+  currentUserDisplayName?: string;
+  theme?: ThemeType;
+  onChangeTheme?: (newTheme: ThemeType) => void;
+  userPreferences?: UserPreferences;
+  onUpdatePreferences?: (prefs: Partial<UserPreferences>) => Promise<void>;
+  isSavingPreferences?: boolean;
 }
 
 export const AdminTab: React.FC<AdminTabProps> = ({
@@ -43,7 +56,96 @@ export const AdminTab: React.FC<AdminTabProps> = ({
   commissions = [],
   ausarbeitungen = [],
   onImportBackup,
+  isAdmin = false,
+  currentUser,
+  currentUserDisplayName = '',
+  theme = 'light',
+  onChangeTheme,
+  userPreferences,
+  onUpdatePreferences,
+  isSavingPreferences = false,
 }) => {
+  // Navigation: Admineinstellungen vs Einstellungen & Themes
+  const [activeSection, setActiveSection] = useState<'admin' | 'settings'>(() => {
+    return isAdmin ? 'admin' : 'settings';
+  });
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setActiveSection('settings');
+    }
+  }, [isAdmin]);
+
+  // Settings & Themes states
+  const [editedName, setEditedName] = useState(userPreferences?.customDisplayName ?? localStorage.getItem('kk_custom_display_name') ?? '');
+  const [savedNameSuccess, setSavedNameSuccess] = useState(false);
+  const [startTab, setStartTab] = useState(userPreferences?.startTab ?? localStorage.getItem('kk_default_tab') ?? 'open');
+  const [perspectiveSetting, setPerspectiveSetting] = useState(userPreferences?.defaultPerspective ?? localStorage.getItem('kk_default_colleague_perspective') ?? 'all');
+
+  useEffect(() => {
+    if (userPreferences?.customDisplayName !== undefined) {
+      setEditedName(userPreferences.customDisplayName);
+    }
+    if (userPreferences?.startTab) {
+      setStartTab(userPreferences.startTab);
+    }
+    if (userPreferences?.defaultPerspective) {
+      setPerspectiveSetting(userPreferences.defaultPerspective);
+    }
+  }, [userPreferences]);
+
+  const handleSaveDisplayName = async () => {
+    const trimmed = editedName.trim();
+    if (onUpdatePreferences) {
+      await onUpdatePreferences({ customDisplayName: trimmed });
+    } else {
+      if (trimmed) {
+        localStorage.setItem('kk_custom_display_name', trimmed);
+      } else {
+        localStorage.removeItem('kk_custom_display_name');
+      }
+      window.dispatchEvent(new Event('storage_custom_name_changed'));
+    }
+    setSavedNameSuccess(true);
+    setTimeout(() => setSavedNameSuccess(false), 2000);
+  };
+
+  const handleSaveStartTab = async (tab: any) => {
+    setStartTab(tab);
+    if (onUpdatePreferences) {
+      await onUpdatePreferences({ startTab: tab });
+    } else {
+      localStorage.setItem('kk_default_tab', tab);
+    }
+  };
+
+  const handleSavePerspective = async (perspective: 'all' | 'own') => {
+    setPerspectiveSetting(perspective);
+    if (onUpdatePreferences) {
+      await onUpdatePreferences({ defaultPerspective: perspective });
+    } else {
+      localStorage.setItem('kk_default_colleague_perspective', perspective);
+      window.dispatchEvent(new Event('storage_perspective_changed'));
+    }
+  };
+
+  const handleSelectTheme = (themeId: any) => {
+    if (onChangeTheme) {
+      onChangeTheme(themeId);
+    }
+    if (onUpdatePreferences) {
+      onUpdatePreferences({ theme: themeId });
+    }
+  };
+
+  const themes = [
+    { id: 'light', name: 'Light Mode', colors: { bg: '#faf8f5', accent: '#2563eb', border: '#e7dfd1' } },
+    { id: 'dark', name: 'Dark Mode', colors: { bg: '#09090b', accent: '#3b82f6', border: '#27272a' } },
+    { id: 'sage', name: 'Sage Botanical', colors: { bg: '#F1F3F0', accent: '#2C3531', border: '#8A9A86' } },
+    { id: 'ocean', name: 'Deep Ocean', colors: { bg: '#0B132B', accent: '#EDF2F4', border: '#4EA8DE' } },
+    { id: 'wood', name: 'Vintage Terracotta', colors: { bg: '#FBF7F4', accent: '#3E2723', border: '#795548' } },
+  ];
+
   const [targetInput, setTargetInput] = useState('');
   const [savingAdmins, setSavingAdmins] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -99,14 +201,47 @@ export const AdminTab: React.FC<AdminTabProps> = ({
 
   return (
     <div id="tab-admin" className="flex flex-col min-h-[500px] space-y-6">
-      <div className="border-b border-slate-200/60 dark:border-zinc-800 pb-4">
-        <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-          System & Admin
-        </h2>
-        <p className="text-xs text-slate-500 mt-1">Zentrale Einstellungen für dein KitCommand Pro.</p>
+      
+      {/* Top Switcher: Admineinstellungen & Einstellungen & Themes */}
+      <div className="flex items-center gap-2 border-b border-slate-200/60 dark:border-zinc-800 pb-3">
+        {isAdmin && (
+          <button
+            onClick={() => setActiveSection('admin')}
+            id="tab-btn-admin-settings"
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-3 sm:px-3.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer border ${
+              activeSection === 'admin'
+                ? 'bg-amber-500 text-white border-amber-600 shadow-md ring-2 ring-amber-500/20'
+                : 'bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:text-slate-800 dark:hover:text-zinc-200'
+            }`}
+          >
+            <Shield className="w-4 h-4 shrink-0" />
+            <span className="truncate">Admineinstellungen</span>
+          </button>
+        )}
+        <button
+          onClick={() => setActiveSection('settings')}
+          id="tab-btn-user-settings"
+          className={`${isAdmin ? 'flex-1 sm:flex-initial' : 'w-auto'} flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-3 sm:px-3.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer border ${
+            activeSection === 'settings'
+              ? 'bg-amber-500 text-white border-amber-600 shadow-md ring-2 ring-amber-500/20'
+              : 'bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:text-slate-800 dark:hover:text-zinc-200'
+          }`}
+        >
+          <SlidersHorizontal className="w-4 h-4 shrink-0" />
+          <span className="hidden sm:inline">Einstellungen & Themes</span>
+          <span className="sm:hidden truncate">Einstellungen</span>
+        </button>
       </div>
 
-      <div className="space-y-6 flex-1">
+      {/* ABSCHNITT 1: ADMINEINSTELLUNGEN */}
+      {activeSection === 'admin' && isAdmin && (
+        <div className="space-y-6 flex-1">
+          <div className="border-b border-slate-200/60 dark:border-zinc-800 pb-4">
+            <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              System & Admin
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">Zentrale Einstellungen für dein KitCommand Pro.</p>
+          </div>
         {/* Block: Standard-Ziel (Fallback) */}
         <div className="relative overflow-hidden isolate bg-white dark:bg-zinc-900 rounded-xl p-5 border border-slate-200 dark:border-zinc-800 shadow-xs transition-all duration-300 group/admin-card hover:border-slate-350 dark:hover:border-zinc-700">
           {/* Ambient Glow for Admin */}
@@ -917,6 +1052,209 @@ export const AdminTab: React.FC<AdminTabProps> = ({
         </div>
 
       </div>
+      )}
+
+      {/* ABSCHNITT 2: EINSTELLUNGEN & THEMES */}
+      {activeSection === 'settings' && (
+        <div className="space-y-6 flex-1 text-left">
+          
+          {/* Cloud Sync Status Banner */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0">
+                <Cloud className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="text-xs font-black tracking-tight flex items-center gap-1.5 text-slate-800 dark:text-zinc-100">
+                  Cloud-Profilspeicherung aktiv
+                </p>
+                <p className="text-[10px] text-slate-500 dark:text-zinc-400 leading-tight">
+                  Theme, Starttab, Perspektive & Anzeigename sind in deinem Konto hinterlegt und bleiben nach jedem Login erhalten.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+              {isSavingPreferences ? (
+                <span className="text-[10px] font-mono font-bold bg-blue-500/20 text-blue-700 dark:text-blue-300 py-1.5 px-3 rounded-xl animate-pulse flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 animate-spin" /> Speichere Cloud...
+                </span>
+              ) : (
+                <span className="text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 py-1.5 px-3 rounded-xl flex items-center gap-1.5 border border-emerald-500/20">
+                  <Check className="w-3.5 h-3.5 stroke-[2.5]" /> In Cloud gesichert
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            {/* Left Column: Name & Starttab & Perspective */}
+            <div className="space-y-6">
+              
+              {/* Section 1: Name Customization */}
+              <div className="space-y-2.5 bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs">
+                <label className="text-[10px] font-black text-slate-450 dark:text-zinc-400 uppercase tracking-widest pl-1 block">
+                  Eigenes Namenskürzel / Anzeigename
+                </label>
+                <div className="flex gap-2.5 pt-1">
+                  <input 
+                    type="text"
+                    value={editedName}
+                    onChange={(e) => setEditedName(e.target.value)}
+                    placeholder={currentUserDisplayName || 'Dein Anzeigename'}
+                    className="input-field text-sm font-semibold bg-slate-50 dark:bg-zinc-950 text-slate-850 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-650 border border-slate-200 dark:border-zinc-850/80 rounded-xl focus:ring-2 focus:ring-blue-500/30 transition-all flex-1"
+                  />
+                  <button
+                    id="settings-save-displayname-btn"
+                    onClick={handleSaveDisplayName}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest active:scale-95 transition-all text-center shrink-0 cursor-pointer shadow-md shadow-blue-600/20"
+                  >
+                    {savedNameSuccess ? 'Gesichert!' : 'Sichern'}
+                  </button>
+                </div>
+                <p className="text-[9px] text-slate-400 dark:text-zinc-550 pl-1 leading-relaxed">
+                  Dadurch änderst du deinen Namen im App-Dashboard und in deinen persönlichen Einstellungen.
+                </p>
+              </div>
+
+              {/* Section 2: Default Start Tab */}
+              <div className="space-y-2.5 bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs">
+                <div className="flex items-center gap-1.5 pl-1">
+                  <Compass className="w-3.5 h-3.5 text-slate-400" />
+                  <label className="text-[10px] font-black text-slate-450 dark:text-zinc-400 uppercase tracking-widest block">
+                    Standard Starttab
+                  </label>
+                </div>
+                <div id="standard-starttab-container" className="grid grid-cols-2 gap-2 pt-1.5">
+                  {(['open', 'sold', 'ausarbeitung', 'stats'] as const).map((tab) => {
+                    if (tab === 'ausarbeitung' && !isAdmin && currentUser?.email?.toLowerCase().trim() !== 'belmonte@fs-kuechen.de') {
+                      return null;
+                    }
+
+                    const labels: Record<string, string> = {
+                      open: 'Offen',
+                      sold: 'Verkauft',
+                      ausarbeitung: 'Ausarbeitung',
+                      stats: 'Statistik',
+                    };
+
+                    const isSelected = startTab === tab;
+
+                    return (
+                      <button
+                        key={tab}
+                        onClick={() => handleSaveStartTab(tab)}
+                        className={`py-2 px-3 rounded-xl text-xs font-bold uppercase tracking-wider text-center active:scale-95 transition-all border cursor-pointer ${
+                          isSelected 
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                            : 'bg-slate-50 border-slate-200 dark:bg-zinc-950 dark:border-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-850'
+                        }`}
+                      >
+                        {labels[tab]}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[9px] text-slate-400 dark:text-zinc-550 pl-1 leading-normal">
+                  Bestimmt, auf welchem Reiter die App standardmäßig startet, wenn du die Web-Anwendung neu lädst.
+                </p>
+              </div>
+
+              {/* Section 3: Admin perspective settings (Admins only) */}
+              {isAdmin && (
+                <div className="space-y-2 bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs">
+                  <div className="flex items-center gap-1.5 pl-1">
+                    <Compass className="w-3.5 h-3.5 text-slate-400" />
+                    <label className="text-[10px] font-black text-slate-450 dark:text-zinc-400 uppercase tracking-widest block">
+                      Standard-Perspektive
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-1.5">
+                    <button
+                      onClick={() => handleSavePerspective('all')}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold uppercase tracking-wider text-center active:scale-95 transition-all border cursor-pointer ${
+                        perspectiveSetting === 'all'
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                          : 'bg-slate-50 border-slate-200 dark:bg-zinc-950 dark:border-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-850'
+                      }`}
+                    >
+                      Gesamtes Team
+                    </button>
+                    <button
+                      onClick={() => handleSavePerspective('own')}
+                      className={`py-2 px-3 rounded-xl text-xs font-bold uppercase tracking-wider text-center active:scale-95 transition-all border cursor-pointer ${
+                        perspectiveSetting === 'own'
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                          : 'bg-slate-50 border-slate-200 dark:bg-zinc-950 dark:border-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-850'
+                      }`}
+                    >
+                      Eigener Filter
+                    </button>
+                  </div>
+                  <p className="text-[9px] text-slate-400 dark:text-zinc-550 pl-1 leading-relaxed">
+                    Als Administrator stellst du hier ein, ob standardmäßig das gesamte Küchen-Kopf-Team oder dein eigenes Dashboard nach dem Login fokussiert ist.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Right Column: Themes */}
+            <div className="space-y-4">
+              <div className="space-y-2 bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs">
+                <div className="flex items-center gap-1.5 pl-1 mb-2">
+                  <Palette className="w-3.5 h-3.5 text-slate-400" />
+                  <label className="text-[10px] font-black text-slate-450 dark:text-zinc-400 uppercase tracking-widest block">
+                    Design & Farbschema wählen
+                  </label>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-2.5 pt-1 select-none">
+                  {themes.map((t) => {
+                    const isSelected = (theme || 'light') === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => handleSelectTheme(t.id)}
+                        className={`flex items-center justify-between p-3.5 rounded-2xl border active:scale-98 transition-all cursor-pointer ${
+                          isSelected 
+                            ? 'border-blue-500 bg-blue-50/50 dark:border-blue-400 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 font-bold shadow-xs'
+                            : 'border-slate-200 bg-slate-50/60 dark:border-zinc-800 dark:bg-zinc-950/60 hover:bg-slate-100/80 dark:hover:bg-zinc-850 text-slate-700 dark:text-zinc-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="theme-preview-box w-8 h-8 rounded-xl flex items-center justify-center shadow-inner overflow-hidden border border-slate-200/50 dark:border-zinc-800"
+                            style={{ 
+                              '--preview-bg': t.colors.bg, 
+                              '--preview-border': t.colors.border 
+                            } as React.CSSProperties}
+                          >
+                            <div 
+                              className="theme-preview-dot w-3.5 h-3.5 rounded-full" 
+                              style={{ 
+                                '--preview-accent': t.colors.accent 
+                              } as React.CSSProperties}
+                            />
+                          </div>
+                          <span className="text-xs font-black uppercase tracking-wider">
+                            {t.name}
+                          </span>
+                        </div>
+
+                        {isSelected && (
+                          <div className="w-5 h-5 rounded-full bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center">
+                            <Check className="w-3 h-3 stroke-[3]" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      )}
 
       {/* Logout button at bottom */}
       <div className="border-t border-slate-200/60 dark:border-zinc-800 pt-6 mt-auto">

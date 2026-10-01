@@ -22,7 +22,7 @@ import {
   EditNoteModal,
   ConfirmDeleteModal,
 } from './components/EditModals.tsx';
-import { Search, Plus, Clipboard, ChevronDown, CheckCircle, Flame, X, TrendingUp, Sparkles, Settings, LayoutGrid, LayoutList } from 'lucide-react';
+import { Search, Plus, Clipboard, ChevronDown, CheckCircle, Flame, X, TrendingUp, Sparkles, Settings, LayoutGrid, LayoutList, BarChart2 } from 'lucide-react';
 
 const INITIAL_DEMO_COMMISSIONS: Commission[] = [
   // 5 running offers (status: 'open', bestellt: false)
@@ -2104,45 +2104,45 @@ export default function App() {
         <div id="unified-app-header" className="flex flex-col md:grid md:grid-cols-5 md:gap-8 items-center justify-between mb-4 md:mb-8 mt-1 md:mt-2 relative select-none">
           
           {/* MOBILE HEADER (md:hidden): Compact, top left-aligned logo + title with connection dot */}
-          <div className="flex md:hidden w-full items-center justify-between gap-2 mb-3">
+          <div className="flex md:hidden w-full items-center justify-between gap-2.5 mb-3.5">
             {/* Left: Kitcommand Logo and title with green connection dot right beside "Pro" badge */}
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-3 min-w-0">
               <button
                 id="mobile-logo-theme-toggle"
                 onClick={toggleTheme}
-                className="w-8.5 h-8.5 bg-white dark:bg-zinc-900 border border-blue-500/80 dark:border-blue-400/80 rounded-lg flex items-center justify-center shadow-xs shrink-0 cursor-pointer active:scale-95 transition-all text-blue-600 dark:text-blue-450 relative overflow-hidden"
+                className="w-11 h-11 bg-white dark:bg-zinc-900 border border-blue-500/80 dark:border-blue-400/80 rounded-xl flex items-center justify-center shadow-xs shrink-0 cursor-pointer active:scale-95 transition-all text-blue-600 dark:text-blue-450 relative overflow-hidden"
                 title="Wechsle Theme"
               >
-                <div className="absolute inset-0 flex items-center justify-center p-1 z-10 pointer-events-none">
+                <div className="absolute inset-0 flex items-center justify-center p-1.5 z-10 pointer-events-none">
                   <img
                     src={theme === 'dark' ? '/icon-dark.png' : '/icon-light.png'}
                     alt="KitCommand Logo"
-                    className="w-full h-full object-contain rounded"
+                    className="w-full h-full object-contain rounded-md"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';
                     }}
                   />
                 </div>
-                <TrendingUp className="w-4 h-4 stroke-[2.25] text-blue-600 dark:text-blue-400" />
+                <TrendingUp className="w-5 h-5 stroke-[2.25] text-blue-600 dark:text-blue-400" />
               </button>
 
-              <h1 className="text-base font-black flex items-center tracking-tight truncate leading-none">
+              <h1 className="text-xl sm:text-2xl font-black flex items-center tracking-tight truncate leading-none">
                 KitCommand
-                <span className="inline-flex items-center border border-amber-500 text-amber-500 rounded px-1 py-0.2 text-[8px] font-black ml-1.5 leading-none">
+                <span className="inline-flex items-center border border-amber-500 text-amber-500 rounded-md px-1.5 py-0.5 text-[10px] font-black ml-2 leading-none transform -translate-y-0.5">
                   Pro
                 </span>
                 {/* Grüner Verbindungspunkt direkt rechts neben dem Pro Badge (Mobil) */}
                 <span 
-                  className="relative flex h-2 w-2 ml-2 shrink-0 cursor-default" 
+                  className="relative flex h-2.5 w-2.5 ml-2.5 shrink-0 cursor-default" 
                   title={syncStatus === 'synced' ? 'Echtzeit-Verbindung aktiv (Live)' : 'Verbinde mit Cloud-Datenbank...'}
                 >
                   {syncStatus === 'synced' ? (
                     <>
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 ring-2 ring-emerald-500/30"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 ring-2 ring-emerald-500/30"></span>
                     </>
                   ) : (
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500 animate-pulse ring-2 ring-blue-500/30"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500 animate-pulse ring-2 ring-blue-500/30"></span>
                   )}
                 </span>
               </h1>
@@ -2261,11 +2261,7 @@ export default function App() {
                     {/* Zahnrad-Button (Einstellungen, Orange) */}
                     <button
                       onClick={() => {
-                        if (isAdmin) {
-                          setActiveTab(activeTab === 'admin' ? 'open' : 'admin');
-                        } else {
-                          setIsProfileOpen(true);
-                        }
+                        setActiveTab(activeTab === 'admin' ? 'open' : 'admin');
                       }}
                       id="nav-admin-settings-btn"
                       className={`w-full h-full py-2 rounded-lg text-center transition-all duration-200 cursor-pointer flex items-center justify-center border shadow-xs select-none ${
@@ -2273,20 +2269,20 @@ export default function App() {
                           ? 'bg-amber-500 text-white border-amber-600 shadow-md ring-2 ring-amber-500/25 font-black'
                           : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/35 hover:bg-amber-500/25'
                       }`}
-                      title="Admin-Bereich & Einstellungen"
+                      title={isAdmin ? "Admineinstellungen & Einstellungen" : "Einstellungen & Themes"}
                     >
                       <Settings className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'admin' ? 'animate-spin' : 'hover:rotate-45 transition-transform'}`} style={activeTab === 'admin' ? { animationDuration: '8s' } : undefined} />
                     </button>
 
-                    {/* Benutzerprofil mit Initialen (in Rollenfarbe) */}
+                    {/* Persönliche Statistik mit Statistik-Icon (in Rollenfarbe) */}
                     {currentUser?.email && (
                       <button
                         onClick={() => setIsProfileOpen(true)}
                         id="nav-user-profile-btn"
-                        title={`Benutzerprofil (${currentUserDisplayName})`}
-                        className={`w-full h-full py-2 rounded-lg text-center text-xs font-sans font-black tracking-wider transition-all duration-200 cursor-pointer flex items-center justify-center border shadow-xs select-none ${userRoleStyles.bg} ${userRoleStyles.text} ${userRoleStyles.border}`}
+                        title={`Persönliche Statistik (${currentUserDisplayName})`}
+                        className={`w-full h-full py-2 rounded-lg text-center transition-all duration-200 cursor-pointer flex items-center justify-center border shadow-xs select-none ${userRoleStyles.bg} ${userRoleStyles.text} ${userRoleStyles.border} hover:opacity-90 active:scale-95`}
                       >
-                        {userInitials}
+                        <BarChart2 className="w-3.5 h-3.5 shrink-0" />
                       </button>
                     )}
                   </div>
@@ -2780,7 +2776,7 @@ export default function App() {
             />
           )}
 
-          {/* TAB: ADMIN */}
+          {/* TAB: EINSTELLUNGEN & ADMIN */}
           {activeTab === 'admin' && (
             <AdminTab
               annualTarget={annualTarget}
@@ -2802,6 +2798,16 @@ export default function App() {
               commissions={commissions}
               ausarbeitungen={ausarbeitungen}
               onImportBackup={handleImportBackup}
+              isAdmin={isAdmin}
+              currentUser={currentUser}
+              currentUserDisplayName={currentUserDisplayName || ''}
+              theme={theme}
+              onChangeTheme={async (newTheme) => {
+                await handleUpdateUserPreferences({ theme: newTheme });
+              }}
+              userPreferences={userPreferences}
+              onUpdatePreferences={handleUpdateUserPreferences}
+              isSavingPreferences={isSavingPreferences}
             />
           )}
 
