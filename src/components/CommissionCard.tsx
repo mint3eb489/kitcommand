@@ -53,8 +53,8 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
 
   const renderMetaGrid = () => {
     return (
-      <div className="grid grid-cols-2 gap-2 mt-2 p-2 bg-slate-50 dark:bg-zinc-950/40 rounded-xl border border-slate-100 dark:border-zinc-800/60 shadow-3xs text-left">
-        <div className="flex flex-col gap-1">
+      <div className="grid grid-cols-2 gap-2 p-1.5 sm:p-2 bg-slate-50 dark:bg-zinc-950/40 rounded-xl border border-slate-100 dark:border-zinc-800/60 shadow-3xs text-left">
+        <div className="flex flex-col gap-0.5">
           <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500 select-none">
             Auftrags-Nr.
           </span>
@@ -63,10 +63,10 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
             placeholder="Nr. eingeben"
             value={commission.orderNumber || ''}
             onChange={(e) => onUpdateField(commission.id, 'orderNumber', e.target.value)}
-            className="w-full px-2 py-1 text-xs font-bold text-slate-800 dark:text-zinc-200 bg-white dark:bg-zinc-900 w-full border border-slate-200 dark:border-zinc-800/80 rounded-lg focus:outline-hidden focus:border-blue-500 shadow-3xs"
+            className="w-full px-2 py-1 text-xs font-bold text-slate-800 dark:text-zinc-200 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800/80 rounded-lg focus:outline-hidden focus:border-blue-500 shadow-3xs"
           />
         </div>
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-0.5">
           <div className="flex justify-between items-center select-none">
             <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500">
               Stadt / Ort
@@ -84,7 +84,7 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                 onUpdateField(commission.id, 'city', res.normalized);
               }
             }}
-            className="w-full px-2 py-1 text-xs font-bold text-slate-800 dark:text-zinc-200 bg-white dark:bg-zinc-900 w-full border border-slate-200 dark:border-zinc-800/80 rounded-lg focus:outline-hidden focus:border-blue-500 shadow-3xs"
+            className="w-full px-2 py-1 text-xs font-bold text-slate-800 dark:text-zinc-200 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800/80 rounded-lg focus:outline-hidden focus:border-blue-500 shadow-3xs"
           />
           <datalist id={`city-sug-${commission.id}`}>
             {getPlzSuggestions(commission.city || '').map((sug, idx) => (
@@ -232,14 +232,14 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
     const bgClass = isChecked ? 'bg-slate-50 dark:bg-zinc-950/40' : 'hover:bg-slate-50 dark:hover:bg-zinc-800/30';
 
     return (
-      <label className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all active:scale-[0.98] ${bgClass} border border-transparent ${isChecked ? '' : 'hover:border-slate-200 dark:hover:border-zinc-800'}`}>
+      <label className={`flex items-center gap-2.5 py-1 px-2 rounded-lg cursor-pointer transition-all active:scale-[0.98] ${bgClass} border border-transparent ${isChecked ? '' : 'hover:border-slate-200 dark:hover:border-zinc-800'}`}>
         <input
           type="checkbox"
           className="custom-checkbox rounded shadow-inner"
           checked={isChecked}
           onChange={(e) => onUpdateField(commission.id, field, e.target.checked)}
         />
-        <span className={`text-xs font-bold ${textClass} transition-colors`}>{label}</span>
+        <span className={`text-xs font-bold ${textClass} transition-colors leading-tight`}>{label}</span>
       </label>
     );
   };
@@ -427,7 +427,7 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
             }
           }
         }}
-        className={`relative bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-200 dark:border-zinc-800 transition-all duration-300 ease-out will-change-transform shadow-sm hover:shadow-md hover:-translate-y-0.5 flex flex-col gap-4 group/card overflow-hidden isolate ${viewMode === 'compact' ? 'cursor-pointer' : ''} ${hoverBorder}`}
+        className={`relative bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-200 dark:border-zinc-800 transition-all duration-300 ease-out will-change-transform shadow-sm hover:shadow-md hover:-translate-y-0.5 flex flex-col gap-2.5 group/card overflow-hidden isolate ${viewMode === 'compact' ? 'cursor-pointer' : ''} ${hoverBorder}`}
         style={{
           transform: `translateX(${translateX}px)`,
         }}
@@ -600,7 +600,7 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
 
             {renderMetaGrid()}
 
-            <div className="flex gap-2 mt-4 pt-3 border-t border-slate-200/60 dark:border-zinc-800">
+            <div className="flex gap-2 pt-2 border-t border-slate-200/60 dark:border-zinc-800">
               <button
                 onClick={() => onResolve(commission.id, 'sold')}
                 className="flex-1 py-1.5 rounded-lg font-extrabold text-[9px] sm:text-[10px] uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all duration-200 flex items-center justify-center gap-1 cursor-pointer active:scale-95"
@@ -620,7 +620,7 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
         ) : (
           // SOLD OR LOST LAYOUT
           <>
-            <div className="mb-3 border-b border-slate-200/60 dark:border-zinc-800 pb-3 flex justify-between items-start">
+            <div className="border-b border-slate-200/60 dark:border-zinc-800 pb-2 flex justify-between items-start">
               <div>
                 <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                   <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100">
@@ -635,7 +635,7 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                   </button>
                 </div>
                 {commission.createdByEmail && (
-                  <p className="text-[8px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500 mb-2 select-none">
+                  <p className="text-[8px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500 mb-1.5 select-none">
                     Mitarbeiter: <span className="font-sans text-slate-500 dark:text-zinc-400 font-bold">
                       {(() => {
                         const emailLower = commission.createdByEmail.toLowerCase().trim();
@@ -847,7 +847,7 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                   </div>
                 ) : (
                   <>
-                    <div className="mt-3 flex justify-between items-center px-1 border-b border-slate-200/60 dark:border-zinc-800 pb-2 mb-2">
+                    <div className="mt-0.5 flex justify-between items-center px-1 border-b border-slate-200/60 dark:border-zinc-800 pb-1 mb-1">
                       <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
                         Prozess-Schritte
                       </span>
@@ -861,7 +861,7 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                       )}
                     </div>
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-1.5">
                       {showVorab ? (
                         <>
                           {renderCheckbox('vorabPlan', 'Vorab-Installationsplan')}
@@ -881,8 +881,8 @@ export const CommissionCard: React.FC<CommissionCardProps> = ({
                       )}
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-zinc-800">
-                      <div className="flex justify-between items-center mb-1.5">
+                    <div className="mt-1 pt-1.5 border-t border-slate-200/60 dark:border-zinc-800">
+                      <div className="flex justify-between items-center mb-1">
                         <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
                           Fortschritt
                         </span>

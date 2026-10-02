@@ -48,7 +48,6 @@ export const PersonalStatsTab: React.FC<PersonalStatsTabProps> = ({
   // Filter state for Personal Statistics
   const [statsYear, setStatsYear] = useState<string>(new Date().getFullYear().toString());
   const [statsMonth, setStatsMonth] = useState<string>('all');
-  const [showRemaining, setShowRemaining] = useState<boolean>(false);
 
   const currentYear = new Date().getFullYear().toString();
   const currentYearForTarget = statsYear === 'all' ? currentYear : statsYear;
@@ -723,12 +722,6 @@ export const PersonalStatsTab: React.FC<PersonalStatsTabProps> = ({
                 Jahresziel-Fortschritt ({currentYearForTarget})
               </h4>
             </div>
-            <button
-              onClick={() => setShowRemaining(!showRemaining)}
-              className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-            >
-              {showRemaining ? 'Zeige Prozent' : 'Zeige Restbetrag'}
-            </button>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 my-auto py-2">
@@ -759,23 +752,12 @@ export const PersonalStatsTab: React.FC<PersonalStatsTabProps> = ({
               </svg>
               
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                {showRemaining ? (
-                  <>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Rest</span>
-                    <span className="text-xs sm:text-sm font-black font-mono text-slate-800 dark:text-zinc-100">
-                      {formatter.format(Math.max(0, userTarget - personalStats.annualRevenue))}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-xl sm:text-2xl font-black font-mono tracking-tight text-slate-900 dark:text-white">
-                      {targetPercent.toFixed(0)}%
-                    </span>
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">
-                      Erreicht
-                    </span>
-                  </>
-                )}
+                <span className="text-xl sm:text-2xl font-black font-mono tracking-tight text-slate-900 dark:text-white">
+                  {targetPercent.toFixed(0)}%
+                </span>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                  Erreicht
+                </span>
               </div>
             </div>
 
