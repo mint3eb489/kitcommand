@@ -11,16 +11,47 @@ interface ChartSegment {
   color: string;
 }
 
-interface DonutChartProps {
-  segments: ChartSegment[];
-  total: number;
+export interface DonutChartProps {
+  segments?: ChartSegment[];
+  total?: number;
+  neubau?: number;
+  bestand?: number;
+  klein?: number;
 }
 
-export const DonutChart: React.FC<DonutChartProps> = ({ segments, total }) => {
+export const DonutChart: React.FC<DonutChartProps> = ({ 
+  segments, 
+  total,
+  neubau,
+  bestand,
+  klein,
+}) => {
   const radius = 58;
   const circumference = 2 * Math.PI * radius; // ~364.424
 
-  if (total === 0) {
+  // Determine effective segments and total
+  const hasNamedProps = neubau !== undefined || bestand !== undefined || klein !== undefined;
+  const n = Math.max(0, Number(neubau) || 0);
+  const b = Math.max(0, Number(bestand) || 0);
+  const k = Math.max(0, Number(klein) || 0);
+  const sumCount = n + b + k;
+
+  let effectiveSegments: ChartSegment[] = [];
+  if (Array.isArray(segments) && segments.length > 0) {
+    effectiveSegments = segments;
+  } else if (hasNamedProps && sumCount > 0) {
+    effectiveSegments = [
+      { value: (n / sumCount) * 100, color: '#3b82f6' }, // blue-500: Neubau
+      { value: (b / sumCount) * 100, color: '#6366f1' }, // indigo-500: Bestand
+      { value: (k / sumCount) * 100, color: '#f59e0b' }, // amber-500: Kleinauftrag
+    ];
+  }
+
+  const effectiveTotal = typeof total === 'number' 
+    ? total 
+    : (hasNamedProps ? sumCount : 0);
+
+  if (effectiveTotal === 0 || effectiveSegments.length === 0) {
     return (
       <div className="relative w-36 h-36 flex items-center justify-center select-none">
         <svg className="w-full h-full transform -rotate-90 p-1">
@@ -44,7 +75,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({ segments, total }) => {
   }
 
   // Filter out zero-value segments to avoid rendering tiny artifacts
-  const activeSegments = segments.filter((seg) => seg.value > 0);
+  const activeSegments = (effectiveSegments || []).filter((seg) => seg && typeof seg.value === 'number' && seg.value > 0);
 
   // Calculate cumulative offsets
   let accumulatedPercent = 0;
@@ -94,10 +125,10 @@ export const DonutChart: React.FC<DonutChartProps> = ({ segments, total }) => {
       {/* Central Information Readout */}
       <div className="absolute flex flex-col items-center justify-center">
         <span className="text-2xl font-black text-slate-800 dark:text-zinc-150 tracking-tight leading-none">
-          {total}
+          {effectiveTotal}
         </span>
         <span className="text-[8px] font-extrabold text-slate-400 dark:text-zinc-550 uppercase tracking-widest mt-1">
-          {total === 1 ? 'Auftrag' : 'Aufträge'}
+          {effectiveTotal === 1 ? 'Auftrag' : 'Aufträge'}
         </span>
       </div>
     </div>

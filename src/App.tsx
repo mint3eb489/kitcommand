@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { onSnapshot, addDoc, updateDoc, doc, deleteDoc, setDoc, deleteField } from 'firebase/firestore';
 import { auth, getDbCollectionRef, getAusarbeitungenCollectionRef, getUserPreferencesCollectionRef, handleFirestoreError, isUserAdmin, ADMIN_EMAILS } from './firebase.ts';
@@ -15,7 +15,8 @@ import { StatsTab } from './components/StatsTab.tsx';
 import { AdminTab } from './components/AdminTab.tsx';
 import { AddCommissionModal } from './components/AddCommissionModal.tsx';
 import { AusarbeitungenTab } from './components/AusarbeitungenTab.tsx';
-import { UserProfileModal } from './components/UserProfileModal.tsx';
+import { PersonalStatsTab } from './components/PersonalStatsTab.tsx';
+import { AnimatedBarChartIcon } from './components/AnimatedBarChartIcon.tsx';
 import {
   EditPriceModal,
   EditDateModal,
@@ -514,7 +515,7 @@ export default function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // App Layout States
-  const [activeTab, setActiveTab] = useState<'open' | 'sold' | 'ausarbeitung' | 'stats' | 'admin'>('open');
+  const [activeTab, setActiveTab] = useState<'open' | 'sold' | 'ausarbeitung' | 'stats' | 'admin' | 'personal_stats'>('open');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedColleague, setSelectedColleague] = useState<string>('all');
   
@@ -526,6 +527,7 @@ export default function App() {
   // User Profile Cloud Preferences
   const [userPreferences, setUserPreferences] = useState<UserPreferences>({});
   const [isSavingPreferences, setIsSavingPreferences] = useState(false);
+  const hasAppliedInitialStartTab = useRef(false);
   
   const [theme, setTheme] = useState<ThemeType>('light');
   const [isSearchActive, setIsSearchActive] = useState(false);
@@ -832,18 +834,21 @@ export default function App() {
             localStorage.setItem('commission_view_mode', data.viewMode);
           }
 
-          // 4. Default Starttab
-          if (data.startTab && ['open', 'sold', 'ausarbeitung', 'stats', 'admin'].includes(data.startTab)) {
+          // 4. Default Starttab (only apply once on initial app launch)
+          if (data.startTab && ['open', 'sold', 'ausarbeitung', 'stats', 'admin', 'personal_stats'].includes(data.startTab)) {
             localStorage.setItem('kk_default_tab', data.startTab);
-            const rawEmail = currentUser.email?.toLowerCase();
-            const isEnricoUser = rawEmail === 'belmonte.enrico@gmail.com' || rawEmail === 'belmonte@fs-kuechen.de';
-            const isAdminUser = isUserAdmin(currentUser.email) || adminEmails.includes(currentUser.email?.toLowerCase().trim() || '');
-            if (data.startTab === 'ausarbeitung' && !isEnricoUser && !isAdminUser) {
-              setActiveTab('open');
-            } else if (data.startTab === 'admin' && !isAdminUser) {
-              setActiveTab('open');
-            } else {
-              setActiveTab(data.startTab);
+            if (!hasAppliedInitialStartTab.current) {
+              hasAppliedInitialStartTab.current = true;
+              const rawEmail = currentUser.email?.toLowerCase();
+              const isEnricoUser = rawEmail === 'belmonte.enrico@gmail.com' || rawEmail === 'belmonte@fs-kuechen.de';
+              const isAdminUser = isUserAdmin(currentUser.email) || adminEmails.includes(currentUser.email?.toLowerCase().trim() || '');
+              if (data.startTab === 'ausarbeitung' && !isEnricoUser && !isAdminUser) {
+                setActiveTab('open');
+              } else if (data.startTab === 'admin' && !isAdminUser) {
+                setActiveTab('open');
+              } else {
+                setActiveTab(data.startTab);
+              }
             }
           }
 
@@ -1771,11 +1776,12 @@ export default function App() {
     }
   }, [isEnrico, activeTab, currentUser, authChecked]);
 
-  // Custom starting-tab route dispatcher based on user selections
+  // Custom starting-tab route dispatcher based on user selections (applied once on initial load)
   useEffect(() => {
-    if (authChecked && currentUser) {
+    if (authChecked && currentUser && !hasAppliedInitialStartTab.current) {
       const savedDefaultTab = userPreferences.startTab || localStorage.getItem('kk_default_tab');
-      if (savedDefaultTab && ['open', 'sold', 'ausarbeitung', 'stats', 'admin'].includes(savedDefaultTab)) {
+      if (savedDefaultTab && ['open', 'sold', 'ausarbeitung', 'stats', 'admin', 'personal_stats'].includes(savedDefaultTab)) {
+        hasAppliedInitialStartTab.current = true;
         // Enforce safety restrictions
         if (savedDefaultTab === 'ausarbeitung' && !isEnrico && !isAdmin) {
           setActiveTab('open');
@@ -2025,7 +2031,7 @@ export default function App() {
     return (prefix.slice(0, 2) || 'KK').toUpperCase();
   }, [currentUser, currentUserDisplayName]);
 
-  // Role-based styling for the mobile initials badge
+  // Role-based styling for the mobile initials badge & personal stats button
   const userRoleStyles = useMemo(() => {
     if (isEnrico) {
       // Sys-Admin: Lila / Purple
@@ -2033,6 +2039,7 @@ export default function App() {
         text: 'text-purple-600 dark:text-purple-400',
         bg: 'bg-purple-500/10 dark:bg-purple-950/40 hover:bg-purple-500/20',
         border: 'border-purple-400/50 dark:border-purple-500/40',
+        active: 'bg-purple-600 text-white border-purple-700 shadow-md ring-2 ring-purple-500/25 font-black',
         badgeName: 'Sys-Admin',
       };
     }
@@ -2042,6 +2049,7 @@ export default function App() {
         text: 'text-amber-600 dark:text-amber-400',
         bg: 'bg-amber-500/10 dark:bg-amber-950/40 hover:bg-amber-500/20',
         border: 'border-amber-400/50 dark:border-amber-500/40',
+        active: 'bg-amber-500 text-white border-amber-600 shadow-md ring-2 ring-amber-500/25 font-black',
         badgeName: 'Admin',
       };
     }
@@ -2050,6 +2058,7 @@ export default function App() {
       text: 'text-blue-600 dark:text-blue-400',
       bg: 'bg-blue-500/10 dark:bg-blue-950/40 hover:bg-blue-500/20',
       border: 'border-blue-400/50 dark:border-blue-500/40',
+      active: 'bg-blue-600 text-white border-blue-700 shadow-md ring-2 ring-blue-500/25 font-black',
       badgeName: 'Verkäufer',
     };
   }, [isEnrico, isAdmin]);
@@ -2106,7 +2115,7 @@ export default function App() {
           {/* MOBILE HEADER (md:hidden): Compact, top left-aligned logo + title with connection dot */}
           <div className="flex md:hidden w-full items-center justify-between gap-2.5 mb-3.5">
             {/* Left: Kitcommand Logo and title with green connection dot right beside "Pro" badge */}
-            <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-2.5">
               <button
                 id="mobile-logo-theme-toggle"
                 onClick={toggleTheme}
@@ -2126,26 +2135,30 @@ export default function App() {
                 <TrendingUp className="w-5 h-5 stroke-[2.25] text-blue-600 dark:text-blue-400" />
               </button>
 
-              <h1 className="text-xl sm:text-2xl font-black flex items-center tracking-tight truncate leading-none">
-                KitCommand
-                <span className="inline-flex items-center border border-amber-500 text-amber-500 rounded-md px-1.5 py-0.5 text-[10px] font-black ml-2 leading-none transform -translate-y-0.5">
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight leading-none whitespace-nowrap">
+                  KitCommand
+                </h1>
+                <span className="inline-flex items-center border border-amber-500 text-amber-500 rounded-md px-1.5 py-0.5 text-[10px] font-black shrink-0 leading-none transform -translate-y-0.5">
                   Pro
                 </span>
-                {/* Grüner Verbindungspunkt direkt rechts neben dem Pro Badge (Mobil) */}
-                <span 
-                  className="relative flex h-2.5 w-2.5 ml-2.5 shrink-0 cursor-default" 
-                  title={syncStatus === 'synced' ? 'Echtzeit-Verbindung aktiv (Live)' : 'Verbinde mit Cloud-Datenbank...'}
-                >
-                  {syncStatus === 'synced' ? (
-                    <>
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 ring-2 ring-emerald-500/30"></span>
-                    </>
-                  ) : (
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500 animate-pulse ring-2 ring-blue-500/30"></span>
-                  )}
-                </span>
-              </h1>
+                {/* Grüner Verbindungspunkt mit ausreichend Freiraum (kein seitliches Abschneiden) */}
+                <div className="flex items-center justify-center w-5 h-5 shrink-0 px-0.5">
+                  <span 
+                    className="relative flex h-2.5 w-2.5 cursor-default" 
+                    title={syncStatus === 'synced' ? 'Echtzeit-Verbindung aktiv (Live)' : 'Verbinde mit Cloud-Datenbank...'}
+                  >
+                    {syncStatus === 'synced' ? (
+                      <>
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 ring-2 ring-emerald-500/30"></span>
+                      </>
+                    ) : (
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500 animate-pulse ring-2 ring-blue-500/30"></span>
+                    )}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -2269,7 +2282,7 @@ export default function App() {
                           ? 'bg-amber-500 text-white border-amber-600 shadow-md ring-2 ring-amber-500/25 font-black'
                           : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/35 hover:bg-amber-500/25'
                       }`}
-                      title={isAdmin ? "Admineinstellungen & Einstellungen" : "Einstellungen & Themes"}
+                      title={isAdmin ? "Mitarbeiter, Backup & Einstellungen" : "Einstellungen & Themes"}
                     >
                       <Settings className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'admin' ? 'animate-spin' : 'hover:rotate-45 transition-transform'}`} style={activeTab === 'admin' ? { animationDuration: '8s' } : undefined} />
                     </button>
@@ -2277,12 +2290,22 @@ export default function App() {
                     {/* Persönliche Statistik mit Statistik-Icon (in Rollenfarbe) */}
                     {currentUser?.email && (
                       <button
-                        onClick={() => setIsProfileOpen(true)}
+                        onClick={() => {
+                          setTargetProfileEmail(null);
+                          setActiveTab(activeTab === 'personal_stats' ? 'open' : 'personal_stats');
+                        }}
                         id="nav-user-profile-btn"
                         title={`Persönliche Statistik (${currentUserDisplayName})`}
-                        className={`w-full h-full py-2 rounded-lg text-center transition-all duration-200 cursor-pointer flex items-center justify-center border shadow-xs select-none ${userRoleStyles.bg} ${userRoleStyles.text} ${userRoleStyles.border} hover:opacity-90 active:scale-95`}
+                        className={`w-full h-full py-2 rounded-lg text-center transition-all duration-200 cursor-pointer flex items-center justify-center border shadow-xs select-none ${
+                          activeTab === 'personal_stats'
+                            ? userRoleStyles.active
+                            : `${userRoleStyles.bg} ${userRoleStyles.text} ${userRoleStyles.border} hover:opacity-90 active:scale-95`
+                        }`}
                       >
-                        <BarChart2 className="w-3.5 h-3.5 shrink-0" />
+                        <AnimatedBarChartIcon 
+                          isActive={activeTab === 'personal_stats'}
+                          className="w-3.5 h-3.5 shrink-0"
+                        />
                       </button>
                     )}
                   </div>
@@ -2793,7 +2816,7 @@ export default function App() {
               onSaveTeammates={handleSaveTeammates}
               onOpenUserProfile={(email) => {
                 setTargetProfileEmail(email);
-                setIsProfileOpen(true);
+                setActiveTab('personal_stats');
               }}
               commissions={commissions}
               ausarbeitungen={ausarbeitungen}
@@ -2808,6 +2831,31 @@ export default function App() {
               userPreferences={userPreferences}
               onUpdatePreferences={handleUpdateUserPreferences}
               isSavingPreferences={isSavingPreferences}
+            />
+          )}
+
+          {/* TAB: PERSÖNLICHE STATISTIK (INLINE IN DER APP) */}
+          {activeTab === 'personal_stats' && (
+            <PersonalStatsTab
+              currentUser={currentUser}
+              currentUserDisplayName={currentUserDisplayName || ''}
+              onLogout={handleLogout}
+              yearlyTargets={yearlyTargets}
+              annualTarget={annualTarget}
+              theme={theme}
+              commissions={commissions}
+              isAdmin={isAdmin}
+              selectedColleague={selectedColleague}
+              teammates={teammateConfigs}
+              targetProfileEmail={targetProfileEmail}
+              onBackToAdmin={() => {
+                setTargetProfileEmail(null);
+                setActiveTab('admin');
+              }}
+              onClose={() => {
+                setTargetProfileEmail(null);
+                setActiveTab('open');
+              }}
             />
           )}
 
@@ -2857,31 +2905,6 @@ export default function App() {
         onConfirm={async (id) => {
           await handleDeleteCommission(id);
         }}
-      />
-
-      <UserProfileModal
-        isOpen={isProfileOpen}
-        onClose={() => {
-          setIsProfileOpen(false);
-          setTargetProfileEmail(null);
-        }}
-        currentUser={currentUser}
-        currentUserDisplayName={currentUserDisplayName || ''}
-        onLogout={handleLogout}
-        yearlyTargets={yearlyTargets}
-        annualTarget={annualTarget}
-        theme={theme}
-        onChangeTheme={(newTheme) => {
-          handleUpdateUserPreferences({ theme: newTheme });
-        }}
-        commissions={commissions}
-        isAdmin={isAdmin}
-        selectedColleague={selectedColleague}
-        teammates={teammateConfigs}
-        targetProfileEmail={targetProfileEmail}
-        userPreferences={userPreferences}
-        onUpdatePreferences={handleUpdateUserPreferences}
-        isSavingPreferences={isSavingPreferences}
       />
 
       {/* Error Toast Dialog Overlay */}

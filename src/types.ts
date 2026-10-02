@@ -85,7 +85,7 @@ export interface TeammateConfig {
 }
 
 export type ThemeType = 'light' | 'dark' | 'sage' | 'ocean' | 'wood';
-export type StartTabType = 'open' | 'sold' | 'ausarbeitung' | 'stats' | 'admin';
+export type StartTabType = 'open' | 'sold' | 'ausarbeitung' | 'stats' | 'admin' | 'personal_stats';
 export type PerspectiveType = 'all' | 'own';
 
 export interface UserPreferences {

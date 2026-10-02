@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Users, Trash2, Calendar, Target, Edit, Shield, UserPlus, CheckCircle, 
   Save, Check, X, User, Database, Download, Upload, AlertTriangle, 
   RefreshCw, Search, SlidersHorizontal, UserCheck, UserX, Sparkles, 
-  ShieldCheck, Mail, Cloud, Compass, Palette, LogOut 
+  ShieldCheck, Mail, Compass, Palette, LogOut 
 } from 'lucide-react';
 import { TeammateConfig, ThemeType, UserPreferences } from '../types.ts';
 
@@ -65,16 +65,52 @@ export const AdminTab: React.FC<AdminTabProps> = ({
   onUpdatePreferences,
   isSavingPreferences = false,
 }) => {
-  // Navigation: Admineinstellungen vs Einstellungen & Themes
-  const [activeSection, setActiveSection] = useState<'admin' | 'settings'>(() => {
-    return isAdmin ? 'admin' : 'settings';
-  });
+  // Navigation: Reihenfolge: Einstellungen & Themes vs Mitarbeiter vs Backup
+  const [activeSection, setActiveSection] = useState<'settings' | 'employees' | 'backup'>('settings');
 
   useEffect(() => {
-    if (!isAdmin) {
+    if (!isAdmin && activeSection !== 'settings') {
       setActiveSection('settings');
     }
-  }, [isAdmin]);
+  }, [isAdmin, activeSection]);
+
+  // Floating Toast für "In Cloud gesichert" (wird bei Änderung einer Einstellung getriggert)
+  const [cloudToast, setCloudToast] = useState<{ visible: boolean; isSaving: boolean }>({
+    visible: false,
+    isSaving: false,
+  });
+  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showCloudPopup = (isSaving = false) => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+    setCloudToast({ visible: true, isSaving });
+    if (!isSaving) {
+      toastTimerRef.current = setTimeout(() => {
+        setCloudToast(prev => ({ ...prev, visible: false }));
+      }, 2500);
+    }
+  };
+
+  const prevSavingRef = useRef(isSavingPreferences);
+  useEffect(() => {
+    if (isSavingPreferences) {
+      showCloudPopup(true);
+    } else if (prevSavingRef.current && !isSavingPreferences) {
+      showCloudPopup(false);
+    }
+    prevSavingRef.current = isSavingPreferences;
+  }, [isSavingPreferences]);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
 
   // Settings & Themes states
   const [editedName, setEditedName] = useState(userPreferences?.customDisplayName ?? localStorage.getItem('kk_custom_display_name') ?? '');
@@ -96,6 +132,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
 
   const handleSaveDisplayName = async () => {
     const trimmed = editedName.trim();
+    showCloudPopup(isSavingPreferences);
     if (onUpdatePreferences) {
       await onUpdatePreferences({ customDisplayName: trimmed });
     } else {
@@ -106,36 +143,43 @@ export const AdminTab: React.FC<AdminTabProps> = ({
       }
       window.dispatchEvent(new Event('storage_custom_name_changed'));
     }
+    showCloudPopup(false);
     setSavedNameSuccess(true);
     setTimeout(() => setSavedNameSuccess(false), 2000);
   };
 
   const handleSaveStartTab = async (tab: any) => {
     setStartTab(tab);
+    showCloudPopup(isSavingPreferences);
     if (onUpdatePreferences) {
       await onUpdatePreferences({ startTab: tab });
     } else {
       localStorage.setItem('kk_default_tab', tab);
     }
+    showCloudPopup(false);
   };
 
   const handleSavePerspective = async (perspective: 'all' | 'own') => {
     setPerspectiveSetting(perspective);
+    showCloudPopup(isSavingPreferences);
     if (onUpdatePreferences) {
       await onUpdatePreferences({ defaultPerspective: perspective });
     } else {
       localStorage.setItem('kk_default_colleague_perspective', perspective);
       window.dispatchEvent(new Event('storage_perspective_changed'));
     }
+    showCloudPopup(false);
   };
 
   const handleSelectTheme = (themeId: any) => {
+    showCloudPopup(isSavingPreferences);
     if (onChangeTheme) {
       onChangeTheme(themeId);
     }
     if (onUpdatePreferences) {
       onUpdatePreferences({ theme: themeId });
     }
+    showCloudPopup(false);
   };
 
   const themes = [
@@ -153,6 +197,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
   // States for teammate administration
   const [newTeammateEmail, setNewTeammateEmail] = useState('');
   const [newTeammateName, setNewTeammateName] = useState('');
+  const [isAddingTeammate, setIsAddingTeammate] = useState(false);
   const [editingTeammateEmail, setEditingTeammateEmail] = useState<string | null>(null);
   const [editingTeammateName, setEditingTeammateName] = useState('');
   const [savingTeammates, setSavingTeammates] = useState(false);
@@ -202,120 +247,130 @@ export const AdminTab: React.FC<AdminTabProps> = ({
   return (
     <div id="tab-admin" className="flex flex-col min-h-[500px] space-y-6">
       
-      {/* Top Switcher: Admineinstellungen & Einstellungen & Themes */}
-      <div className="flex items-center gap-2 border-b border-slate-200/60 dark:border-zinc-800 pb-3">
-        {isAdmin && (
-          <button
-            onClick={() => setActiveSection('admin')}
-            id="tab-btn-admin-settings"
-            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-3 sm:px-3.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer border ${
-              activeSection === 'admin'
-                ? 'bg-amber-500 text-white border-amber-600 shadow-md ring-2 ring-amber-500/20'
-                : 'bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:text-slate-800 dark:hover:text-zinc-200'
-            }`}
-          >
-            <Shield className="w-4 h-4 shrink-0" />
-            <span className="truncate">Admineinstellungen</span>
-          </button>
-        )}
+      {/* Top Switcher: Einstellungen & Themes, Mitarbeiter, Backup */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 border-b border-slate-200/60 dark:border-zinc-800 pb-3">
+        {/* 1. Reiter: Einstellungen & Themes (Mobile: Volle Zeile 1; Desktop: 1. Button links) */}
         <button
           onClick={() => setActiveSection('settings')}
           id="tab-btn-user-settings"
-          className={`${isAdmin ? 'flex-1 sm:flex-initial' : 'w-auto'} flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-3 sm:px-3.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer border ${
+          className={`w-full sm:w-auto flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-3 sm:px-3.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer border ${
             activeSection === 'settings'
               ? 'bg-amber-500 text-white border-amber-600 shadow-md ring-2 ring-amber-500/20'
               : 'bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:text-slate-800 dark:hover:text-zinc-200'
           }`}
         >
           <SlidersHorizontal className="w-4 h-4 shrink-0" />
-          <span className="hidden sm:inline">Einstellungen & Themes</span>
-          <span className="sm:hidden truncate">Einstellungen</span>
+          <span>Einstellungen & Themes</span>
         </button>
+
+        {/* 2. & 3. Reiter: Mitarbeiter & Backup (Mobile: Zeile darunter zu zweit nebeneinander; Desktop: in derselben Zeile) */}
+        {isAdmin && (
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-2 w-full sm:w-auto">
+            {/* 2. Reiter: Mitarbeiter */}
+            <button
+              onClick={() => setActiveSection('employees')}
+              id="tab-btn-employees"
+              className={`w-full sm:w-auto flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-3 sm:px-3.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer border ${
+                activeSection === 'employees'
+                  ? 'bg-amber-500 text-white border-amber-600 shadow-md ring-2 ring-amber-500/20'
+                  : 'bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:text-slate-800 dark:hover:text-zinc-200'
+              }`}
+            >
+              <Users className="w-4 h-4 shrink-0" />
+              <span className="truncate">Mitarbeiter</span>
+            </button>
+
+            {/* 3. Reiter: Backup */}
+            <button
+              onClick={() => setActiveSection('backup')}
+              id="tab-btn-backup"
+              className={`w-full sm:w-auto flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-3 sm:px-3.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer border ${
+                activeSection === 'backup'
+                  ? 'bg-amber-500 text-white border-amber-600 shadow-md ring-2 ring-amber-500/20'
+                  : 'bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:text-slate-800 dark:hover:text-zinc-200'
+              }`}
+            >
+              <Database className="w-4 h-4 shrink-0" />
+              <span className="truncate">Backup</span>
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* ABSCHNITT 1: ADMINEINSTELLUNGEN */}
-      {activeSection === 'admin' && isAdmin && (
+      {/* ABSCHNITT 1: MITARBEITER */}
+      {activeSection === 'employees' && isAdmin && (
         <div className="space-y-6 flex-1">
           <div className="border-b border-slate-200/60 dark:border-zinc-800 pb-4">
             <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-              System & Admin
+              Mitarbeiter- & Teamverwaltung
             </h2>
-            <p className="text-xs text-slate-500 mt-1">Zentrale Einstellungen für dein KitCommand Pro.</p>
+            <p className="text-xs text-slate-500 mt-1">Zentrale Mitarbeiter- und Verkäuferverwaltung sowie Jahresumsatzziele für dein Team.</p>
           </div>
-        {/* Block: Standard-Ziel (Fallback) */}
-        <div className="relative overflow-hidden isolate bg-white dark:bg-zinc-900 rounded-xl p-5 border border-slate-200 dark:border-zinc-800 shadow-xs transition-all duration-300 group/admin-card hover:border-slate-350 dark:hover:border-zinc-700">
-          {/* Ambient Glow for Admin */}
-          <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full blur-3xl pointer-events-none opacity-0 group-hover/admin-card:opacity-100 transition-opacity duration-500 bg-indigo-500/12 dark:bg-indigo-400/8" />
-          
-          <div className="relative z-10 flex items-center gap-2 mb-3">
-            <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+        {/* Block: Standard-Ziel (deutlich verkleinert & kompakt) */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-slate-200/80 dark:border-zinc-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
               <Target className="w-4 h-4" />
             </div>
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">
-              Umsatzziel (Standard)
-            </h3>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-zinc-100">
+                  Standard-Umsatzziel
+                </h3>
+                <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">
+                  (Fallback / Jahr)
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5">
+                Gilt als Ausweichwert, falls für einen Mitarbeiter kein individuelles Jahresumsatzziel hinterlegt ist.
+              </p>
+            </div>
           </div>
 
-          <div className="relative z-10 flex flex-col gap-2">
-            <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
-              Standard-Jahresumsatzziel (€)
-            </label>
-            <div className="flex gap-2">
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+            <div className="relative">
               <input
                 type="text"
                 value={targetInput}
                 onChange={(e) => setTargetInput(e.target.value)}
                 inputMode="decimal"
-                className="input-field text-sm font-mono text-left bg-slate-50 dark:bg-zinc-950 dark:text-white"
-                placeholder="z. B. 1.500.000"
+                className="input-field text-xs font-mono font-bold text-right py-1.5 px-3 pr-7 w-36 bg-slate-50 dark:bg-zinc-950 dark:text-white rounded-xl border border-slate-200 dark:border-zinc-800 focus:border-blue-500"
+                placeholder="1.500.000"
               />
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-md shadow-blue-600/20 active:scale-95 transition-all whitespace-nowrap cursor-pointer disabled:opacity-50"
-              >
-                {saving ? 'Speichert...' : 'Speichern'}
-              </button>
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">€</span>
             </div>
-            <p className="text-[9px] text-slate-400 mt-1">
-              Dieses Standard-Ziel gilt als Ausweichwert, falls für ein bestimmtes Jahr kein individuelles Umsatzziel hinterlegt ist.
-            </p>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-xl font-bold text-xs uppercase tracking-wider shadow-xs active:scale-95 transition-all whitespace-nowrap cursor-pointer disabled:opacity-50"
+            >
+              {saving ? 'Speichert...' : 'Speichern'}
+            </button>
           </div>
         </div>
 
 
         {/* Team block live members */}
-        <div className="relative overflow-hidden isolate bg-white dark:bg-zinc-900 rounded-xl p-5 border border-slate-200 dark:border-zinc-800 shadow-xs transition-all duration-300 group/admin-card hover:border-slate-350 dark:hover:border-zinc-700">
-          <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full blur-3xl pointer-events-none opacity-0 group-hover/admin-card:opacity-100 transition-opacity duration-500 bg-blue-500/10 dark:bg-blue-400/5" />
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-zinc-800 shadow-xs">
           
           {/* Header */}
-          <div className="relative z-10 flex items-center justify-between mb-4 pb-3 border-b border-slate-150 dark:border-zinc-800/80">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-150 dark:border-zinc-800/80">
+            <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-gradient-to-br from-indigo-500/15 to-blue-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
                 <Users className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">
-                  Mitarbeiter- & Verkäuferverwaltung
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-zinc-100">
+                  Mitarbeiter & Verkäufer
                 </h3>
-                <p className="text-[9px] text-slate-400 mt-0.5">Übersicht aller Accounts, Zuweisung von Admin-Rechten und individuellen Umsatzzielen.</p>
+                <p className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5">
+                  Verwaltung aller Team-Accounts, Admin-Rechte und individuellen Jahresumsatzziele.
+                </p>
               </div>
             </div>
-            <span className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[9px] px-2.5 py-1 rounded-full font-black border border-indigo-500/20 flex items-center gap-1">
-              <Sparkles className="w-2.5 h-2.5" />
-              <span>{allTeammates.length} Account(s)</span>
-            </span>
           </div>
 
-          {/* Quick Info Box */}
-          <p className="relative z-10 text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed mb-5 bg-slate-50/70 dark:bg-zinc-950/50 p-3 rounded-xl border border-slate-200/50 dark:border-zinc-850">
-            <span className="text-emerald-600 dark:text-emerald-400 font-extrabold flex items-center gap-1 mb-0.5">
-              <ShieldCheck className="w-3 h-3 inline" /> Sicherheit & Login-Kompatibilität:
-            </span>
-            Anzeigenamen dienen der Zuordnung in Berichten und Filtern. Firebase-Logins bleiben davon unberührt.
-          </p>
-
-          {/* KPI Summary Cards */}
+          {/* Zusammenfassung der 4 Kennzahlen in einer kompakten Statuszeile */}
           {(() => {
             const displayListRaw: { email: string; name: string; isActive: boolean; isConfigured: boolean }[] = [
               ...teammates.map(t => ({ email: t.email, name: t.name, isActive: t.isActive, isConfigured: true }))
@@ -345,86 +400,114 @@ export const AdminTab: React.FC<AdminTabProps> = ({
             const targetsCount = Object.keys(yearlyTargets).length;
 
             return (
-              <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
-                <div className="bg-slate-50/80 dark:bg-zinc-950/80 p-2.5 rounded-xl border border-slate-200/60 dark:border-zinc-850 flex flex-col">
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Gesamt-Team</span>
-                  <span className="text-base font-black text-slate-800 dark:text-zinc-100 mt-0.5">{totalCount}</span>
+              <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 px-3.5 rounded-xl bg-slate-50/80 dark:bg-zinc-950/80 border border-slate-200/60 dark:border-zinc-850 mb-3.5">
+                <div className="flex items-center gap-3.5 flex-wrap text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Gesamt:</span>
+                    <span className="font-mono font-black text-slate-800 dark:text-zinc-100">{totalCount}</span>
+                  </div>
+                  <span className="text-slate-300 dark:text-zinc-700 hidden sm:inline">•</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Aktiv:</span>
+                    <span className="font-mono font-black text-emerald-600 dark:text-emerald-400">{activeCount}</span>
+                  </div>
+                  <span className="text-slate-300 dark:text-zinc-700 hidden sm:inline">•</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Admins:</span>
+                    <span className="font-mono font-black text-amber-600 dark:text-amber-400">{adminCount}</span>
+                  </div>
+                  <span className="text-slate-300 dark:text-zinc-700 hidden sm:inline">•</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0"></span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Individuelle Ziele:</span>
+                    <span className="font-mono font-black text-blue-600 dark:text-blue-400">{targetsCount}</span>
+                  </div>
                 </div>
-                <div className="bg-slate-50/80 dark:bg-zinc-950/80 p-2.5 rounded-xl border border-slate-200/60 dark:border-zinc-850 flex flex-col">
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Aktive Mitarbeiter</span>
-                  <span className="text-base font-black text-emerald-600 dark:text-emerald-400 mt-0.5">{activeCount}</span>
-                </div>
-                <div className="bg-slate-50/80 dark:bg-zinc-950/80 p-2.5 rounded-xl border border-slate-200/60 dark:border-zinc-850 flex flex-col">
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Admins</span>
-                  <span className="text-base font-black text-amber-600 dark:text-amber-400 mt-0.5">{adminCount}</span>
-                </div>
-                <div className="bg-slate-50/80 dark:bg-zinc-950/80 p-2.5 rounded-xl border border-slate-200/60 dark:border-zinc-850 flex flex-col">
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Inidividuelle Ziele</span>
-                  <span className="text-base font-black text-blue-600 dark:text-blue-400 mt-0.5">{targetsCount}</span>
-                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsAddingTeammate(!isAddingTeammate)}
+                  className="py-1.5 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95 ml-auto"
+                >
+                  <UserPlus className="w-3 h-3" />
+                  <span>{isAddingTeammate ? 'Abbrechen' : '+ Mitarbeiter anlegen'}</span>
+                </button>
               </div>
             );
           })()}
 
-          {/* Form: Add a new managed teammate */}
-          <div className="relative z-10 bg-slate-50/80 dark:bg-zinc-950/80 p-4 rounded-xl border border-slate-200/60 dark:border-zinc-850 mb-5 space-y-3">
-            <h4 className="text-[9px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
-              <UserPlus className="w-3.5 h-3.5 text-indigo-500" />
-              <span>Verkäufer / Teammitglied hinzufügen</span>
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-end">
-              <div className="flex flex-col gap-1">
-                <label className="text-[8px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">E-Mail Adresse</label>
-                <div className="relative">
-                  <Mail className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="email"
-                    value={newTeammateEmail}
-                    onChange={(e) => setNewTeammateEmail(e.target.value)}
-                    className="input-field text-xs font-mono pl-8 h-9 bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 focus:border-indigo-500 w-full rounded-xl"
-                    placeholder="mitarbeiter@fs-kuechen.de"
-                  />
-                </div>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-[8px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Anzeigename / Alias</label>
-                <input
-                  type="text"
-                  value={newTeammateName}
-                  onChange={(e) => setNewTeammateName(e.target.value)}
-                  className="input-field text-xs h-9 bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 px-3 focus:border-indigo-500 w-full rounded-xl border"
-                  placeholder="z. B. Claudio"
-                />
-              </div>
-              <div className="flex flex-col gap-1 justify-end">
-                <label className="text-[8px] font-bold text-transparent select-none hidden sm:block">Aktion</label>
-                <button
-                  onClick={async () => {
-                    const email = newTeammateEmail.trim().toLowerCase();
-                    const name = newTeammateName.trim();
-                    if (!email || !email.includes('@') || !name || savingTeammates || !onSaveTeammates) return;
-                    setSavingTeammates(true);
-                    try {
-                      const existing = teammates.filter(t => t.email.toLowerCase().trim() !== email);
-                      const updated = [...existing, { email, name, isActive: true }];
-                      await onSaveTeammates(updated);
-                      setNewTeammateEmail('');
-                      setNewTeammateName('');
-                    } catch (err) {
-                      console.error(err);
-                    } finally {
-                      setSavingTeammates(false);
-                    }
-                  }}
-                  disabled={savingTeammates || !newTeammateEmail || !newTeammateName}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white h-9 px-5 rounded-xl font-bold text-[10px] uppercase tracking-wider shadow-md shadow-indigo-600/20 active:scale-95 transition-all whitespace-nowrap cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
-                >
+          {/* Formular zum Anlegen: kompakt und ein-/ausklappbar */}
+          {isAddingTeammate && (
+            <div className="bg-slate-50/90 dark:bg-zinc-950/90 p-3.5 rounded-xl border border-indigo-500/30 dark:border-indigo-500/20 mb-3.5 space-y-2.5 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between">
+                <h4 className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
                   <UserPlus className="w-3.5 h-3.5" />
-                  <span>Hinzufügen</span>
+                  <span>Neues Mitglied anlegen</span>
+                </h4>
+                <button
+                  type="button"
+                  onClick={() => setIsAddingTeammate(false)}
+                  className="text-slate-400 hover:text-slate-600 text-[10px] font-bold cursor-pointer"
+                >
+                  Schließen
                 </button>
               </div>
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2.5 items-end">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[8px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">E-Mail Adresse</label>
+                  <div className="relative">
+                    <Mail className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="email"
+                      value={newTeammateEmail}
+                      onChange={(e) => setNewTeammateEmail(e.target.value)}
+                      className="input-field text-xs font-mono pl-8 h-8 bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 focus:border-indigo-500 w-full rounded-xl"
+                      placeholder="mitarbeiter@fs-kuechen.de"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[8px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Anzeigename / Alias</label>
+                  <input
+                    type="text"
+                    value={newTeammateName}
+                    onChange={(e) => setNewTeammateName(e.target.value)}
+                    className="input-field text-xs h-8 bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 px-3 focus:border-indigo-500 w-full rounded-xl border"
+                    placeholder="z. B. Claudio"
+                  />
+                </div>
+                <div className="flex flex-col gap-1 justify-end">
+                  <button
+                    onClick={async () => {
+                      const email = newTeammateEmail.trim().toLowerCase();
+                      const name = newTeammateName.trim();
+                      if (!email || !email.includes('@') || !name || savingTeammates || !onSaveTeammates) return;
+                      setSavingTeammates(true);
+                      try {
+                        const existing = teammates.filter(t => t.email.toLowerCase().trim() !== email);
+                        const updated = [...existing, { email, name, isActive: true }];
+                        await onSaveTeammates(updated);
+                        setNewTeammateEmail('');
+                        setNewTeammateName('');
+                        setIsAddingTeammate(false);
+                      } catch (err) {
+                        console.error(err);
+                      } finally {
+                        setSavingTeammates(false);
+                      }
+                    }}
+                    disabled={savingTeammates || !newTeammateEmail || !newTeammateName}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white h-8 px-4 rounded-xl font-bold text-[10px] uppercase tracking-wider shadow-sm active:scale-95 transition-all whitespace-nowrap cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>Hinzufügen</span>
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Search & Filter Toolbar */}
           <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
@@ -952,139 +1035,121 @@ export const AdminTab: React.FC<AdminTabProps> = ({
           </div>
         </div>
 
-        {/* Block: Backup & Datenwiederherstellung */}
-        <div className="relative overflow-hidden isolate bg-white dark:bg-zinc-900 rounded-xl p-5 border border-slate-200 dark:border-zinc-800 shadow-xs transition-all duration-300 group/admin-card hover:border-slate-350 dark:hover:border-zinc-700">
-          <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full blur-3xl pointer-events-none opacity-0 group-hover/admin-card:opacity-100 transition-opacity duration-500 bg-amber-500/10 dark:bg-amber-400/5" />
-          
-          <div className="relative z-10 flex items-center justify-between mb-4 pb-3 border-b border-slate-150 dark:border-zinc-800/80">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                <Database className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">
-                  Backup & Datenwiederherstellung
-                </h3>
-                <p className="text-[9px] text-slate-400 mt-0.5">Sichere deine Daten im JSON-Format oder stelle sie aus einem Backup wieder her.</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="relative z-10 space-y-4">
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
-              Mit dieser Funktion kannst du alle Angebote, Ausarbeitungen, Umsatzziele, Administratoren und Verkäuferkonfigurationen in einer einzigen Datei auf deinem Computer speichern. Im Notfall lässt sich dieser Zustand vollständig wiederherstellen.
-            </p>
-
-            <div className="flex flex-wrap gap-3">
-              {/* Export Button */}
-              <button
-                onClick={() => {
-                  try {
-                    const backup = {
-                      version: 1,
-                      exportedAt: new Date().toISOString(),
-                      commissions: commissions || [],
-                      ausarbeitungen: ausarbeitungen || [],
-                      settings: {
-                        annualTarget,
-                        yearlyTargets,
-                        adminEmails,
-                        teammates,
-                      }
-                    };
-                    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    const d = new Date();
-                    const dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-                    a.href = url;
-                    a.download = `kitcommand_backup_${dateStr}.json`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                  } catch (err) {
-                    console.error('Export failed:', err);
-                    alert('Export fehlgeschlagen: ' + err);
-                  }
-                }}
-                className="theme-backup-download-btn p-2.5 px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Backup herunterladen (JSON)</span>
-              </button>
-
-              {/* Import Upload trigger */}
-              <label className="theme-backup-upload-btn p-2.5 px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 cursor-pointer active:scale-95 transition-all select-none">
-                <Upload className="w-3.5 h-3.5" />
-                <span>Backup einspielen (JSON)</span>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = async (event) => {
-                      try {
-                        const parsed = JSON.parse(event.target?.result as string);
-                        if (!parsed || (typeof parsed !== 'object')) {
-                          throw new Error('Ungültiges Dateiformat. Die Datei muss ein JSON-Objekt sein.');
-                        }
-                        if (!parsed.commissions || !Array.isArray(parsed.commissions)) {
-                          throw new Error('Die Datei enthält keine gültigen Kommissionsdaten.');
-                        }
-                        setPendingBackup(parsed);
-                        setConfirmText('');
-                        setIsConfirmOpen(true);
-                      } catch (err: any) {
-                        alert('Fehler beim Lesen der Backup-Datei: ' + err.message);
-                      }
-                    };
-                    reader.readAsText(file);
-                    e.target.value = '';
-                  }}
-                  className="hidden"
-                />
-              </label>
-            </div>
-          </div>
-        </div>
-
       </div>
       )}
 
-      {/* ABSCHNITT 2: EINSTELLUNGEN & THEMES */}
-      {activeSection === 'settings' && (
-        <div className="space-y-6 flex-1 text-left">
-          
-          {/* Cloud Sync Status Banner */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0">
-                <Cloud className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <p className="text-xs font-black tracking-tight flex items-center gap-1.5 text-slate-800 dark:text-zinc-100">
-                  Cloud-Profilspeicherung aktiv
-                </p>
-                <p className="text-[10px] text-slate-500 dark:text-zinc-400 leading-tight">
-                  Theme, Starttab, Perspektive & Anzeigename sind in deinem Konto hinterlegt und bleiben nach jedem Login erhalten.
-                </p>
+      {/* ABSCHNITT 2: BACKUP & DATENWIEDERHERSTELLUNG */}
+      {activeSection === 'backup' && isAdmin && (
+        <div className="space-y-6 flex-1">
+          <div className="border-b border-slate-200/60 dark:border-zinc-800 pb-4">
+            <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              Datensicherung & Wiederherstellung
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">Sichere deinen gesamten Datenbestand oder stelle ihn aus einer JSON-Datei wieder her.</p>
+          </div>
+
+          {/* Block: Backup & Datenwiederherstellung */}
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-zinc-800 shadow-xs">
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 pb-3 border-b border-slate-150 dark:border-zinc-800/80">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
+                  <Database className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-zinc-100">
+                    Backup & Datenwiederherstellung
+                  </h3>
+                  <p className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5">
+                    Sichere deinen gesamten Datenbestand oder stelle ihn aus einer JSON-Datei wieder her.
+                  </p>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-              {isSavingPreferences ? (
-                <span className="text-[10px] font-mono font-bold bg-blue-500/20 text-blue-700 dark:text-blue-300 py-1.5 px-3 rounded-xl animate-pulse flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 animate-spin" /> Speichere Cloud...
-                </span>
-              ) : (
-                <span className="text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 py-1.5 px-3 rounded-xl flex items-center gap-1.5 border border-emerald-500/20">
-                  <Check className="w-3.5 h-3.5 stroke-[2.5]" /> In Cloud gesichert
-                </span>
-              )}
+
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2.5">
+                {/* Export Button */}
+                <button
+                  onClick={() => {
+                    try {
+                      const backup = {
+                        version: 1,
+                        exportedAt: new Date().toISOString(),
+                        commissions: commissions || [],
+                        ausarbeitungen: ausarbeitungen || [],
+                        settings: {
+                          annualTarget,
+                          yearlyTargets,
+                          adminEmails,
+                          teammates,
+                        }
+                      };
+                      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      const d = new Date();
+                      const dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                      a.href = url;
+                      a.download = `kitcommand_backup_${dateStr}.json`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                    } catch (err) {
+                      console.error('Export failed:', err);
+                      alert('Export fehlgeschlagen: ' + err);
+                    }
+                  }}
+                  className="theme-backup-download-btn p-2.5 px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Backup herunterladen (JSON)</span>
+                </button>
+
+                {/* Import Upload trigger */}
+                <label className="theme-backup-upload-btn p-2.5 px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 cursor-pointer active:scale-95 transition-all select-none">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Backup einspielen (JSON)</span>
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = async (event) => {
+                        try {
+                          const parsed = JSON.parse(event.target?.result as string);
+                          if (!parsed || (typeof parsed !== 'object')) {
+                            throw new Error('Ungültiges Dateiformat. Die Datei muss ein JSON-Objekt sein.');
+                          }
+                          if (!parsed.commissions || !Array.isArray(parsed.commissions)) {
+                            throw new Error('Die Datei enthält keine gültigen Kommissionsdaten.');
+                          }
+                          setPendingBackup(parsed);
+                          setConfirmText('');
+                          setIsConfirmOpen(true);
+                        } catch (err: any) {
+                          alert('Fehler beim Lesen der Backup-Datei: ' + err.message);
+                        }
+                      };
+                      reader.readAsText(file);
+                      e.target.value = '';
+                    }}
+                    className="hidden"
+                  />
+                </label>
+              </div>
             </div>
           </div>
+
+        </div>
+      )}
+
+      {/* ABSCHNITT 3: EINSTELLUNGEN & THEMES */}
+      {activeSection === 'settings' && (
+        <div className="space-y-6 flex-1 text-left">
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             {/* Left Column: Name & Starttab & Perspective */}
@@ -1125,7 +1190,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                   </label>
                 </div>
                 <div id="standard-starttab-container" className="grid grid-cols-2 gap-2 pt-1.5">
-                  {(['open', 'sold', 'ausarbeitung', 'stats'] as const).map((tab) => {
+                  {(['open', 'sold', 'ausarbeitung', 'stats', 'personal_stats'] as const).map((tab) => {
                     if (tab === 'ausarbeitung' && !isAdmin && currentUser?.email?.toLowerCase().trim() !== 'belmonte@fs-kuechen.de') {
                       return null;
                     }
@@ -1135,6 +1200,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                       sold: 'Verkauft',
                       ausarbeitung: 'Ausarbeitung',
                       stats: 'Statistik',
+                      personal_stats: 'Persönlich',
                     };
 
                     const isSelected = startTab === tab;
@@ -1253,18 +1319,43 @@ export const AdminTab: React.FC<AdminTabProps> = ({
             </div>
           </div>
 
+          {/* Logout button at bottom (ONLY in Einstellungen) */}
+          <div className="border-t border-slate-200/60 dark:border-zinc-800 pt-6 mt-4">
+            <button
+              onClick={onLogout}
+              className="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white transition-colors active:scale-95 shadow-sm cursor-pointer"
+            >
+              Abmelden
+            </button>
+          </div>
+
         </div>
       )}
 
-      {/* Logout button at bottom */}
-      <div className="border-t border-slate-200/60 dark:border-zinc-800 pt-6 mt-auto">
-        <button
-          onClick={onLogout}
-          className="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-widest bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white transition-colors active:scale-95 shadow-sm cursor-pointer"
-        >
-          Abmelden
-        </button>
-      </div>
+      {/* Schwebendes Toast-Pop-Up: In Cloud gesichert (wird bei Änderung einer Einstellung angezeigt) */}
+      {cloudToast.visible && activeSection === 'settings' && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-3 duration-200 pointer-events-none">
+          <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-900/90 dark:bg-zinc-850/95 text-white shadow-2xl backdrop-blur-md border border-slate-700/60 dark:border-zinc-700/80 ring-1 ring-black/10">
+            {cloudToast.isSaving ? (
+              <>
+                <Sparkles className="w-3.5 h-3.5 text-blue-400 animate-spin shrink-0" />
+                <span className="text-xs font-semibold tracking-wide text-slate-200">
+                  Speichere in Cloud...
+                </span>
+              </>
+            ) : (
+              <>
+                <div className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                  <Check className="w-3 h-3 stroke-[3]" />
+                </div>
+                <span className="text-xs font-bold tracking-wide text-emerald-300">
+                  In Cloud gesichert
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Restore Confirmation Modal */}
       {isConfirmOpen && pendingBackup && (
