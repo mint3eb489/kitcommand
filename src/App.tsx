@@ -2119,20 +2119,14 @@ export default function App() {
               <button
                 id="mobile-logo-theme-toggle"
                 onClick={toggleTheme}
-                className="w-11 h-11 bg-white dark:bg-zinc-900 border border-blue-500/80 dark:border-blue-400/80 rounded-xl flex items-center justify-center shadow-xs shrink-0 cursor-pointer active:scale-95 transition-all text-blue-600 dark:text-blue-450 relative overflow-hidden"
+                className="w-11 h-11 rounded-xl flex items-center justify-center shadow-xs shrink-0 cursor-pointer active:scale-95 transition-transform duration-200 relative overflow-hidden ring-1 ring-slate-900/10 dark:ring-white/10"
                 title="Wechsle Theme"
               >
-                <div className="absolute inset-0 flex items-center justify-center p-1.5 z-10 pointer-events-none">
-                  <img
-                    src={theme === 'dark' ? '/icon-dark.png' : '/icon-light.png'}
-                    alt="KitCommand Logo"
-                    className="w-full h-full object-contain rounded-md"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                </div>
-                <TrendingUp className="w-5 h-5 stroke-[2.25] text-blue-600 dark:text-blue-400" />
+                <img
+                  src="/apple-touch-icon.png"
+                  alt="KitCommand Logo"
+                  className="w-full h-full object-cover"
+                />
               </button>
 
               <div className="flex items-center gap-2">
@@ -2168,26 +2162,14 @@ export default function App() {
               <button
                 id="app-logo-theme-toggle"
                 onClick={toggleTheme}
-                className="w-13 h-13 sm:w-14 sm:h-14 bg-white dark:bg-zinc-900 border border-blue-500/80 dark:border-blue-400/80 rounded-xl flex items-center justify-center shadow-xs shrink-0 cursor-pointer active:scale-95 transition-all text-blue-600 dark:text-blue-450 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 hover:border-blue-600 dark:hover:border-blue-300 group relative overflow-hidden"
+                className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-sm hover:shadow-md shrink-0 cursor-pointer active:scale-95 hover:scale-105 transition-all duration-300 group relative overflow-hidden ring-1 ring-slate-900/10 dark:ring-white/10"
                 title="Wechsle Theme"
               >
-                {/* Dynamic Image Logo */}
-                <div className="absolute inset-0 flex items-center justify-center p-1.5 z-10 select-none pointer-events-none">
-                  <img
-                    src={theme === 'dark' ? '/icon-dark.png' : '/icon-light.png'}
-                    alt="KitCommand Logo"
-                    className="w-full h-full object-contain rounded-lg group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                </div>
-
-                {/* Symmetrical Vector Emblem */}
-                <div className="relative flex items-center justify-center z-0">
-                  <TrendingUp className="w-6 h-6 stroke-[2.25] text-blue-600 dark:text-blue-400 group-hover:scale-110 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-all duration-300 ease-out" />
-                  <Sparkles className="w-3.5 h-3.5 absolute -top-2.5 -right-2.5 text-amber-500 fill-amber-500/30 opacity-60 group-hover:opacity-100 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300" />
-                </div>
+                <img
+                  src="/apple-touch-icon.png"
+                  alt="KitCommand Logo"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
               </button>
               
               <div>

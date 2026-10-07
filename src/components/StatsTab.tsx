@@ -740,6 +740,14 @@ export const StatsTab: React.FC<StatsTabProps> = ({
       });
     });
 
+    // Helper to sort delivery Year numerically
+    const parseDeliveryYear = (yearStr: string | undefined): number => {
+      if (!yearStr) return 9999;
+      const num = parseInt(yearStr.replace(/\D/g, ''), 10);
+      if (isNaN(num)) return 9999;
+      return num < 100 ? 2000 + num : num;
+    };
+
     // Helper to sort delivery KWs numerically
     const parseKw = (kwStr: string | undefined): number => {
       if (!kwStr) return 999;
@@ -750,11 +758,16 @@ export const StatsTab: React.FC<StatsTabProps> = ({
 
     const list = Object.values(counts)
       .map((data) => {
-        // Sort items inside each city by delivery KW ascending, then by name
+        // Sort items inside each city by entered delivery Year ascending, then delivery KW ascending, then by name
         const sortedItems = [...data.items].sort((a, b) => {
+          const yearA = parseDeliveryYear(a.deliveryYear);
+          const yearB = parseDeliveryYear(b.deliveryYear);
+          if (yearA !== yearB) return yearA - yearB;
+
           const kwA = parseKw(a.deliveryKw);
           const kwB = parseKw(b.deliveryKw);
           if (kwA !== kwB) return kwA - kwB;
+
           return a.name.localeCompare(b.name);
         });
 
@@ -1338,7 +1351,7 @@ export const StatsTab: React.FC<StatsTabProps> = ({
           <div className="pt-2">
             {cityStats.list.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
-                 {cityStats.list.slice(0, 8).map((city, index) => {
+                 {cityStats.list.slice(0, 10).map((city, index) => {
                    const percentWidth = (city.count / cityStats.maxCount) * 100;
                    return (
                      <div 
@@ -1381,12 +1394,12 @@ export const StatsTab: React.FC<StatsTabProps> = ({
                        {/* Interactive Hover Tooltip for Commissions */}
                        {city.items.length > 0 && (
                          <div 
-                           className={`top-deliveries-tooltip absolute z-50 transition-all duration-200 bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-3 shadow-xl w-64 left-6 text-[11px] leading-normal font-sans text-slate-700 dark:text-zinc-300 ${
+                           className={`top-deliveries-tooltip absolute z-50 transition-all duration-200 bg-white dark:bg-zinc-950 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl p-3 shadow-xl w-72 left-6 text-[11px] leading-normal font-sans text-slate-700 dark:text-zinc-300 ${
                              activeCityTooltip === city.cityName
                                ? 'visible opacity-100 pointer-events-auto'
                                : 'invisible group-hover/city-row:visible opacity-0 group-hover/city-row:opacity-100 pointer-events-none'
                            } ${
-                             index < 4 ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
+                             index < 6 ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
                            }`}
                          >
                            <div className="tooltip-title font-bold border-b border-slate-100 dark:border-zinc-900 pb-1 mb-1.5 flex justify-between items-center text-slate-800 dark:text-zinc-100 text-[11px]">
@@ -1396,10 +1409,11 @@ export const StatsTab: React.FC<StatsTabProps> = ({
                            <div className="space-y-1.5 max-h-[140px] overflow-y-auto scrollbar-none pr-0.5">
                              {city.items.map((item, idx) => (
                                <div key={item.id + '-' + idx} className="tooltip-item-row flex justify-between items-center gap-1.5 py-0.5 border-b border-slate-50 dark:border-zinc-900/30 last:border-0">
-                                 <span className="tooltip-item-name truncate text-slate-700 dark:text-zinc-300 font-semibold max-w-[120px]">{item.name}</span>
+                                 <span className="tooltip-item-name truncate text-slate-700 dark:text-zinc-300 font-semibold max-w-[110px]">{item.name}</span>
                                  <div className="flex items-center gap-1.5 shrink-0">
-                                   <span className="tooltip-item-kw text-[8.5px] font-mono px-1 py-0.5 rounded font-black border bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-200/30 dark:border-amber-900/30 leading-none">
+                                   <span className="tooltip-item-kw text-[8.5px] font-mono px-1.5 py-0.5 rounded font-black border bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-200/30 dark:border-amber-900/30 leading-none shrink-0">
                                      {item.deliveryKw ? `KW ${item.deliveryKw.toUpperCase().replace('KW', '').trim()}` : 'KW ?'}
+                                     {item.deliveryYear ? ` / '${item.deliveryYear.slice(-2)}` : ''}
                                    </span>
                                    <span className="tooltip-item-price font-mono text-[10px] font-bold text-slate-500 dark:text-zinc-400">{formatter.format(item.price)}</span>
                                  </div>
@@ -1409,7 +1423,7 @@ export const StatsTab: React.FC<StatsTabProps> = ({
                            {/* Arrow pointing to the row */}
                            <div 
                              className={`tooltip-arrow absolute left-6 w-2.5 h-2.5 bg-white dark:bg-zinc-950 ${
-                               index < 4 
+                               index < 6 
                                  ? 'bottom-full -mb-[5px] border-l border-t border-slate-200/80 dark:border-zinc-800/80' 
                                  : 'top-full -mt-[5px] border-r border-b border-slate-200/80 dark:border-zinc-800/80'
                              } rotate-45`} 
