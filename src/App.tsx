@@ -2123,7 +2123,7 @@ export default function App() {
                 title="Wechsle Theme"
               >
                 <img
-                  src="/apple-touch-icon.png"
+                  src={theme === 'dark' ? '/icon-dark.png' : '/icon-light.png'}
                   alt="KitCommand Logo"
                   className="w-full h-full object-cover"
                 />
@@ -2166,7 +2166,7 @@ export default function App() {
                 title="Wechsle Theme"
               >
                 <img
-                  src="/apple-touch-icon.png"
+                  src={theme === 'dark' ? '/icon-dark.png' : '/icon-light.png'}
                   alt="KitCommand Logo"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
